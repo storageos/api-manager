@@ -1,0 +1,7 @@
+apiVersion: internal.storageos.com/v1
+kind: SharedVolumesInfo
+metadata:
+  name: sharedvolumesinfo-sample
+spec:
+  # Add fields here
+  foo: bar
