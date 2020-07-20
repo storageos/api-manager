@@ -1,7 +1,4 @@
 domain: storageos.com
-repo: github.com/storageos/api-controller
+repo: github.com/storageos/api-manager
 resources:
-- group: internal
-  kind: SharedVolumesInfo
-  version: v1
 version: "2"
