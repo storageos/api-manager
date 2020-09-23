@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= storageos/api-manager:test
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -15,7 +15,7 @@ all: manager
 
 # Run tests
 test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out
+	go test -timeout 300s ./... -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet tidy
@@ -27,8 +27,8 @@ tidy:
 	go mod vendor -v
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
-	go run ./main.go
+run: generate fmt vet manifests secret
+	go run ./main.go -api-secret-path=$(PWD)/.secret
 
 # Install CRDs into a cluster
 install: manifests
@@ -83,3 +83,13 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+# Create local secret, required for `run` target.
+secret: .secret .secret/username .secret/password
+.secret:
+	mkdir .secret
+.secret/username:
+	echo "storageos" >.secret/username
+.secret/password:
+	echo "storageos" >.secret/password
+
