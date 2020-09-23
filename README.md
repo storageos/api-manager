@@ -56,16 +56,14 @@ The following flags are supported:
 ```console
   -api-endpoint string
     	The StorageOS api endpoint address. (default "storageos")
-  -api-password string
-    	Password to authenticate to the StorageOS api with. (default "storageos")
   -api-poll-interval duration
     	Frequency of StorageOS api polling. (default 5s)
   -api-refresh-interval duration
     	Frequency of StorageOS api authentication token refresh. (default 1m0s)
   -api-retry-interval duration
-    	Frequency of StorageOS api authentication token refresh. (default 5s)
-  -api-username string
-    	Username to authenticate to the StorageOS api with. (default "storageos")
+    	Frequency of StorageOS api retries on failure. (default 5s)
+  -api-secret-path path
+    	Path where the StorageOS api secret is mounted.  The secret must have username and `password` set. (default "/etc/storageos/secrets/api")
   -cache-expiry-interval duration
     	Frequency of cached volume re-validation. (default 1m0s)
   -enable-leader-election
