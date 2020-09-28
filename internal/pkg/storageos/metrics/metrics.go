@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,13 +25,16 @@ var (
 
 	// Errors counts errors encountered by api helpers.
 	Errors ResultMetric = &resultAdapter{m: helperResultCounter}
+
+	// registerMetricsOnce keeps track of metrics registration.
+	registerMetricsOnce sync.Once
 )
 
 var (
 	helperLatencyHistogram = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "storageos_api_helper_duration_seconds",
-			Help:    "Distribution of the length of time api helpers takes.",
+			Help:    "Distribution of the length of time api helpers take to complete.",
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"function"},
@@ -39,15 +43,18 @@ var (
 	helperResultCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "storageos_api_helper_total",
-			Help: "Number of api helper calls, partitioned by name and error string.",
+			Help: "Number of api helper calls, partitioned by function name and error string.",
 		},
 		[]string{"function", "error"},
 	)
 )
 
-func init() {
-	metrics.Registry.MustRegister(helperLatencyHistogram)
-	metrics.Registry.MustRegister(helperResultCounter)
+// RegisterMetrics ensures that the package metrics are registered.
+func RegisterMetrics() {
+	registerMetricsOnce.Do(func() {
+		metrics.Registry.MustRegister(helperLatencyHistogram)
+		metrics.Registry.MustRegister(helperResultCounter)
+	})
 }
 
 type latencyAdapter struct {

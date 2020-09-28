@@ -56,6 +56,10 @@ type Reconciler struct {
 
 // NewReconciler returns a new SharedVolumeAPIReconciler.
 func NewReconciler(api storageos.VolumeSharer, apiReset chan<- struct{}, k8s client.Client, recorder record.EventRecorder) *Reconciler {
+
+	// Register prometheus metrics.
+	RegisterMetrics()
+
 	return &Reconciler{
 		Client:   k8s,
 		log:      ctrl.Log.WithName("controllers").WithName("SharedVolume"),

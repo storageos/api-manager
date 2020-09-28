@@ -1,6 +1,7 @@
 package sharedvolume
 
 import (
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,20 +17,26 @@ var (
 	// ReconcileDuration is the latency metric that measures the duration of the
 	// shared volume reconcile loop.
 	ReconcileDuration LatencyMetric = &latencyAdapter{m: reconcileLatencyHistogram}
+
+	// registerMetricsOnce keeps track of metrics registration.
+	registerMetricsOnce sync.Once
 )
 
 var (
 	reconcileLatencyHistogram = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Name:    "storageos_api_shared_volume_reconcile_duration_seconds",
-			Help:    "Distribution of the length of time to reconcile shared volumes.",
+			Name:    "storageos_shared_volume_reconcile_duration_seconds",
+			Help:    "Distribution of the length of time to reconcile all shared volumes.",
 			Buckets: prometheus.DefBuckets,
 		},
 	)
 )
 
-func init() {
-	metrics.Registry.MustRegister(reconcileLatencyHistogram)
+// RegisterMetrics ensures that the package metrics are registered.
+func RegisterMetrics() {
+	registerMetricsOnce.Do(func() {
+		metrics.Registry.MustRegister(reconcileLatencyHistogram)
+	})
 }
 
 type latencyAdapter struct {

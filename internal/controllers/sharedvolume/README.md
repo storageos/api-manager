@@ -121,7 +121,14 @@ will delete it and the Endpoint, which is automatically associated with the Serv
 
 The following metrics are collected:
 
-- `storageos_list_shared_volumes_seconds`: Distribution of the length of time
-  the ListSharedVolumes api call takes.
-- `storageos_set_external_endpoint_seconds`: Distribution of the length of time
-  the SetExternalEndpoint api call takes.
+- `storageos_api_helper_duration_seconds` Distribution of the length of time api
+  helpers take to complete.  API helper name set as `function` label.
+- `storageos_api_helper_total` Number of api helper calls, partitioned by
+  function name and error string.
+- `storageos_api_in_flight_requests` A gauge of in-flight requests for the api client.
+- `storageos_api_request_duration_seconds` A histogram of request latencies,
+  partitioned by HTTP request method.
+- `storageos_api_requests_total` A counter for requests from the api client,
+  partitioned by HTTP request method and response code.
+- `storageos_shared_volume_reconcile_duration_seconds` Distribution of the
+  length of time taken to reconcile all shared volumes.
