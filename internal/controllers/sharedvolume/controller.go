@@ -76,6 +76,8 @@ func NewReconciler(api storageos.VolumeSharer, apiReset chan<- struct{}, k8s cli
 // that are no longer required, this is done via OwnerReferences.
 func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiryInterval, k8sCreatePollInterval, k8sCreateWaitDuration time.Duration) error {
 	for {
+		start := time.Now()
+
 		// Query shared volumes info.
 		volumes, err := r.api.ListSharedVolumes()
 		if err != nil {
@@ -140,6 +142,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 			// expiry.
 			r.volumes.Set(vol.ID, vol, cacheExpiryInterval)
 		}
+
+		// Record reconcile duration.
+		ReconcileDuration.Observe(time.Since(start))
 
 		// Wait before polling again or exit if the context has been cancelled.
 		select {
