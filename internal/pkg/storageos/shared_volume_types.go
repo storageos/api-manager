@@ -16,10 +16,11 @@ const (
 	// NFSProtocol is the prtocol to be used for NFS.
 	NFSProtocol = "TCP"
 
-	// SharedVolumeLabelName is the label to set on created resources that will
-	// identify them as being managed by this controller.  The value could be
-	// anything - using volume ID to assist with debugging.
-	SharedVolumeLabelName = "storageos.com/sharedvolume"
+	// VolumeIDLabelName is the label to set on created resources that refers
+	// back to the StorageOS volume by its ID.  This label is intended for
+	// assisting with debugging and the api-manager should not rely on it being
+	// set.
+	VolumeIDLabelName = "storageos.com/volume-id"
 
 	// LabelNFSMountEndpoint is the nfs attachment's mount endpoint, if any.
 	LabelNFSMountEndpoint = "storageos.com/nfs/mount-endpoint"
@@ -94,7 +95,7 @@ func (v *SharedVolume) Service(ownerRef metav1.OwnerReference) *corev1.Service {
 			Name:      v.Name,
 			Namespace: v.Namespace,
 			Labels: map[string]string{
-				SharedVolumeLabelName: v.ID,
+				VolumeIDLabelName: v.ID,
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerRef},
 		},
@@ -156,7 +157,7 @@ func (v *SharedVolume) Endpoints() *corev1.Endpoints {
 			Name:      v.Name,
 			Namespace: v.Namespace,
 			Labels: map[string]string{
-				SharedVolumeLabelName: v.ID,
+				VolumeIDLabelName: v.ID,
 			},
 		},
 		Subsets: []corev1.EndpointSubset{

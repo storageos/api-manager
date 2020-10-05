@@ -71,8 +71,8 @@ var _ = Describe("SharedVolume Controller", func() {
 				return k8sClient.Get(ctx, key, svc)
 			}, timeout, interval).Should(Succeed())
 
-			By("Expecting service with shared volume label set to volume id")
-			vid, ok := svc.Labels[storageos.SharedVolumeLabelName]
+			By("Expecting service with volume id label set to volume id")
+			vid, ok := svc.Labels[storageos.VolumeIDLabelName]
 			Expect(ok).Should(BeTrue())
 			Expect(vid).Should(Equal(v.ID))
 
@@ -133,8 +133,8 @@ var _ = Describe("SharedVolume Controller", func() {
 				return k8sClient.Get(ctx, key, endpoints)
 			}, timeout, interval).Should(Succeed())
 
-			By("Expecting endpoints with shared volume label set to volume id")
-			vid, ok := endpoints.Labels[storageos.SharedVolumeLabelName]
+			By("Expecting endpoints with volume id label set to volume id")
+			vid, ok := endpoints.Labels[storageos.VolumeIDLabelName]
 			Expect(ok).Should(BeTrue())
 			Expect(vid).Should(Equal(v.ID))
 
