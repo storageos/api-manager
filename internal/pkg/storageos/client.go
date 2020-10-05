@@ -75,6 +75,7 @@ func New(username, password, endpoint string) (*Client, error) {
 // has tracing enabled.  The authentication token must be refreshed periodically
 // using AuthenticateRefresh().
 func NewTracedClient(username, password, endpoint string) (*Client, error) {
+	metrics.RegisterMetrics()
 	transport := metrics.InstrumentedTransport(http.DefaultTransport)
 	ctx, client, err := newAuthenticatedClient(username, password, endpoint, transport)
 	if err != nil {
