@@ -1,5 +1,7 @@
 # StorageOS API Manager
 
+[![Test and build image](https://github.com/storageos/api-manager/workflows/Test%20and%20build%20image/badge.svg)](https://github.com/storageos/api-manager/actions?query=workflow%3A%22Test+and+build+image%22)
+
 The StorageOS API Manager acts as a middle-man between various APIs.  It has all
 the capabilites of a Kubernetes Operator and is also able to communicate with
 the StorageOS control plane API.
