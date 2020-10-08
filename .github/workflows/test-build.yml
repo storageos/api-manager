@@ -6,8 +6,8 @@ env:
   IMG: storageos/api-manager:develop
 
 jobs:
-  test:
-    name: Run tests
+  test-build:
+    name: Run tests and build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -16,23 +16,14 @@ jobs:
           go-version: '1.15.2'
       - name: go-test
         run: make test
+      - name: build
+        run: make manager
 
   build-image:
-    needs: test
-    runs-on: ubuntu-latest
     name: Build container image
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Build container image
         run: make docker-build
-      - name: Login to container registry
-        if: github.ref == 'ref/heads/master'
-        uses: docker/login-action@v1
-        with:
-          registry: docker.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.CR_PAT }}
-      - name: Push container image
-        if: github.ref == 'ref/heads/master'
-        run: make docker-push

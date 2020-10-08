@@ -1,0 +1,27 @@
+name: Publish develop image
+
+on:
+  push:
+    branch:
+      - master
+
+env:
+  IMG: storageos/api-manager:develop
+
+jobs:
+  publish-image:
+    runs-on: ubuntu-latest
+    name: Publish container image
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Login to container registry
+        uses: docker/login-action@v1
+        with:
+          registry: docker.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+      - name: Build container image
+        run: make docker-build
+      - name: Push container image
+        run: make docker-push
