@@ -31,10 +31,6 @@ const (
 	// defaultCacheCleanupInterval determines how often the cache is checked for
 	// expired items and removes them from the cache.
 	defaultCacheCleanupInterval = 5 * time.Minute
-
-	nfsPort     int32 = 2049
-	nfsPortName       = "nfs"
-	nfsProtocol       = "TCP"
 )
 
 var (
@@ -56,7 +52,6 @@ type Reconciler struct {
 
 // NewReconciler returns a new SharedVolumeAPIReconciler.
 func NewReconciler(api storageos.VolumeSharer, apiReset chan<- struct{}, k8s client.Client, recorder record.EventRecorder) *Reconciler {
-
 	// Register prometheus metrics.
 	RegisterMetrics()
 
@@ -90,7 +85,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 		}
 
 		for _, vol := range volumes {
-
 			log := r.log.WithValues("name", vol.Name, "namespace", vol.Namespace)
 
 			// Fetch volume from cache. If the cached entry is the same then
@@ -157,13 +151,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 			return ctx.Err()
 		}
 	}
-
 }
 
 // ensureService makes sure that the required k8s objects are up-to-date for the
 // given SharedVolume.  Returns the public endpoint for the service.
 func (r *Reconciler) ensureService(ctx context.Context, sv *storageos.SharedVolume, ownerRef metav1.OwnerReference, k8sCreatePollInterval time.Duration, k8sCreateWaitDuration time.Duration) (string, error) {
-
 	nn := types.NamespacedName{
 		Name:      sv.Name,
 		Namespace: sv.Namespace,
