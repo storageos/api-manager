@@ -4,6 +4,11 @@ IMG ?= storageos/api-manager:test
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
+OS=$(shell go env GOOS)
+ARCH=$(shell go env GOARCH)
+KUBEBUILDER_VERSION=2.3.1
+DEFAULT_KUBEBUILDER_PATH=/usr/local/kubebuilder/bin
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -13,8 +18,15 @@ endif
 
 all: manager
 
+# Install kubebuilder tools. This is required for running envtest.
+kubebuilder:
+	@if [ ! -d $(DEFAULT_KUBEBUILDER_PATH) ]; then \
+		curl -L https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(OS)/$(ARCH) | tar -xz -C /tmp/; \
+		sudo mv /tmp/kubebuilder_$(KUBEBUILDER_VERSION)_$(OS)_$(ARCH)/ /usr/local/kubebuilder; \
+	fi
+
 # Run tests
-test: generate fmt vet manifests
+test: kubebuilder generate fmt vet manifests
 	go test -timeout 300s ./... -coverprofile cover.out
 
 # Build manager binary
@@ -60,7 +72,7 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test
+docker-build:
 	docker build . -t ${IMG}
 
 # Push the docker image
