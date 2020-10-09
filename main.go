@@ -119,6 +119,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	// +kubebuilder:scaffold:builder
+
 	// Events sent on apiReset channel will trigger the api client to re-initialise.
 	apiReset := make(chan struct{})
 	ctx, cancel := context.WithCancel(context.Background())
@@ -139,17 +141,16 @@ func main() {
 
 	// Goroutine to handle api credential refreshes and client reconnects
 	// whenever events are received on the apiReset channel.
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		err := api.Refresh(ctx, apiSecretPath, apiEndpoint, apiReset, apiRefreshInterval, apimetrics.Errors, setupLog)
 		errCh <- fmt.Errorf("api token refresh error: %w", err)
 		wg.Done()
 	}()
 
 	// Goroutine to run the kubebuilder manager.
+	wg.Add(1)
 	go func() {
-		// +kubebuilder:scaffold:builder
-		wg.Add(1)
 		err := mgr.Start(stopCh)
 		if err != nil {
 			errCh <- fmt.Errorf("manager error: %w", err)
@@ -169,8 +170,8 @@ func main() {
 
 	// Goroutine to poll StorageOS api for shared volumes and create/update
 	// Kubernetes services as needed.
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		setupLog.Info("starting shared volume controller ")
 		err := sharedvolume.NewReconciler(api, apiReset, mgr.GetClient(), mgr.GetEventRecorderFor(EventSourceName)).Reconcile(ctx, apiPollInterval, cacheExpiryInterval, k8sCreatePollInterval, k8sCreateWaitDuration)
 		errCh <- fmt.Errorf("shared volume reconciler error: %w", err)

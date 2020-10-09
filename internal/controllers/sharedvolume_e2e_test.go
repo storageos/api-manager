@@ -200,7 +200,7 @@ var _ = Describe("SharedVolume Controller", func() {
 
 			By("Expecting service frontend not to change")
 			Consistently(func() string {
-				k8sClient.Get(ctx, key, svc)
+				Expect(k8sClient.Get(ctx, key, svc)).Should(Succeed())
 				return svc.Spec.ClusterIP
 			}, wait, interval).Should(Equal(clusterIP))
 		})
@@ -255,13 +255,13 @@ var _ = Describe("SharedVolume Controller", func() {
 
 			By("Expecting endpoints backend ip address to change")
 			Eventually(func() string {
-				k8sClient.Get(ctx, key, endpoints)
+				Expect(k8sClient.Get(ctx, key, endpoints)).Should(Succeed())
 				return endpoints.Subsets[0].Addresses[0].IP
 			}, timeout, interval).Should(Equal("5.6.7.8"))
 
 			By("Expecting endpoints backend port to change")
 			Eventually(func() int32 {
-				k8sClient.Get(ctx, key, endpoints)
+				Expect(k8sClient.Get(ctx, key, endpoints)).Should(Succeed())
 				return endpoints.Subsets[0].Ports[0].Port
 			}, timeout, interval).Should(Equal(int32(9999)))
 		})
@@ -333,7 +333,7 @@ var _ = Describe("SharedVolume Controller", func() {
 
 			By("Expecting service frontend not to change")
 			Consistently(func() string {
-				k8sClient.Get(ctx, key, svc)
+				Expect(k8sClient.Get(ctx, key, svc)).Should(Succeed())
 				return svc.Spec.ClusterIP
 			}, wait, interval).Should(Equal(clusterIP))
 		})

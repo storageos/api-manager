@@ -90,10 +90,9 @@ func (c *Client) ListSharedVolumes() (SharedVolumeList, error) {
 }
 
 func toSharedVolume(namespace string, vol api.Volume) (*SharedVolume, error) {
-
 	// Skip non-k8s volumes.  Use the PVC name & namespace for all k8s resources.
-	pvcName, _ := vol.Labels[LabelPVCName]
-	pvcNamespace, _ := vol.Labels[LabelPVCNamespace]
+	pvcName := vol.Labels[LabelPVCName]
+	pvcNamespace := vol.Labels[LabelPVCNamespace]
 	if pvcName == "" || pvcNamespace == "" {
 		return nil, ErrNotKubernetes
 	}
@@ -108,7 +107,7 @@ func toSharedVolume(namespace string, vol api.Volume) (*SharedVolume, error) {
 	}
 
 	// External service address, if any.
-	extEndpoint, _ := vol.Labels[LabelNFSMountEndpoint]
+	extEndpoint := vol.Labels[LabelNFSMountEndpoint]
 
 	return &SharedVolume{
 		ID:               vol.Id,
@@ -140,9 +139,10 @@ func (c *Client) SetExternalEndpoint(id string, namespace string, endpoint strin
 		return observeErr(err)
 	}
 
-	mountEndpoint, _ := curVol.Labels[LabelNFSMountEndpoint]
+	mountEndpoint := curVol.Labels[LabelNFSMountEndpoint]
 	if mountEndpoint == endpoint {
-		return metrics.Errors.Increment(funcName, nil)
+		metrics.Errors.Increment(funcName, nil)
+		return nil
 	}
 
 	if _, err = c.api.DefaultApi.UpdateNFSVolumeMountEndpoint(ctx, curVol.NamespaceID, curVol.Id, api.NfsVolumeMountEndpoint{MountEndpoint: endpoint, Version: curVol.Version}, nil); err != nil {
@@ -152,7 +152,6 @@ func (c *Client) SetExternalEndpoint(id string, namespace string, endpoint strin
 }
 
 func (c *Client) getVolume(ctx context.Context, id string, namespace string) (*api.Volume, error) {
-
 	ns, err := c.getNamespace(ctx, namespace)
 
 	if err != nil {

@@ -87,7 +87,7 @@ func NewTracedClient(username, password, endpoint string) (*Client, error) {
 func newAuthenticatedClient(username, password, endpoint string, transport http.RoundTripper) (context.Context, *api.APIClient, error) {
 	config := api.NewConfiguration()
 
-	if strings.Index(endpoint, "://") == -1 {
+	if !strings.Contains(endpoint, "://") {
 		endpoint = fmt.Sprintf("%s://%s", DefaultScheme, endpoint)
 	}
 
@@ -98,7 +98,7 @@ func newAuthenticatedClient(username, password, endpoint string, transport http.
 
 	config.Scheme = u.Scheme
 	config.Host = u.Host
-	if strings.Index(u.Host, ":") == -1 {
+	if !strings.Contains(u.Host, ":") {
 		config.Host = fmt.Sprintf("%s:%d", u.Host, DefaultPort)
 	}
 

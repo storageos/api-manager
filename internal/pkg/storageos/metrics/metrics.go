@@ -15,7 +15,7 @@ type LatencyMetric interface {
 
 // ResultMetric counts wrappered function errors.
 type ResultMetric interface {
-	Increment(function string, err error) error
+	Increment(function string, err error)
 }
 
 var (
@@ -69,11 +69,10 @@ type resultAdapter struct {
 	m *prometheus.CounterVec
 }
 
-func (r *resultAdapter) Increment(function string, err error) error {
+func (r *resultAdapter) Increment(function string, err error) {
 	if err == nil {
 		r.m.WithLabelValues(function, "").Inc()
 	} else {
 		r.m.WithLabelValues(function, err.Error()).Inc()
 	}
-	return err
 }

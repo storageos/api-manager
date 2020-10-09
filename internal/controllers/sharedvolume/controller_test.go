@@ -310,7 +310,9 @@ func TestReconcile(t *testing.T) {
 				tt.cacheExpiry = defaultCacheExpiryInterval
 			}
 			for _, v := range tt.cached {
-				r.volumes.Add(v.ID, v, tt.cacheExpiry)
+				if cacheErr := r.volumes.Add(v.ID, v, tt.cacheExpiry); cacheErr != nil {
+					t.Errorf("failed to add volume to cache: %v", cacheErr)
+				}
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -368,7 +370,6 @@ func TestReconcile(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.wantVolumes) {
 				t.Errorf("SharedVolume.Reconcile() volumes got:\n%v\n, want:\n%v", got, tt.wantVolumes)
 			}
-
 		})
 	}
 }
