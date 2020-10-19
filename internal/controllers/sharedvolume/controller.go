@@ -85,7 +85,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 		}
 
 		for _, vol := range volumes {
-			log := r.log.WithValues("name", vol.Name, "namespace", vol.Namespace)
+			log := r.log.WithValues("svc", vol.ServiceName, "pvc", vol.PVCName, "namespace", vol.Namespace)
 
 			// Fetch volume from cache. If the cached entry is the same then
 			// skip the k8s api requests to verify until the cache entry
@@ -109,7 +109,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 			// service's owner reference.  If it doesn't exist then the service
 			// is no longer required and we can ignore the request.
 			pvc := &corev1.PersistentVolumeClaim{}
-			if err := r.Client.Get(ctx, types.NamespacedName{Name: vol.Name, Namespace: vol.Namespace}, pvc); err != nil {
+			if err := r.Client.Get(ctx, types.NamespacedName{Name: vol.PVCName, Namespace: vol.Namespace}, pvc); err != nil {
 				if !apierrors.IsNotFound(err) {
 					log.Error(err, "failed to fetch pvc for shared volume")
 					continue
@@ -157,10 +157,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 // given SharedVolume.  Returns the public endpoint for the service.
 func (r *Reconciler) ensureService(ctx context.Context, sv *storageos.SharedVolume, ownerRef metav1.OwnerReference, k8sCreatePollInterval time.Duration, k8sCreateWaitDuration time.Duration) (string, error) {
 	nn := types.NamespacedName{
-		Name:      sv.Name,
+		Name:      sv.ServiceName,
 		Namespace: sv.Namespace,
 	}
-	log := r.log.WithValues("name", nn.Name, "namespace", nn.Namespace)
+	log := r.log.WithValues("svc", sv.ServiceName, "pvc", sv.PVCName, "namespace", sv.Namespace)
 
 	svc := &corev1.Service{}
 	err := r.Client.Get(ctx, nn, svc)
@@ -173,7 +173,7 @@ func (r *Reconciler) ensureService(ctx context.Context, sv *storageos.SharedVolu
 				return "", errors.Wrap(err, "failed to get service resource after create")
 			}
 			log.Info("shared volume service created", "external", frontend(svc))
-			r.recorder.Event(svc, "Normal", "Created", fmt.Sprintf("Created service for shared volume %s/%s", sv.Namespace, sv.Name))
+			r.recorder.Event(svc, "Normal", "Created", fmt.Sprintf("Created service for shared volume %s/%s", sv.Namespace, sv.ServiceName))
 		} else {
 			return "", errors.Wrap(err, "failed to get service, aborting reconcile")
 		}
@@ -205,7 +205,7 @@ func (r *Reconciler) ensureService(ctx context.Context, sv *storageos.SharedVolu
 			return "", errors.Wrap(err, "failed to update endpoints resource")
 		}
 		log.Info("shared volume endpoint updated", "internal", sv.InternalEndpoint)
-		r.recorder.Event(svc, "Warning", "Updated", fmt.Sprintf("Shared volume service target changed %s/%s", sv.Namespace, sv.Name))
+		r.recorder.Event(svc, "Warning", "Updated", fmt.Sprintf("Shared volume service target changed %s/%s", sv.Namespace, sv.ServiceName))
 	}
 
 	return frontend(svc), nil

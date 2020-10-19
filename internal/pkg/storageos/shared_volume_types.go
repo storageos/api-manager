@@ -25,6 +25,9 @@ const (
 	// LabelNFSMountEndpoint is the nfs attachment's mount endpoint, if any.
 	LabelNFSMountEndpoint = "storageos.com/nfs/mount-endpoint"
 
+	// LabelPVName holds the name of the corresponding PV.
+	LabelPVName = "csi.storage.k8s.io/pv/name"
+
 	// LabelPVCName holds the name of the corresponding PVC.
 	LabelPVCName = "csi.storage.k8s.io/pvc/name"
 
@@ -39,18 +42,20 @@ type SharedVolumeList []*SharedVolume
 // SharedVolume represents a single StorageOS shared volume.
 type SharedVolume struct {
 	ID               string
-	Name             string
+	ServiceName      string
+	PVCName          string
 	Namespace        string
 	InternalEndpoint string
 	ExternalEndpoint string
 }
 
 // NewSharedVolume returns a sharedvolume object.
-func NewSharedVolume(id, name, namespace, intEndpoint, extEndpoint string) *SharedVolume {
+func NewSharedVolume(id, pvName, pvcName, pvcNamespace, intEndpoint, extEndpoint string) *SharedVolume {
 	return &SharedVolume{
 		ID:               id,
-		Name:             name,
-		Namespace:        namespace,
+		ServiceName:      pvName,
+		PVCName:          pvcName,
+		Namespace:        pvcNamespace,
 		InternalEndpoint: intEndpoint,
 		ExternalEndpoint: extEndpoint,
 	}
@@ -59,7 +64,8 @@ func NewSharedVolume(id, name, namespace, intEndpoint, extEndpoint string) *Shar
 // IsEqual returns true if the given SharedVolume object is equivalent.
 func (v *SharedVolume) IsEqual(obj *SharedVolume) bool {
 	if obj == nil ||
-		obj.Name != v.Name ||
+		obj.ServiceName != v.ServiceName ||
+		obj.PVCName != v.PVCName ||
 		obj.Namespace != v.Namespace ||
 		obj.InternalEndpoint != v.InternalEndpoint ||
 		obj.ExternalEndpoint != v.ExternalEndpoint {
@@ -92,7 +98,7 @@ func (v *SharedVolume) InternalPort() int {
 func (v *SharedVolume) Service(ownerRef metav1.OwnerReference) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      v.Name,
+			Name:      v.ServiceName,
 			Namespace: v.Namespace,
 			Labels: map[string]string{
 				VolumeIDLabelName: v.ID,
@@ -117,7 +123,7 @@ func (v *SharedVolume) Service(ownerRef metav1.OwnerReference) *corev1.Service {
 // of the SharedVolume.
 func (v *SharedVolume) ServiceIsEqual(svc *corev1.Service) bool {
 	if svc == nil ||
-		svc.Name != v.Name ||
+		svc.Name != v.ServiceName ||
 		svc.Namespace != v.Namespace ||
 		svc.Spec.Type != corev1.ServiceTypeClusterIP {
 		return false
@@ -154,7 +160,7 @@ func (v *SharedVolume) ServiceUpdate(svc *corev1.Service) *corev1.Service {
 func (v *SharedVolume) Endpoints() *corev1.Endpoints {
 	return &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      v.Name,
+			Name:      v.ServiceName,
 			Namespace: v.Namespace,
 			Labels: map[string]string{
 				VolumeIDLabelName: v.ID,
@@ -183,7 +189,7 @@ func (v *SharedVolume) Endpoints() *corev1.Endpoints {
 // state of the SharedVolume.
 func (v *SharedVolume) EndpointsIsEqual(e *corev1.Endpoints) bool {
 	if e == nil ||
-		e.Name != v.Name ||
+		e.Name != v.ServiceName ||
 		e.Namespace != v.Namespace {
 		return false
 	}
