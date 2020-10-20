@@ -90,10 +90,13 @@ func (c *Client) ListSharedVolumes() (SharedVolumeList, error) {
 }
 
 func toSharedVolume(namespace string, vol api.Volume) (*SharedVolume, error) {
-	// Skip non-k8s volumes.  Use the PVC name & namespace for all k8s resources.
+	// Skip non-k8s volumes.  The PV name & PVC namespace will be used as the
+	// Service and Endpoints name & namespace.  The PVC name is required to set
+	// the Service ownerRef to the PVC.
+	pvName := vol.Labels[LabelPVName]
 	pvcName := vol.Labels[LabelPVCName]
 	pvcNamespace := vol.Labels[LabelPVCNamespace]
-	if pvcName == "" || pvcNamespace == "" {
+	if pvName == "" || pvcName == "" || pvcNamespace == "" {
 		return nil, ErrNotKubernetes
 	}
 
@@ -111,7 +114,8 @@ func toSharedVolume(namespace string, vol api.Volume) (*SharedVolume, error) {
 
 	return &SharedVolume{
 		ID:               vol.Id,
-		Name:             pvcName,
+		ServiceName:      pvName,
+		PVCName:          pvcName,
 		Namespace:        pvcNamespace,
 		InternalEndpoint: *vol.Nfs.ServiceEndpoint,
 		ExternalEndpoint: extEndpoint,

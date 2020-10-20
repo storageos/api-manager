@@ -29,6 +29,7 @@ tunable via the `-api-poll-interval` flag.
 Only volumes that have all of the follwing will be considered:
 
 - `nfs.serviceEndpoint` set to a valid `<ip>:<port>`.
+- `csi.storage.k8s.io/pv/name` label set.
 - `csi.storage.k8s.io/pvc/name` label set.
 - `csi.storage.k8s.io/pvc/namespace` label set.
 - PVC matching labels above.

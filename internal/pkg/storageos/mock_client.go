@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func init() {
@@ -95,7 +97,8 @@ func (c *MockClient) Reset() {
 func (c *MockClient) RandomVol() *SharedVolume {
 	return &SharedVolume{
 		ID:               randomString(32),
-		Name:             randomString(8),
+		ServiceName:      "pvc-" + uuid.New().String(),
+		PVCName:          randomString(8),
 		Namespace:        "default",
 		InternalEndpoint: fmt.Sprintf("%d.%d.%d.%d:%d", rand.Intn(253)+1, rand.Intn(253)+1, rand.Intn(253)+1, rand.Intn(253)+1, rand.Intn(65534)+1),
 	}

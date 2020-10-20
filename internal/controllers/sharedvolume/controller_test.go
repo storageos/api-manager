@@ -69,16 +69,17 @@ func TestReconcile(t *testing.T) {
 			name: "New volume",
 			volumes: []*storageos.SharedVolume{
 				{
-					ID:        "1234",
-					Name:      "foo",
-					Namespace: "bar",
+					ID:          "1234",
+					ServiceName: "baz-service",
+					PVCName:     "foo",
+					Namespace:   "bar",
 				},
 			},
 			pvcs: []runtime.Object{fooPVC},
 			wantServices: []corev1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo",
+						Name:      "baz-service",
 						Namespace: "bar",
 						Labels: map[string]string{
 							"storageos.com/sharedvolume": "1234",
@@ -109,7 +110,8 @@ func TestReconcile(t *testing.T) {
 			wantCached: []*storageos.SharedVolume{
 				{
 					ID:               "1234",
-					Name:             "foo",
+					ServiceName:      "baz-service",
+					PVCName:          "foo",
 					Namespace:        "bar",
 					ExternalEndpoint: "1.2.3.4:2049",
 				},
@@ -117,7 +119,8 @@ func TestReconcile(t *testing.T) {
 			wantVolumes: storageos.SharedVolumeList{
 				{
 					ID:               "1234",
-					Name:             "foo",
+					ServiceName:      "baz-service",
+					PVCName:          "foo",
 					Namespace:        "bar",
 					ExternalEndpoint: "1.2.3.4:2049",
 				},
@@ -129,23 +132,26 @@ func TestReconcile(t *testing.T) {
 			pvcs: []runtime.Object{fooPVC},
 			volumes: []*storageos.SharedVolume{
 				{
-					ID:        "1234",
-					Name:      "foo",
-					Namespace: "bar",
+					ID:          "1234",
+					ServiceName: "baz-service",
+					PVCName:     "foo",
+					Namespace:   "bar",
 				},
 			},
 			cached: []*storageos.SharedVolume{
 				{
-					ID:        "1234",
-					Name:      "foo",
-					Namespace: "bar",
+					ID:          "1234",
+					ServiceName: "baz-service",
+					PVCName:     "foo",
+					Namespace:   "bar",
 				},
 			},
 			wantVolumes: storageos.SharedVolumeList{
 				{
-					ID:        "1234",
-					Name:      "foo",
-					Namespace: "bar",
+					ID:          "1234",
+					ServiceName: "baz-service",
+					PVCName:     "foo",
+					Namespace:   "bar",
 				},
 			},
 		},
@@ -155,22 +161,24 @@ func TestReconcile(t *testing.T) {
 			cacheExpiry: time.Nanosecond,
 			volumes: []*storageos.SharedVolume{
 				{
-					ID:        "1234",
-					Name:      "foo",
-					Namespace: "bar",
+					ID:          "1234",
+					ServiceName: "baz-service",
+					PVCName:     "foo",
+					Namespace:   "bar",
 				},
 			},
 			cached: []*storageos.SharedVolume{
 				{
-					ID:        "1234",
-					Name:      "foo",
-					Namespace: "bar",
+					ID:          "1234",
+					ServiceName: "baz-service",
+					PVCName:     "foo",
+					Namespace:   "bar",
 				},
 			},
 			wantServices: []corev1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo",
+						Name:      "baz-service",
 						Namespace: "bar",
 						Labels: map[string]string{
 							"storageos.com/sharedvolume": "1234",
@@ -203,7 +211,8 @@ func TestReconcile(t *testing.T) {
 			wantVolumes: storageos.SharedVolumeList{
 				{
 					ID:               "1234",
-					Name:             "foo",
+					ServiceName:      "baz-service",
+					PVCName:          "foo",
 					Namespace:        "bar",
 					ExternalEndpoint: "192.168.1.1:2049",
 				},
@@ -215,7 +224,8 @@ func TestReconcile(t *testing.T) {
 			volumes: []*storageos.SharedVolume{
 				{
 					ID:               "1234",
-					Name:             "foo",
+					ServiceName:      "baz-service",
+					PVCName:          "foo",
 					Namespace:        "bar",
 					InternalEndpoint: "1.2.3.4:1234",
 				},
@@ -224,7 +234,8 @@ func TestReconcile(t *testing.T) {
 			cached: []*storageos.SharedVolume{
 				{
 					ID:               "1234",
-					Name:             "foo",
+					ServiceName:      "baz-service",
+					PVCName:          "foo",
 					Namespace:        "bar",
 					InternalEndpoint: "1.2.3.4:5678",
 				},
@@ -232,7 +243,7 @@ func TestReconcile(t *testing.T) {
 			wantServices: []corev1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo",
+						Name:      "baz-service",
 						Namespace: "bar",
 						Labels: map[string]string{
 							"storageos.com/sharedvolume": "1234",
@@ -263,7 +274,8 @@ func TestReconcile(t *testing.T) {
 			wantCached: []*storageos.SharedVolume{
 				{
 					ID:               "1234",
-					Name:             "foo",
+					ServiceName:      "baz-service",
+					PVCName:          "foo",
 					Namespace:        "bar",
 					InternalEndpoint: "1.2.3.4:1234",
 					ExternalEndpoint: "10.10.10.1:2049",
@@ -272,7 +284,8 @@ func TestReconcile(t *testing.T) {
 			wantVolumes: storageos.SharedVolumeList{
 				{
 					ID:               "1234",
-					Name:             "foo",
+					ServiceName:      "baz-service",
+					PVCName:          "foo",
 					Namespace:        "bar",
 					InternalEndpoint: "1.2.3.4:1234",
 					ExternalEndpoint: "10.10.10.1:2049",

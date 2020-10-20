@@ -34,7 +34,7 @@ var _ = Describe("SharedVolume Controller", func() {
 		It("Should create service and update SharedVolume", func() {
 			v := api.RandomVol()
 			key := types.NamespacedName{
-				Name:      v.Name,
+				Name:      v.ServiceName,
 				Namespace: v.Namespace,
 			}
 
@@ -45,7 +45,7 @@ var _ = Describe("SharedVolume Controller", func() {
 					Kind:       "PersistentVolumeClaim",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      v.Name,
+					Name:      v.PVCName,
 					Namespace: v.Namespace,
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -95,7 +95,7 @@ var _ = Describe("SharedVolume Controller", func() {
 		It("Should create endpoints", func() {
 			v := api.RandomVol()
 			key := types.NamespacedName{
-				Name:      v.Name,
+				Name:      v.ServiceName,
 				Namespace: v.Namespace,
 			}
 
@@ -107,7 +107,7 @@ var _ = Describe("SharedVolume Controller", func() {
 					Kind:       "PersistentVolumeClaim",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      v.Name,
+					Name:      v.PVCName,
 					Namespace: v.Namespace,
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -150,7 +150,7 @@ var _ = Describe("SharedVolume Controller", func() {
 		It("Should not change the service", func() {
 			v := api.RandomVol()
 			key := types.NamespacedName{
-				Name:      v.Name,
+				Name:      v.ServiceName,
 				Namespace: v.Namespace,
 			}
 
@@ -162,7 +162,7 @@ var _ = Describe("SharedVolume Controller", func() {
 					Kind:       "PersistentVolumeClaim",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      v.Name,
+					Name:      v.PVCName,
 					Namespace: v.Namespace,
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -193,7 +193,8 @@ var _ = Describe("SharedVolume Controller", func() {
 			By("Changing SharedVolume InternalEndpoint")
 			Expect(api.Set(&storageos.SharedVolume{
 				ID:               v.ID,
-				Name:             v.Name,
+				ServiceName:      v.ServiceName,
+				PVCName:          v.PVCName,
 				Namespace:        v.Namespace,
 				InternalEndpoint: "5.6.7.8:9999",
 			})).ShouldNot(BeNil())
@@ -207,7 +208,7 @@ var _ = Describe("SharedVolume Controller", func() {
 		It("Should update the endpoints", func() {
 			v := api.RandomVol()
 			key := types.NamespacedName{
-				Name:      v.Name,
+				Name:      v.ServiceName,
 				Namespace: v.Namespace,
 			}
 
@@ -219,7 +220,7 @@ var _ = Describe("SharedVolume Controller", func() {
 					Kind:       "PersistentVolumeClaim",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      v.Name,
+					Name:      v.PVCName,
 					Namespace: v.Namespace,
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -248,7 +249,8 @@ var _ = Describe("SharedVolume Controller", func() {
 			By("Changing SharedVolume InternalEndpoint")
 			Expect(api.Set(&storageos.SharedVolume{
 				ID:               v.ID,
-				Name:             v.Name,
+				ServiceName:      v.ServiceName,
+				PVCName:          v.PVCName,
 				Namespace:        v.Namespace,
 				InternalEndpoint: "5.6.7.8:9999",
 			})).ShouldNot(BeNil())
@@ -288,7 +290,7 @@ var _ = Describe("SharedVolume Controller", func() {
 		It("Should not delete the service", func() {
 			v := api.RandomVol()
 			key := types.NamespacedName{
-				Name:      v.Name,
+				Name:      v.ServiceName,
 				Namespace: v.Namespace,
 			}
 
@@ -300,7 +302,7 @@ var _ = Describe("SharedVolume Controller", func() {
 					Kind:       "PersistentVolumeClaim",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      v.Name,
+					Name:      v.PVCName,
 					Namespace: v.Namespace,
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -343,7 +345,7 @@ var _ = Describe("SharedVolume Controller", func() {
 		It("Should not delete the endpoints", func() {
 			v := api.RandomVol()
 			key := types.NamespacedName{
-				Name:      v.Name,
+				Name:      v.ServiceName,
 				Namespace: v.Namespace,
 			}
 
@@ -355,7 +357,7 @@ var _ = Describe("SharedVolume Controller", func() {
 					Kind:       "PersistentVolumeClaim",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      v.Name,
+					Name:      v.PVCName,
 					Namespace: v.Namespace,
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
