@@ -13,6 +13,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2.2.0
+        with:
+          args: --timeout=5m
 
   test-build:
     name: Run tests and build
