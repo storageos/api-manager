@@ -1,4 +1,4 @@
-VERSION     ?= 2.3.0-alpha1
+VERSION     ?= 2.2.0
 GIT_USER_ID ?= storageos
 GIT_REPO_ID ?= go-api
 

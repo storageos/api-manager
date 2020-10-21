@@ -1,7 +1,7 @@
 openapi: "3.0.2"
 info:
     title: "StorageOS API"
-    version: "2.3.0-alpha"
+    version: "2.3.0"
     contact:
         name: StorageOS
         url: https://storageos.com
@@ -829,6 +829,14 @@ components:
                     description: >
                         A user friendly reference to the customer
                     example: "Desmond"
+                features:
+                    type: array
+                    items:
+                        type: string
+                    nullable: true
+                    description: >
+                        A list of product features which are enabled by the 
+                        licence, subject to the installed version.
                 version:
                     $ref: "#/components/schemas/Version"
             description: >

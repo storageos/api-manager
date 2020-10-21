@@ -116,7 +116,7 @@ github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/storageos/go-api/v2 v2.2.1-0.20200922085632-e9a6b46dd7c1
+# github.com/storageos/go-api/v2 v2.3.0
 github.com/storageos/go-api/v2
 # github.com/stretchr/testify v1.5.1
 github.com/stretchr/testify/assert
