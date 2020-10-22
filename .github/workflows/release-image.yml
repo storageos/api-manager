@@ -12,10 +12,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Set image env
+      - name: Set image tag env var
         # Refer https://stackoverflow.com/a/58178121 for git tag extraction.
-        run: echo ::set-env name=IMG::storageos/api-manager:${GITHUB_REF#refs/*/}
-      - name: Login to container registry
+        run: echo "IMG_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Set image env vars
+        run: |
+          echo "IMG=storageos/api-manager:${{ env.IMG_TAG }}" >> $GITHUB_ENV
+          echo "RH_IMG=scan.connect.redhat.com/${{ secrets.OSPID }}/api-manager:${{ env.IMG_TAG }}" >> $GITHUB_ENV
+      - name: Login to docker container registry
         uses: docker/login-action@v1
         with:
           registry: docker.io
@@ -23,5 +27,15 @@ jobs:
           password: ${{ secrets.CR_PAT }}
       - name: Build container image
         run: make docker-build
-      - name: Push container image
+      - name: Push container image to dockerhub
         run: make docker-push
+      - name: Login to redhat container registry
+        uses: docker/login-action@v1
+        with:
+          registry: scan.connect.redhat.com
+          username: ${{ secrets.RH_USERNAME }}
+          password: ${{ secrets.RH_TOKEN }}
+      - name: Push container image to redhat container registry
+        run: |
+          docker tag ${{ env.IMG }} ${{ env.RH_IMG }}
+          make docker-push IMG=${{ env.RH_IMG }}
