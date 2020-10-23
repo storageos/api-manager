@@ -21,6 +21,21 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager 
 # for more details
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 WORKDIR /
+LABEL name="api-manager" \
+    maintainer="support@storageos.com" \
+    vendor="StorageOS" \
+    version="v1.0.0" \
+    release="1" \
+    distribution-scope="public" \
+    architecture="x86_64" \
+    url="https://docs.storageos.com" \
+    io.k8s.description="api-manager handles interactions between different apis." \
+    io.k8s.display-name="api-manager" \
+    io.openshift.tags="" \
+    summary="The StorageOS API Manager acts as a middle-man between various APIs." \
+    description="This container is not intended to be run manually. Instead, use the StorageOS Cluster Operator to install and manage StorageOS."
+RUN mkdir -p /licenses
+COPY LICENSE /licenses/
 COPY --from=builder /workspace/manager .
 
 ENTRYPOINT ["/manager"]
