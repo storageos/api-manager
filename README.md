@@ -24,6 +24,13 @@ Endpoint will be updated, but the Service ClusterIP will remain the same.
 See [Shared Volume Contoller](internal/controllers/sharedvolume/README.md) for
 more detail.
 
+### Node Delete Controller
+
+The Node Delete Controller is responsible for removing nodes from the StorageOS
+cluster when the node has been removed from Kubernetes.
+
+See [Node Delete Contoller](controllers/node-delete/README.md) for more detail.
+
 ## Initialization
 
 Startup blocks on obtaining a connection to the StorageOS control plane API,
@@ -64,8 +71,8 @@ The following flags are supported:
     	Frequency of StorageOS api authentication token refresh. (default 1m0s)
   -api-retry-interval duration
     	Frequency of StorageOS api retries on failure. (default 5s)
-  -api-secret-path path
-    	Path where the StorageOS api secret is mounted.  The secret must have username and `password` set. (default "/etc/storageos/secrets/api")
+  -api-secret-path string
+    	Path where the StorageOS api secret is mounted.  The secret must have "username" and "password" set. (default "/etc/storageos/secrets/api")
   -cache-expiry-interval duration
     	Frequency of cached volume re-validation. (default 1m0s)
   -enable-leader-election
@@ -80,6 +87,9 @@ The following flags are supported:
     	(Deprecated: switch to --kubeconfig) The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.
   -metrics-addr string
     	The address the metric endpoint binds to. (default ":8080")
+  -node-delete-workers int
+    	Maximum concurrent node delete operations. (default 5)
+
 ```
 
 ## Setup/Development
