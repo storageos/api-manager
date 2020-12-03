@@ -14,9 +14,6 @@ import (
 )
 
 var (
-	// ErrNamespaceNotFound is returned if a namespace was provided but it was not found.
-	ErrNamespaceNotFound = errors.New("namespace not found")
-
 	// ErrNotFound is returned if a volume was provided but it was not found.
 	ErrNotFound = errors.New("volume not found")
 

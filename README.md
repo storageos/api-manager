@@ -31,6 +31,14 @@ cluster when the node has been removed from Kubernetes.
 
 See [Node Delete Contoller](controllers/node-delete/README.md) for more detail.
 
+### Namespace Delete Controller
+
+The Namespace Delete Controller is responsible for removing namespaces from the
+StorageOS cluster when the namespace has been removed from Kubernetes.
+
+See [Namespace Delete Controller](controllers/namespace-delete/README.md) for
+more detail.
+
 ## Initialization
 
 Startup blocks on obtaining a connection to the StorageOS control plane API,
@@ -87,9 +95,10 @@ The following flags are supported:
     	(Deprecated: switch to --kubeconfig) The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.
   -metrics-addr string
     	The address the metric endpoint binds to. (default ":8080")
+  -namespace-delete-workers int
+    	Maximum concurrent namespace delete operations. (default 5)
   -node-delete-workers int
-    	Maximum concurrent node delete operations. (default 5)
-
+    	Maximum concurrent node delete operations. (default 5)      
 ```
 
 ## Setup/Development
