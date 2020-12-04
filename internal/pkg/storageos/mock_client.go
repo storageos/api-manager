@@ -19,7 +19,10 @@ type MockClient struct {
 	vols               map[string]*SharedVolume
 	namespaces         map[string]struct{}
 	nodes              map[string]struct{}
+	nodeLabels         map[string]string
 	mu                 sync.RWMutex
+	SetNodeLabelsErr   error
+	GetNodeLabelsErr   error
 	DeleteNamespaceErr error
 	DeleteNodeErr      error
 	SharedVolsErr      error
@@ -33,39 +36,30 @@ func NewMockClient() *MockClient {
 		vols:       make(map[string]*SharedVolume),
 		namespaces: make(map[string]struct{}),
 		nodes:      make(map[string]struct{}),
+		nodeLabels: make(map[string]string),
 		mu:         sync.RWMutex{},
 	}
 }
 
-// AddNamespace adds a namespace to the StorageOS cluster.
-func (c *MockClient) AddNamespace(name string) error {
+// SetNodeLabels applies a set of labels.  Existing labels will be overwritten.
+func (c *MockClient) SetNodeLabels(name string, labels map[string]string) error {
+	if c.SetNodeLabelsErr != nil {
+		return c.SetNodeLabelsErr
+	}
 	c.mu.Lock()
-	c.namespaces[name] = struct{}{}
+	c.nodeLabels = labels
 	c.mu.Unlock()
 	return nil
 }
 
-// NamespaceExists returns true if the naemspace exists.
-func (c *MockClient) NamespaceExists(name string) bool {
+// GetNodeLabels retrieves the set of labels.
+func (c *MockClient) GetNodeLabels(name string) (map[string]string, error) {
+	if c.GetNodeLabelsErr != nil {
+		return nil, c.GetNodeLabelsErr
+	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if _, ok := c.namespaces[name]; ok {
-		return true
-	}
-	return false
-}
-
-// DeleteNamespace removes a namespace from the StorageOS cluster.
-func (c *MockClient) DeleteNamespace(name string) error {
-	if c.DeleteNamespaceErr != nil {
-		return c.DeleteNamespaceErr
-	}
-	if c.NamespaceExists(name) {
-		c.mu.Lock()
-		delete(c.namespaces, name)
-		c.mu.Unlock()
-	}
-	return nil
+	return c.nodeLabels, nil
 }
 
 // AddNode adds a node to the StorageOS cluster.
@@ -94,6 +88,37 @@ func (c *MockClient) DeleteNode(name string) error {
 	if c.NodeExists(name) {
 		c.mu.Lock()
 		delete(c.nodes, name)
+		c.mu.Unlock()
+	}
+	return nil
+}
+
+// AddNamespace adds a namespace to the StorageOS cluster.
+func (c *MockClient) AddNamespace(name string) error {
+	c.mu.Lock()
+	c.namespaces[name] = struct{}{}
+	c.mu.Unlock()
+	return nil
+}
+
+// NamespaceExists returns true if the naemspace exists.
+func (c *MockClient) NamespaceExists(name string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if _, ok := c.namespaces[name]; ok {
+		return true
+	}
+	return false
+}
+
+// DeleteNamespace removes a namespace from the StorageOS cluster.
+func (c *MockClient) DeleteNamespace(name string) error {
+	if c.DeleteNamespaceErr != nil {
+		return c.DeleteNamespaceErr
+	}
+	if c.NamespaceExists(name) {
+		c.mu.Lock()
+		delete(c.namespaces, name)
 		c.mu.Unlock()
 	}
 	return nil
@@ -164,6 +189,9 @@ func (c *MockClient) Reset() {
 	c.vols = make(map[string]*SharedVolume)
 	c.namespaces = make(map[string]struct{})
 	c.nodes = make(map[string]struct{})
+	c.nodeLabels = make(map[string]string)
+	c.SetNodeLabelsErr = nil
+	c.GetNodeLabelsErr = nil
 	c.DeleteNamespaceErr = nil
 	c.DeleteNodeErr = nil
 	c.SharedVolErr = nil

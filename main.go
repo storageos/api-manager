@@ -33,6 +33,7 @@ import (
 
 	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
+	nodelabel "github.com/storageos/api-manager/controllers/node-label"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	apimetrics "github.com/storageos/api-manager/internal/pkg/storageos/metrics"
@@ -188,6 +189,10 @@ func main() {
 	}()
 
 	// Additional controllers go here.
+	setupLog.Info("starting node label sync controller ")
+	if err := nodelabel.NewReconciler(api, mgr.GetClient(), mgr.GetEventRecorderFor(EventSourceName)).SetupWithManager(mgr); err != nil {
+		errCh <- fmt.Errorf("node label reconciler error: %w", err)
+	}
 	setupLog.Info("starting node delete controller ")
 	if err := nodedelete.NewReconciler(api, mgr.GetClient()).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
 		errCh <- fmt.Errorf("node delete reconciler error: %w", err)
