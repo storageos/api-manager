@@ -17,10 +17,52 @@ func init() {
 // MockClient provides a test interface to the StorageOS api.
 type MockClient struct {
 	vols           map[string]*SharedVolume
+	nodes          map[string]struct{}
 	mu             sync.RWMutex
+	DeleteNodeErr  error
 	SharedVolsErr  error
 	SharedVolErr   error
 	SetEndpointErr error
+}
+
+// NewMockClient returns an initialized MockClient.
+func NewMockClient() *MockClient {
+	return &MockClient{
+		vols:  make(map[string]*SharedVolume),
+		nodes: make(map[string]struct{}),
+		mu:    sync.RWMutex{},
+	}
+}
+
+// AddNode adds a node to the StorageOS cluster.
+func (c *MockClient) AddNode(name string) error {
+	c.mu.Lock()
+	c.nodes[name] = struct{}{}
+	c.mu.Unlock()
+	return nil
+}
+
+// NodeExists returns true if the node exists.
+func (c *MockClient) NodeExists(name string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if _, ok := c.nodes[name]; ok {
+		return true
+	}
+	return false
+}
+
+// DeleteNode removes a node from the StorageOS cluster.
+func (c *MockClient) DeleteNode(name string) error {
+	if c.DeleteNodeErr != nil {
+		return c.DeleteNodeErr
+	}
+	if c.NodeExists(name) {
+		c.mu.Lock()
+		delete(c.nodes, name)
+		c.mu.Unlock()
+	}
+	return nil
 }
 
 // ListSharedVolumes returns a list of active shared volumes.
@@ -43,8 +85,8 @@ func (c *MockClient) SetExternalEndpoint(id string, namespace string, endpoint s
 	if c.SetEndpointErr != nil {
 		return c.SetEndpointErr
 	}
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	if _, ok := c.vols[strings.Join([]string{namespace, id}, "/")]; !ok {
 		return ErrNotFound
@@ -86,6 +128,8 @@ func (c *MockClient) Delete(id string, namespace string) {
 func (c *MockClient) Reset() {
 	c.mu.Lock()
 	c.vols = make(map[string]*SharedVolume)
+	c.nodes = make(map[string]struct{})
+	c.DeleteNodeErr = nil
 	c.SharedVolErr = nil
 	c.SharedVolsErr = nil
 	c.SetEndpointErr = nil

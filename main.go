@@ -31,6 +31,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	apimetrics "github.com/storageos/api-manager/internal/pkg/storageos/metrics"
@@ -65,11 +66,12 @@ func main() {
 	var cacheExpiryInterval time.Duration
 	var k8sCreatePollInterval time.Duration
 	var k8sCreateWaitDuration time.Duration
+	var nodeDeleteWorkers int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&apiSecretPath, "api-secret-path", "/etc/storageos/secrets/api", "Path where the StorageOS api secret is mounted.  The secret must have `username` and `password` set.")
+	flag.StringVar(&apiSecretPath, "api-secret-path", "/etc/storageos/secrets/api", "Path where the StorageOS api secret is mounted.  The secret must have \"username\" and \"password\" set.")
 	flag.StringVar(&apiEndpoint, "api-endpoint", "storageos", "The StorageOS api endpoint address.")
 	flag.DurationVar(&apiPollInterval, "api-poll-interval", 5*time.Second, "Frequency of StorageOS api polling.")
 	flag.DurationVar(&apiRefreshInterval, "api-refresh-interval", time.Minute, "Frequency of StorageOS api authentication token refresh.")
@@ -77,6 +79,7 @@ func main() {
 	flag.DurationVar(&cacheExpiryInterval, "cache-expiry-interval", time.Minute, "Frequency of cached volume re-validation.")
 	flag.DurationVar(&k8sCreatePollInterval, "k8s-create-poll-interval", 1*time.Second, "Frequency of Kubernetes api polling for new objects to appear once created.")
 	flag.DurationVar(&k8sCreateWaitDuration, "k8s-create-wait-duration", 20*time.Second, "Maximum time to wait for new Kubernetes objects to appear.")
+	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
 
 	flag.Parse()
 
@@ -179,6 +182,10 @@ func main() {
 	}()
 
 	// Additional controllers go here.
+	setupLog.Info("starting node delete controller ")
+	if err := nodedelete.NewReconciler(api, mgr.GetClient()).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
+		errCh <- fmt.Errorf("node delete reconciler error: %w", err)
+	}
 
 	// Wait until a goroutine sends an error or a shutdown signal received, then
 	// cancel the others.
