@@ -2,9 +2,9 @@ package nodedelete
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/go-logr/logr"
+	"github.com/storageos/api-manager/internal/pkg/annotations"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -12,15 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-)
-
-const (
-	// DriverName is the name of the StorageOS CSI driver.
-	DriverName = "csi.storageos.com"
-
-	// DriverAnnotationKey is the annotation that stores the registered CSI
-	// drivers.
-	DriverAnnotationKey = "csi.volume.kubernetes.io/nodeid"
 )
 
 // Reconciler reconciles a Node object by deleting the StorageOS node object
@@ -87,8 +78,7 @@ func (c ChangePredicate) Update(event.UpdateEvent) bool {
 
 // Delete determines whether an object delete should trigger a reconcile.
 func (c ChangePredicate) Delete(e event.DeleteEvent) bool {
-	// Ignore objects without the StorageOS CSI driver annotation.
-	found, err := hasStorageOSDriverAnnotation(e.Object.GetAnnotations())
+	found, err := annotations.IncludesStorageOSDriver(e.Object.GetAnnotations())
 	if err != nil {
 		c.log.Error(err, "failed to process node annotations", "node", e.Object.GetName())
 	}
@@ -98,22 +88,4 @@ func (c ChangePredicate) Delete(e event.DeleteEvent) bool {
 // Generic determines whether an generic event should trigger a reconcile.
 func (c ChangePredicate) Generic(event.GenericEvent) bool {
 	return false
-}
-
-// hasStorageOSDriverAnnotation returns true if the node has the StorageOS
-// driver annotation.  The annotation is added by the drivers' node registrar,
-// so should only be present on nodes that have run StorageOS.
-func hasStorageOSDriverAnnotation(annotations map[string]string) (bool, error) {
-	drivers, ok := annotations[DriverAnnotationKey]
-	if !ok {
-		return false, nil
-	}
-	driversMap := map[string]string{}
-	if err := json.Unmarshal([]byte(drivers), &driversMap); err != nil {
-		return false, err
-	}
-	if _, ok := driversMap[DriverName]; ok {
-		return true, nil
-	}
-	return false, nil
 }

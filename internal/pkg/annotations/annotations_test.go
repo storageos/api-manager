@@ -1,10 +1,9 @@
-package nodedelete
+// Package annotation contains helers for working with Kubernetes Annotations.
+package annotations
 
-import (
-	"testing"
-)
+import "testing"
 
-func Test_hasStorageOSDriverAnnotation(t *testing.T) {
+func Test_IncludesStorageOSDriver(t *testing.T) {
 	tests := []struct {
 		name        string
 		annotations map[string]string
@@ -52,12 +51,12 @@ func Test_hasStorageOSDriverAnnotation(t *testing.T) {
 	for _, tt := range tests {
 		var tt = tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := hasStorageOSDriverAnnotation(tt.annotations)
+			got, gotErr := IncludesStorageOSDriver(tt.annotations)
 			if (gotErr != nil) != tt.wantErr {
-				t.Errorf("hasStorageOSDriverAnnotation() error = %v, wantErr %t", gotErr, tt.wantErr)
+				t.Errorf("IncludesStorageOSDriver() error = %v, wantErr %t", gotErr, tt.wantErr)
 			}
 			if got != tt.want {
-				t.Errorf("hasStorageOSDriverAnnotation() = %v, want %v", got, tt.want)
+				t.Errorf("IncludesStorageOSDriver() = %v, want %v", got, tt.want)
 			}
 		})
 	}
