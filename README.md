@@ -98,7 +98,9 @@ The following flags are supported:
   -namespace-delete-workers int
     	Maximum concurrent namespace delete operations. (default 5)
   -node-delete-workers int
-    	Maximum concurrent node delete operations. (default 5)      
+    	Maximum concurrent node delete operations. (default 5)
+  -node-label-sync-workers int
+      Maximum concurrent node label sync operations. (default 5)
 ```
 
 ## Setup/Development

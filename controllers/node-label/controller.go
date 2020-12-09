@@ -15,11 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-const (
-	// MaxConcurrentReconciles is the maximum number of concurrent Reconciles which can be run.
-	MaxConcurrentReconciles = 10
-)
-
 // Reconciler reconciles a Node object by updating the StorageOS node object to
 // match, or to remove it when deleted.
 type Reconciler struct {
@@ -42,9 +37,9 @@ func NewReconciler(api storageos.NodeLabeller, k8s client.Client, recorder recor
 }
 
 // SetupWithManager registers the controller with the controller manager.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		WithOptions(controller.Options{MaxConcurrentReconciles: MaxConcurrentReconciles}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: workers}).
 		For(&corev1.Node{}).
 		WithEventFilter(ChangePredicate{}).
 		Complete(r)

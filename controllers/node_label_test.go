@@ -14,6 +14,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	nodeLabelSyncTestWorkers = 1
+)
+
 // SetupNodeLabelTest will set up a testing environment.  It must be
 // called from each test.
 func SetupNodeLabelTest(ctx context.Context) *corev1.Node {
@@ -37,7 +41,7 @@ func SetupNodeLabelTest(ctx context.Context) *corev1.Node {
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 		controller := nodelabel.NewReconciler(api, mgr.GetClient(), mgr.GetEventRecorderFor("node-label"))
-		err = controller.SetupWithManager(mgr)
+		err = controller.SetupWithManager(mgr, nodeLabelSyncTestWorkers)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		go func() {

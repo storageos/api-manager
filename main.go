@@ -68,6 +68,7 @@ func main() {
 	var cacheExpiryInterval time.Duration
 	var k8sCreatePollInterval time.Duration
 	var k8sCreateWaitDuration time.Duration
+	var nodeLabelSyncWorkers int
 	var nodeDeleteWorkers int
 	var nsDeleteWorkers int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -82,6 +83,7 @@ func main() {
 	flag.DurationVar(&cacheExpiryInterval, "cache-expiry-interval", time.Minute, "Frequency of cached volume re-validation.")
 	flag.DurationVar(&k8sCreatePollInterval, "k8s-create-poll-interval", 1*time.Second, "Frequency of Kubernetes api polling for new objects to appear once created.")
 	flag.DurationVar(&k8sCreateWaitDuration, "k8s-create-wait-duration", 20*time.Second, "Maximum time to wait for new Kubernetes objects to appear.")
+	flag.IntVar(&nodeLabelSyncWorkers, "node-label-sync-workers", 5, "Maximum concurrent node label sync operations.")
 	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
 	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
 
@@ -190,7 +192,7 @@ func main() {
 
 	// Additional controllers go here.
 	setupLog.Info("starting node label sync controller ")
-	if err := nodelabel.NewReconciler(api, mgr.GetClient(), mgr.GetEventRecorderFor(EventSourceName)).SetupWithManager(mgr); err != nil {
+	if err := nodelabel.NewReconciler(api, mgr.GetClient(), mgr.GetEventRecorderFor(EventSourceName)).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
 		errCh <- fmt.Errorf("node label reconciler error: %w", err)
 	}
 	setupLog.Info("starting node delete controller ")
