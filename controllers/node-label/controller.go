@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
+	"github.com/storageos/api-manager/internal/pkg/annotations"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -41,7 +42,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{MaxConcurrentReconciles: workers}).
 		For(&corev1.Node{}).
-		WithEventFilter(ChangePredicate{}).
+		WithEventFilter(ChangePredicate{log: r.Log}).
 		Complete(r)
 }
 
@@ -74,17 +75,27 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 // ChangePredicate filters events before enqueuing the keys.
 type ChangePredicate struct {
 	predicate.Funcs
+	log logr.Logger
 }
 
 // Create determines whether an object create should trigger a reconcile.
-func (ChangePredicate) Create(event.CreateEvent) bool {
+func (c ChangePredicate) Create(event.CreateEvent) bool {
 	return false
 }
 
 // Update determines whether an object update should trigger a reconcile.
-func (ChangePredicate) Update(e event.UpdateEvent) bool {
+func (c ChangePredicate) Update(e event.UpdateEvent) bool {
 	// Ignore objects without metadata.
 	if e.MetaOld == nil || e.MetaNew == nil {
+		return false
+	}
+
+	// Ignore nodes that haven't run StorageOS.
+	found, err := annotations.IncludesStorageOSDriver(e.MetaNew.GetAnnotations())
+	if err != nil {
+		c.log.Error(err, "failed to process node annotations", "node", e.MetaNew.GetName())
+	}
+	if !found {
 		return false
 	}
 
@@ -96,11 +107,11 @@ func (ChangePredicate) Update(e event.UpdateEvent) bool {
 }
 
 // Delete determines whether an object delete should trigger a reconcile.
-func (ChangePredicate) Delete(e event.DeleteEvent) bool {
+func (c ChangePredicate) Delete(e event.DeleteEvent) bool {
 	return false
 }
 
 // Generic determines whether an generic event should trigger a reconcile.
-func (ChangePredicate) Generic(event.GenericEvent) bool {
+func (c ChangePredicate) Generic(event.GenericEvent) bool {
 	return false
 }

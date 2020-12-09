@@ -2,10 +2,13 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
 	nodelabel "github.com/storageos/api-manager/controllers/node-label"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
@@ -20,7 +23,7 @@ const (
 
 // SetupNodeLabelTest will set up a testing environment.  It must be
 // called from each test.
-func SetupNodeLabelTest(ctx context.Context) *corev1.Node {
+func SetupNodeLabelTest(ctx context.Context, isStorageOS bool) *corev1.Node {
 	var stopCh chan struct{}
 	node := &corev1.Node{}
 
@@ -28,6 +31,16 @@ func SetupNodeLabelTest(ctx context.Context) *corev1.Node {
 		stopCh = make(chan struct{})
 		*node = corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{Name: "testnode-" + randStringRunes(5)},
+		}
+
+		if isStorageOS {
+			driverMap, err := json.Marshal(map[string]string{
+				nodedelete.DriverName: uuid.New().String(),
+			})
+			Expect(err).NotTo(HaveOccurred(), "failed to mars")
+			node.Annotations = map[string]string{
+				nodedelete.DriverAnnotationKey: string(driverMap),
+			}
 		}
 
 		err := k8sClient.Create(ctx, node)
@@ -67,6 +80,7 @@ var _ = Describe("Node Label controller", func() {
 	// and intervals.
 	const (
 		timeout  = time.Second * 10
+		duration = time.Second * 10
 		interval = time.Millisecond * 250
 	)
 
@@ -78,22 +92,8 @@ var _ = Describe("Node Label controller", func() {
 	ctx := context.Background()
 
 	Context("When updating k8s Node labels", func() {
-		node := SetupNodeLabelTest(ctx)
+		node := SetupNodeLabelTest(ctx, true)
 		It("Should sync labels to StorageOS Node", func() {
-			By("Expecting k8s Node to exist")
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: node.Name}, node)
-			}, timeout, interval).Should(Succeed())
-
-			By("Expecting StorageOS Node labels to be empty")
-			Eventually(func() map[string]string {
-				labels, err := api.GetNodeLabels(node.Name)
-				if err != nil {
-					return nil
-				}
-				return labels
-			}, timeout, interval).Should(BeEmpty())
-
 			By("By adding label to k8s Node")
 			node.SetLabels(nodeLabels)
 			Eventually(func() error {
@@ -108,6 +108,52 @@ var _ = Describe("Node Label controller", func() {
 				}
 				return labels
 			}, timeout, interval).Should(Equal(nodeLabels))
+		})
+	})
+
+	Context("When updating k8s Node labels on a k8s Node without the StorageOS driver registration", func() {
+		node := SetupNodeLabelTest(ctx, false)
+		It("Should not sync labels to StorageOS Node", func() {
+			By("By adding label to k8s Node")
+			node.SetLabels(nodeLabels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels not to match")
+			Consistently(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, duration, interval).ShouldNot(Equal(nodeLabels))
+		})
+	})
+
+	Context("When updating k8s Node labels a k8s Node with a malformed StorageOS driver registration", func() {
+		node := SetupNodeDeleteTest(ctx, false)
+		It("Should not sync labels to StorageOS Node", func() {
+			By("By setting an invalid annotation")
+			node.Annotations = map[string]string{
+				nodedelete.DriverAnnotationKey: "{\"csi.storageos.com\":}",
+			}
+			Expect(k8sClient.Update(ctx, node, &client.UpdateOptions{})).Should(Succeed())
+
+			By("By adding label to k8s Node")
+			node.SetLabels(nodeLabels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels not to match")
+			Consistently(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, duration, interval).ShouldNot(Equal(nodeLabels))
 		})
 	})
 
