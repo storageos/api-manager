@@ -72,7 +72,7 @@ func (c *Client) SetNodeLabels(name string, labels map[string]string) error {
 		return observeErr(err)
 	}
 
-	if _, _, err = c.api.DefaultApi.UpdateNode(ctx, node.Id, api.UpdateNodeData{Labels: labels, Version: node.Version}, nil); err != nil {
+	if _, _, err = c.api.DefaultApi.UpdateNode(ctx, node.Id, api.UpdateNodeData{Labels: labels, Version: node.Version}); err != nil {
 		return observeErr(err)
 	}
 	return observeErr(nil)
