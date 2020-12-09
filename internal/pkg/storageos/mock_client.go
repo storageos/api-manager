@@ -16,22 +16,56 @@ func init() {
 
 // MockClient provides a test interface to the StorageOS api.
 type MockClient struct {
-	vols           map[string]*SharedVolume
-	nodes          map[string]struct{}
-	mu             sync.RWMutex
-	DeleteNodeErr  error
-	SharedVolsErr  error
-	SharedVolErr   error
-	SetEndpointErr error
+	vols               map[string]*SharedVolume
+	namespaces         map[string]struct{}
+	nodes              map[string]struct{}
+	mu                 sync.RWMutex
+	DeleteNamespaceErr error
+	DeleteNodeErr      error
+	SharedVolsErr      error
+	SharedVolErr       error
+	SetEndpointErr     error
 }
 
 // NewMockClient returns an initialized MockClient.
 func NewMockClient() *MockClient {
 	return &MockClient{
-		vols:  make(map[string]*SharedVolume),
-		nodes: make(map[string]struct{}),
-		mu:    sync.RWMutex{},
+		vols:       make(map[string]*SharedVolume),
+		namespaces: make(map[string]struct{}),
+		nodes:      make(map[string]struct{}),
+		mu:         sync.RWMutex{},
 	}
+}
+
+// AddNamespace adds a namespace to the StorageOS cluster.
+func (c *MockClient) AddNamespace(name string) error {
+	c.mu.Lock()
+	c.namespaces[name] = struct{}{}
+	c.mu.Unlock()
+	return nil
+}
+
+// NamespaceExists returns true if the naemspace exists.
+func (c *MockClient) NamespaceExists(name string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if _, ok := c.namespaces[name]; ok {
+		return true
+	}
+	return false
+}
+
+// DeleteNamespace removes a namespace from the StorageOS cluster.
+func (c *MockClient) DeleteNamespace(name string) error {
+	if c.DeleteNamespaceErr != nil {
+		return c.DeleteNamespaceErr
+	}
+	if c.NamespaceExists(name) {
+		c.mu.Lock()
+		delete(c.namespaces, name)
+		c.mu.Unlock()
+	}
+	return nil
 }
 
 // AddNode adds a node to the StorageOS cluster.
@@ -128,7 +162,9 @@ func (c *MockClient) Delete(id string, namespace string) {
 func (c *MockClient) Reset() {
 	c.mu.Lock()
 	c.vols = make(map[string]*SharedVolume)
+	c.namespaces = make(map[string]struct{})
 	c.nodes = make(map[string]struct{})
+	c.DeleteNamespaceErr = nil
 	c.DeleteNodeErr = nil
 	c.SharedVolErr = nil
 	c.SharedVolsErr = nil

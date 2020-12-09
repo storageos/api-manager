@@ -31,6 +31,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
@@ -67,6 +68,7 @@ func main() {
 	var k8sCreatePollInterval time.Duration
 	var k8sCreateWaitDuration time.Duration
 	var nodeDeleteWorkers int
+	var nsDeleteWorkers int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -80,6 +82,7 @@ func main() {
 	flag.DurationVar(&k8sCreatePollInterval, "k8s-create-poll-interval", 1*time.Second, "Frequency of Kubernetes api polling for new objects to appear once created.")
 	flag.DurationVar(&k8sCreateWaitDuration, "k8s-create-wait-duration", 20*time.Second, "Maximum time to wait for new Kubernetes objects to appear.")
 	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
+	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
 
 	flag.Parse()
 
@@ -185,6 +188,10 @@ func main() {
 	setupLog.Info("starting node delete controller ")
 	if err := nodedelete.NewReconciler(api, mgr.GetClient()).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
 		errCh <- fmt.Errorf("node delete reconciler error: %w", err)
+	}
+	setupLog.Info("starting namespace delete controller ")
+	if err := nsdelete.NewReconciler(api, mgr.GetClient()).SetupWithManager(mgr, nsDeleteWorkers); err != nil {
+		errCh <- fmt.Errorf("namespace delete reconciler error: %w", err)
 	}
 
 	// Wait until a goroutine sends an error or a shutdown signal received, then
