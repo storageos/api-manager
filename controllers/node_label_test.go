@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -84,18 +85,26 @@ var _ = Describe("Node Label controller", func() {
 		interval = time.Millisecond * 250
 	)
 
-	var nodeLabels = map[string]string{
+	var unreservedLabels = map[string]string{
 		"foo": "bar",
 		"baz": "boo",
+	}
+	var reservedLabels = map[string]string{
+		storageos.ReservedLabelComputeOnly: "true",
+	}
+	var mixedLabels = map[string]string{
+		"foo":                              "bar",
+		"baz":                              "boo",
+		storageos.ReservedLabelComputeOnly: "true",
 	}
 
 	ctx := context.Background()
 
-	Context("When updating k8s Node labels", func() {
+	Context("When adding unreserved labels", func() {
 		node := SetupNodeLabelTest(ctx, true)
 		It("Should sync labels to StorageOS Node", func() {
-			By("By adding label to k8s Node")
-			node.SetLabels(nodeLabels)
+			By("By adding unreserved labels to k8s Node")
+			node.SetLabels(unreservedLabels)
 			Eventually(func() error {
 				return k8sClient.Update(ctx, node)
 			}, timeout, interval).Should(Succeed())
@@ -107,15 +116,129 @@ var _ = Describe("Node Label controller", func() {
 					return nil
 				}
 				return labels
-			}, timeout, interval).Should(Equal(nodeLabels))
+			}, timeout, interval).Should(Equal(unreservedLabels))
 		})
 	})
 
-	Context("When updating k8s Node labels on a k8s Node without the StorageOS driver registration", func() {
+	Context("When adding reserved labels", func() {
+		node := SetupNodeLabelTest(ctx, true)
+		It("Should sync labels to StorageOS Node", func() {
+			By("By adding reserved labels to k8s Node")
+			node.SetLabels(reservedLabels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels to match")
+			Eventually(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, timeout, interval).Should(Equal(reservedLabels))
+		})
+	})
+
+	Context("When adding mixed labels", func() {
+		node := SetupNodeLabelTest(ctx, true)
+		It("Should sync labels to StorageOS Node", func() {
+			By("By adding mixed labels to k8s Node")
+			node.SetLabels(mixedLabels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels to match")
+			Eventually(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, timeout, interval).Should(Equal(mixedLabels))
+		})
+	})
+
+	Context("When adding unrecognised reserved labels", func() {
+		node := SetupNodeLabelTest(ctx, true)
+		It("Should only sync recognised labels to StorageOS Node", func() {
+			By("By adding unrecognised reserved labels to k8s Node")
+			labels := map[string]string{}
+			for k, v := range unreservedLabels {
+				labels[k] = v
+			}
+			labels[storageos.ReservedLabelPrefix+"unrecognised"] = "true"
+			node.SetLabels(labels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels to match other labels")
+			Eventually(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, timeout, interval).Should(Equal(unreservedLabels))
+		})
+	})
+
+	Context("When adding computeonly label", func() {
+		node := SetupNodeLabelTest(ctx, true)
+		It("Should sync labels to StorageOS Node", func() {
+			By("By adding computeonly label to k8s Node")
+			labels := map[string]string{
+				storageos.ReservedLabelComputeOnly: "true",
+			}
+			node.SetLabels(labels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels to match")
+			Eventually(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, timeout, interval).Should(Equal(labels))
+		})
+	})
+
+	Context("When adding computeonly label and the StorageOS API returns an error", func() {
+		node := SetupNodeLabelTest(ctx, true)
+		It("Should sync not labels to StorageOS Node", func() {
+			By("Setting API to return error")
+			api.EnsureComputeOnlyErr = errors.New("fake error")
+
+			By("By adding computeonly label to k8s Node")
+			labels := map[string]string{
+				storageos.ReservedLabelComputeOnly: "true",
+			}
+			node.SetLabels(labels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels to be empty")
+			Eventually(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, timeout, interval).Should(BeEmpty())
+		})
+	})
+
+	Context("When adding labels on a k8s Node without the StorageOS driver registration", func() {
 		node := SetupNodeLabelTest(ctx, false)
 		It("Should not sync labels to StorageOS Node", func() {
-			By("By adding label to k8s Node")
-			node.SetLabels(nodeLabels)
+			By("By adding labels to k8s Node")
+			node.SetLabels(unreservedLabels)
 			Eventually(func() error {
 				return k8sClient.Update(ctx, node)
 			}, timeout, interval).Should(Succeed())
@@ -127,11 +250,11 @@ var _ = Describe("Node Label controller", func() {
 					return nil
 				}
 				return labels
-			}, duration, interval).ShouldNot(Equal(nodeLabels))
+			}, duration, interval).ShouldNot(Equal(unreservedLabels))
 		})
 	})
 
-	Context("When updating k8s Node labels a k8s Node with a malformed StorageOS driver registration", func() {
+	Context("When adding labels a k8s Node with a malformed StorageOS driver registration", func() {
 		node := SetupNodeDeleteTest(ctx, false)
 		It("Should not sync labels to StorageOS Node", func() {
 			By("By setting an invalid annotation")
@@ -141,7 +264,7 @@ var _ = Describe("Node Label controller", func() {
 			Expect(k8sClient.Update(ctx, node, &client.UpdateOptions{})).Should(Succeed())
 
 			By("By adding label to k8s Node")
-			node.SetLabels(nodeLabels)
+			node.SetLabels(unreservedLabels)
 			Eventually(func() error {
 				return k8sClient.Update(ctx, node)
 			}, timeout, interval).Should(Succeed())
@@ -153,7 +276,7 @@ var _ = Describe("Node Label controller", func() {
 					return nil
 				}
 				return labels
-			}, duration, interval).ShouldNot(Equal(nodeLabels))
+			}, duration, interval).ShouldNot(Equal(unreservedLabels))
 		})
 	})
 

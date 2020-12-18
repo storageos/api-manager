@@ -46,23 +46,31 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 		Complete(r)
 }
 
-// Reconcile deletes the StorageOS node.  The delete will fail if the control
-// plane has not yet determined that the node is offline.  Any errors will
-// result in a requeue, with standard back-off retries.
+// Reconcile applies labels set on the k8s node to the StorageOS node.
+//
+// StorageOS reserved labels are validated and applied first, then the remaining
+// unreserved labels are applied.
+//
+// Any errors will result in a requeue, with standard back-off retries.
+//
+// There is no label sync from StorageOS to Kubernetes.  This is intentional to
+// ensure a simple flow of desired state set by users in kubernetes to actual
+// state set on the StorageOS node.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	node := &corev1.Node{}
 	ctx := context.Background()
 	if err := r.Get(ctx, req.NamespacedName, node); err != nil {
 		r.Log.Error(err, "unable to fetch Node")
-		// Ignore not-found errors, since they can't be fixed by an immediate
-		// requeue (we'll need to wait for a new notification), and we can get
-		// them on deleted requests.
+		// Ignore not-found errors since they can't be fixed by an immediate
+		// requeue.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if err := r.api.SetNodeLabels(node.Name, node.GetLabels()); err != nil && err != storageos.ErrNamespaceNotFound {
+	if err := r.api.EnsureNodeLabels(node.Name, node.GetLabels()); err != nil {
 		// Re-queue without error.  We will get frequent transient errors, such
-		// as version conflicts or locked objects - that's ok.
+		// as version conflicts or locked objects - that's ok, it will
+		// eventually succeed.
+		r.Log.Error(err, "failed to apply labels", "node", req.Name)
 		return ctrl.Result{Requeue: true}, nil
 	}
 
