@@ -15,6 +15,7 @@ var (
 )
 
 //NodeDeleter provides access to removing nodes from StorageOS.
+//go:generate mockgen -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
 type NodeDeleter interface {
 	DeleteNode(name string) error
 }
@@ -40,7 +41,7 @@ func (c *Client) DeleteNode(name string) error {
 		return observeErr(err)
 	}
 
-	if _, err = c.api.DefaultApi.DeleteNode(ctx, node.Id, node.Version, nil); err != nil {
+	if _, err = c.api.DeleteNode(ctx, node.Id, node.Version, nil); err != nil {
 		return observeErr(err)
 	}
 	return observeErr(nil)
@@ -48,7 +49,7 @@ func (c *Client) DeleteNode(name string) error {
 
 // getNodeByName returns the StorageOS node object matching the name, if any.
 func (c *Client) getNodeByName(ctx context.Context, name string) (*api.Node, error) {
-	nodes, _, err := c.api.DefaultApi.ListNodes(ctx)
+	nodes, _, err := c.api.ListNodes(ctx)
 	if err != nil {
 		return nil, err
 	}

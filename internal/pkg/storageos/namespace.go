@@ -16,6 +16,7 @@ var (
 )
 
 //NamespaceDeleter provides access to removing namespaces from StorageOS.
+//go:generate mockgen -destination=mocks/mock_namespace_deleter.go -package=mocks . NamespaceDeleter
 type NamespaceDeleter interface {
 	DeleteNamespace(name string) error
 }
@@ -41,7 +42,7 @@ func (c *Client) DeleteNamespace(name string) error {
 		return observeErr(err)
 	}
 
-	if _, err = c.api.DefaultApi.DeleteNamespace(ctx, ns.Id, ns.Version, nil); err != nil {
+	if _, err = c.api.DeleteNamespace(ctx, ns.Id, ns.Version, nil); err != nil {
 		return observeErr(err)
 	}
 	return observeErr(nil)
@@ -49,7 +50,7 @@ func (c *Client) DeleteNamespace(name string) error {
 
 // getNamespaceByName returns the StorageOS namespace object matching the name, if any.
 func (c *Client) getNamespaceByName(ctx context.Context, name string) (*api.Namespace, error) {
-	namespaces, _, err := c.api.DefaultApi.ListNamespaces(ctx)
+	namespaces, _, err := c.api.ListNamespaces(ctx)
 	if err != nil {
 		return nil, err
 	}

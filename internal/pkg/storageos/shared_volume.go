@@ -36,6 +36,7 @@ var (
 )
 
 // VolumeSharer provides access to StorageOS SharedVolumes.
+//go:generate mockgen -destination=mocks/mock_volume_sharer.go -package=mocks . VolumeSharer
 type VolumeSharer interface {
 	ListSharedVolumes() (SharedVolumeList, error)
 	SetExternalEndpoint(id string, namespace string, endpoint string) error
@@ -56,7 +57,7 @@ func (c *Client) ListSharedVolumes() (SharedVolumeList, error) {
 	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
 	defer cancel()
 
-	namespaces, _, err := c.api.DefaultApi.ListNamespaces(ctx)
+	namespaces, _, err := c.api.ListNamespaces(ctx)
 	if err != nil {
 		return nil, observeErr(err)
 	}
@@ -65,7 +66,7 @@ func (c *Client) ListSharedVolumes() (SharedVolumeList, error) {
 	var sharedVolumes SharedVolumeList
 
 	for _, ns := range namespaces {
-		volumes, _, err := c.api.DefaultApi.ListVolumes(ctx, ns.Id)
+		volumes, _, err := c.api.ListVolumes(ctx, ns.Id)
 		if err != nil {
 			errors = multierror.Append(errors, observeErr(err))
 		}
@@ -146,7 +147,7 @@ func (c *Client) SetExternalEndpoint(id string, namespace string, endpoint strin
 		return nil
 	}
 
-	if _, err = c.api.DefaultApi.UpdateNFSVolumeMountEndpoint(ctx, curVol.NamespaceID, curVol.Id, api.NfsVolumeMountEndpoint{MountEndpoint: endpoint, Version: curVol.Version}, nil); err != nil {
+	if _, err = c.api.UpdateNFSVolumeMountEndpoint(ctx, curVol.NamespaceID, curVol.Id, api.NfsVolumeMountEndpoint{MountEndpoint: endpoint, Version: curVol.Version}, nil); err != nil {
 		return observeErr(err)
 	}
 	return observeErr(nil)
@@ -158,12 +159,12 @@ func (c *Client) getVolume(ctx context.Context, id string, namespace string) (*a
 	if err != nil {
 		return nil, err
 	}
-	vol, _, err := c.api.DefaultApi.GetVolume(ctx, ns.Id, id)
+	vol, _, err := c.api.GetVolume(ctx, ns.Id, id)
 	return &vol, err
 }
 
 func (c *Client) getNamespace(ctx context.Context, namespace string) (*api.Namespace, error) {
-	namespaces, _, err := c.api.DefaultApi.ListNamespaces(ctx)
+	namespaces, _, err := c.api.ListNamespaces(ctx)
 	if err != nil {
 		return nil, err
 	}

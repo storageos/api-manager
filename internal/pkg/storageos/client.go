@@ -17,9 +17,26 @@ import (
 	api "github.com/storageos/go-api/v2"
 )
 
+//go:generate mockgen -destination=mocks/mock_control_plane.go -package=mocks . ControlPlane
+
+// ControlPlane is the subset of the StorageOS control plane ControlPlane that
+// api-manager requires.  New methods should be added here as needed, then the
+// mocks regenerated.
+type ControlPlane interface {
+	RefreshJwt(ctx context.Context) (api.UserSession, *http.Response, error)
+	ListNamespaces(ctx context.Context) ([]api.Namespace, *http.Response, error)
+	DeleteNamespace(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNamespaceOpts) (*http.Response, error)
+	ListNodes(ctx context.Context) ([]api.Node, *http.Response, error)
+	UpdateNode(ctx context.Context, id string, updateNodeData api.UpdateNodeData, localVarOptionals *api.UpdateNodeOpts) (api.Node, *http.Response, error)
+	DeleteNode(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNodeOpts) (*http.Response, error)
+	ListVolumes(ctx context.Context, namespaceID string) ([]api.Volume, *http.Response, error)
+	GetVolume(ctx context.Context, namespaceID string, id string) (api.Volume, *http.Response, error)
+	UpdateNFSVolumeMountEndpoint(ctx context.Context, namespaceID string, id string, nfsVolumeMountEndpoint api.NfsVolumeMountEndpoint, localVarOptionals *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error)
+}
+
 // Client provides access to the StorageOS API.
 type Client struct {
-	api       *api.APIClient
+	api       ControlPlane
 	transport http.RoundTripper
 	ctx       context.Context
 	traced    bool
@@ -68,7 +85,7 @@ func New(username, password, endpoint string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{api: client, transport: transport, ctx: ctx}, nil
+	return &Client{api: client.DefaultApi, transport: transport, ctx: ctx}, nil
 }
 
 // NewTracedClient returns a pre-authenticated client for the StorageOS API that
@@ -81,7 +98,7 @@ func NewTracedClient(username, password, endpoint string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{api: client, transport: transport, ctx: ctx, traced: true}, nil
+	return &Client{api: client.DefaultApi, transport: transport, ctx: ctx, traced: true}, nil
 }
 
 func newAuthenticatedClient(username, password, endpoint string, transport http.RoundTripper) (context.Context, *api.APIClient, error) {
@@ -159,7 +176,7 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 		case <-time.After(interval):
 			// Refresh api token before it expires.  Default is 5 minute expiry.
 			// Refresh will fail if the token has already expired.
-			_, resp, err := c.api.DefaultApi.RefreshJwt(c.ctx)
+			_, resp, err := c.api.RefreshJwt(c.ctx)
 			if err != nil {
 				log.Info("failed to refresh storageos api credentials", "error", err)
 				if c.traced {
@@ -195,7 +212,7 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 				}
 				continue
 			}
-			c.api = api
+			c.api = api.DefaultApi
 			c.ctx = clientCtx
 			if c.traced {
 				resultCounter.Increment("reset_api", nil)
