@@ -54,7 +54,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 // Any errors will result in a requeue, with standard back-off retries.
 //
 // There is no label sync from StorageOS to Kubernetes.  This is intentional to
-// ensure a simple flow of desired state set by users in kubernetes to actual
+// ensure a simple flow of desired state set by users in Kubernetes to actual
 // state set on the StorageOS node.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	node := &corev1.Node{}

@@ -1,4 +1,4 @@
-package storageos
+package storageos_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 	"github.com/storageos/api-manager/internal/pkg/storageos/mocks"
 	"github.com/storageos/go-api/v2"
 )
@@ -36,14 +37,34 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 					},
 				}
 
-				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(1)
+				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(2)
+				m.EXPECT().UpdateNode(gomock.Any(), id, updateData).Return(api.Node{}, nil, nil).Times(1)
+			},
+		},
+		{
+			name:   "remove unrestricted label",
+			labels: map[string]string{},
+			prepare: func(name string, m *mocks.MockControlPlane) {
+				id := uuid.New().String()
+				node := api.Node{
+					Id:   id,
+					Name: name,
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				}
+				updateData := api.UpdateNodeData{
+					Labels: map[string]string{},
+				}
+
+				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(2)
 				m.EXPECT().UpdateNode(gomock.Any(), id, updateData).Return(api.Node{}, nil, nil).Times(1)
 			},
 		},
 		{
 			name: "add computeonly label",
 			labels: map[string]string{
-				ReservedLabelComputeOnly: "true",
+				storageos.ReservedLabelComputeOnly: "true",
 			},
 			prepare: func(name string, m *mocks.MockControlPlane) {
 				id := uuid.New().String()
@@ -62,7 +83,7 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 		{
 			name: "disable existing computeonly label",
 			labels: map[string]string{
-				ReservedLabelComputeOnly: "false",
+				storageos.ReservedLabelComputeOnly: "false",
 			},
 			prepare: func(name string, m *mocks.MockControlPlane) {
 				id := uuid.New().String()
@@ -70,7 +91,27 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 					Id:   id,
 					Name: name,
 					Labels: map[string]string{
-						ReservedLabelComputeOnly: "true",
+						storageos.ReservedLabelComputeOnly: "true",
+					},
+				}
+				computeonlyData := api.SetComputeOnlyNodeData{
+					ComputeOnly: false,
+				}
+
+				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(2)
+				m.EXPECT().SetComputeOnly(gomock.Any(), id, computeonlyData, &api.SetComputeOnlyOpts{}).Return(api.Node{}, nil, nil).Times(1)
+			},
+		},
+		{
+			name:   "remove existing computeonly label",
+			labels: map[string]string{},
+			prepare: func(name string, m *mocks.MockControlPlane) {
+				id := uuid.New().String()
+				node := api.Node{
+					Id:   id,
+					Name: name,
+					Labels: map[string]string{
+						storageos.ReservedLabelComputeOnly: "true",
 					},
 				}
 				computeonlyData := api.SetComputeOnlyNodeData{
@@ -84,7 +125,7 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 		{
 			name: "add computeonly label with non boolean value",
 			labels: map[string]string{
-				ReservedLabelComputeOnly: "not-a-boolean",
+				storageos.ReservedLabelComputeOnly: "not-a-boolean",
 			},
 			prepare: func(name string, m *mocks.MockControlPlane) {
 				id := uuid.New().String()
@@ -93,16 +134,16 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 					Name: name,
 				}
 
-				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(1)
+				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(2)
 			},
 			wantErr: true,
 		},
 		{
 			name: "add mixed labels",
 			labels: map[string]string{
-				"foo":                    "bar",
-				"boo":                    "baz",
-				ReservedLabelComputeOnly: "true",
+				"foo":                              "bar",
+				"boo":                              "baz",
+				storageos.ReservedLabelComputeOnly: "true",
 			},
 			prepare: func(name string, m *mocks.MockControlPlane) {
 				id := uuid.New().String()
@@ -128,9 +169,9 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 		{
 			name: "add bad reserved label with unreserved labels",
 			labels: map[string]string{
-				"foo":                                "bar",
-				"boo":                                "baz",
-				ReservedLabelPrefix + "badlabelname": "true",
+				"foo": "bar",
+				"boo": "baz",
+				storageos.ReservedLabelPrefix + "badlabelname": "true",
 			},
 			prepare: func(name string, m *mocks.MockControlPlane) {
 				id := uuid.New().String()
@@ -146,7 +187,7 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 				}
 
 				// No SetComputeOnly, but unreserved labels should still update.
-				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(1)
+				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(2)
 				m.EXPECT().UpdateNode(gomock.Any(), id, updateData).Return(api.Node{}, nil, nil).Times(1)
 			},
 			wantErr: true,
@@ -159,12 +200,7 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 			defer mockCtrl.Finish()
 			mockCP := mocks.NewMockControlPlane(mockCtrl)
 
-			c := &Client{
-				api:       mockCP,
-				transport: http.DefaultTransport,
-				ctx:       context.TODO(),
-				traced:    false,
-			}
+			c := storageos.NewClient(context.TODO(), mockCP, http.DefaultTransport, false)
 
 			nodeName := "nodeA"
 			if tt.prepare != nil {

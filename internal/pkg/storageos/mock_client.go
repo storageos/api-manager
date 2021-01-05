@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 )
 
 func init() {
@@ -16,20 +17,18 @@ func init() {
 
 // MockClient provides a test interface to the StorageOS api.
 type MockClient struct {
-	vols                 map[string]*SharedVolume
-	namespaces           map[string]struct{}
-	nodes                map[string]struct{}
-	nodeLabels           map[string]string
-	mu                   sync.RWMutex
-	EnsureLabelsErr      error
-	EnsureComputeOnlyErr error
-	SetNodeLabelsErr     error
-	GetNodeLabelsErr     error
-	DeleteNamespaceErr   error
-	DeleteNodeErr        error
-	SharedVolsErr        error
-	SharedVolErr         error
-	SetEndpointErr       error
+	vols               map[string]*SharedVolume
+	namespaces         map[string]struct{}
+	nodes              map[string]struct{}
+	nodeLabels         map[string]string
+	mu                 sync.RWMutex
+	EnsureLabelsErr    error
+	GetNodeLabelsErr   error
+	DeleteNamespaceErr error
+	DeleteNodeErr      error
+	SharedVolsErr      error
+	SharedVolErr       error
+	SetEndpointErr     error
 }
 
 // NewMockClient returns an initialized MockClient.
@@ -48,43 +47,26 @@ func (c *MockClient) EnsureNodeLabels(name string, labels map[string]string) err
 	if c.EnsureLabelsErr != nil {
 		return c.EnsureLabelsErr
 	}
+
+	var errors *multierror.Error
+	var newLabels = make(map[string]string)
+
+	for k, v := range labels {
+		switch {
+		case !IsReservedLabel(k):
+			newLabels[k] = v
+		case k == ReservedLabelComputeOnly:
+			newLabels[k] = v
+		default:
+			errors = multierror.Append(errors, ErrReservedLabelUnknown)
+		}
+	}
+
 	c.mu.Lock()
-	c.nodeLabels = labels
+	c.nodeLabels = newLabels
 	c.mu.Unlock()
-	return nil
+	return errors.ErrorOrNil()
 }
-
-// // EnsureComputeOnly ensures that the compute-only behaviour has been applied to
-// // the StorageOS node.
-// func (c *MockClient) EnsureComputeOnly(name string, enabled bool) error {
-// 	if c.EnsureComputeOnlyErr != nil {
-// 		return c.EnsureComputeOnlyErr
-// 	}
-// 	c.mu.Lock()
-// 	c.nodeLabels[ReservedLabelComputeOnly] = fmt.Sprint(enabled)
-// 	c.mu.Unlock()
-// 	return nil
-// }
-
-// // SetNodeLabels applies a set of labels.  Existing labels will be overwritten.
-// func (c *MockClient) SetNodeLabels(name string, labels map[string]string) error {
-// 	if c.SetNodeLabelsErr != nil {
-// 		return c.SetNodeLabelsErr
-// 	}
-// 	new := map[string]string{}
-// 	c.mu.Lock()
-// 	for k, v := range c.nodeLabels {
-// 		if IsReservedLabel(k) {
-// 			new[k] = v
-// 		}
-// 	}
-// 	for k, v := range labels {
-// 		new[k] = v
-// 	}
-// 	c.nodeLabels = new
-// 	c.mu.Unlock()
-// 	return nil
-// }
 
 // GetNodeLabels retrieves the set of labels.
 func (c *MockClient) GetNodeLabels(name string) (map[string]string, error) {
@@ -224,7 +206,6 @@ func (c *MockClient) Reset() {
 	c.namespaces = make(map[string]struct{})
 	c.nodes = make(map[string]struct{})
 	c.nodeLabels = make(map[string]string)
-	c.SetNodeLabelsErr = nil
 	c.GetNodeLabelsErr = nil
 	c.DeleteNamespaceErr = nil
 	c.DeleteNodeErr = nil

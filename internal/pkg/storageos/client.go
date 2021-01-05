@@ -89,6 +89,17 @@ func New(username, password, endpoint string) (*Client, error) {
 	return &Client{api: client.DefaultApi, transport: transport, ctx: ctx}, nil
 }
 
+// NewClient returns a client that was constructed manually.  Intended for tests
+// that mock the StorageOS api.
+func NewClient(ctx context.Context, api ControlPlane, transport http.RoundTripper, traced bool) *Client {
+	return &Client{
+		api:       api,
+		transport: http.DefaultTransport,
+		ctx:       context.TODO(),
+		traced:    false,
+	}
+}
+
 // NewTracedClient returns a pre-authenticated client for the StorageOS API that
 // has tracing enabled.  The authentication token must be refreshed periodically
 // using AuthenticateRefresh().

@@ -38,7 +38,7 @@ func SetupNodeLabelTest(ctx context.Context, isStorageOS bool) *corev1.Node {
 			driverMap, err := json.Marshal(map[string]string{
 				nodedelete.DriverName: uuid.New().String(),
 			})
-			Expect(err).NotTo(HaveOccurred(), "failed to mars")
+			Expect(err).NotTo(HaveOccurred(), "failed to marshal csi driver annotation")
 			node.Annotations = map[string]string{
 				nodedelete.DriverAnnotationKey: string(driverMap),
 			}
@@ -208,11 +208,46 @@ var _ = Describe("Node Label controller", func() {
 		})
 	})
 
+	Context("When adding and removing mixed labels", func() {
+		node := SetupNodeLabelTest(ctx, true)
+		It("Should sync labels to StorageOS Node", func() {
+			By("By adding labels to k8s Node")
+			node.SetLabels(mixedLabels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels to match")
+			Eventually(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, timeout, interval).Should(Equal(mixedLabels))
+
+			By("By removing labels from k8s Node")
+			node.SetLabels(map[string]string{})
+			Eventually(func() error {
+				return k8sClient.Update(ctx, node)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Node labels to match")
+			Eventually(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, timeout, interval).Should(BeEmpty())
+		})
+	})
+
 	Context("When adding computeonly label and the StorageOS API returns an error", func() {
 		node := SetupNodeLabelTest(ctx, true)
-		It("Should sync not labels to StorageOS Node", func() {
+		It("Should not sync labels to StorageOS Node", func() {
 			By("Setting API to return error")
-			api.EnsureComputeOnlyErr = errors.New("fake error")
+			api.EnsureLabelsErr = errors.New("fake error")
 
 			By("By adding computeonly label to k8s Node")
 			labels := map[string]string{
@@ -255,7 +290,7 @@ var _ = Describe("Node Label controller", func() {
 	})
 
 	Context("When adding labels a k8s Node with a malformed StorageOS driver registration", func() {
-		node := SetupNodeDeleteTest(ctx, false)
+		node := SetupNodeLabelTest(ctx, false)
 		It("Should not sync labels to StorageOS Node", func() {
 			By("By setting an invalid annotation")
 			node.Annotations = map[string]string{

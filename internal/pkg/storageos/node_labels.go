@@ -50,20 +50,18 @@ func IsReservedLabel(key string) bool {
 //
 // Unreserved labels are copied as a blob and are not evaluated.
 func (c *Client) EnsureNodeLabels(name string, labels map[string]string) error {
-	var errors *multierror.Error
 	var unreservedLabels = make(map[string]string)
+	var computeOnly = false
+	var errors *multierror.Error
+	var err error
 
 	for k, v := range labels {
 		switch {
 		case !IsReservedLabel(k):
 			unreservedLabels[k] = v
 		case k == ReservedLabelComputeOnly:
-			enabled, err := strconv.ParseBool(v)
+			computeOnly, err = strconv.ParseBool(v)
 			if err != nil {
-				errors = multierror.Append(errors, err)
-				continue
-			}
-			if err := c.EnsureComputeOnly(name, enabled); err != nil && err != ErrNodeNotFound {
 				errors = multierror.Append(errors, err)
 			}
 		default:
@@ -71,7 +69,13 @@ func (c *Client) EnsureNodeLabels(name string, labels map[string]string) error {
 		}
 	}
 
-	// Apply unreserved labels.
+	// Apply reserved labels.  Labels that have been removed or have been
+	// changed to an invalid value will get their default re-applied.
+	if err := c.EnsureComputeOnly(name, computeOnly); err != nil && err != ErrNodeNotFound {
+		errors = multierror.Append(errors, err)
+	}
+
+	// Apply unreserved labels as a blob, removing any that are no longer set.
 	if err := c.EnsureUnreservedNodeLabels(name, unreservedLabels); err != nil && err != ErrNodeNotFound {
 		errors = multierror.Append(errors, err)
 	}
