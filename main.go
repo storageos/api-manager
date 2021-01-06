@@ -47,7 +47,7 @@ const (
 
 var (
 	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	setupLog = ctrl.Log.WithName("api-manager")
 )
 
 func init() {
@@ -67,6 +67,7 @@ func main() {
 	var cacheExpiryInterval time.Duration
 	var k8sCreatePollInterval time.Duration
 	var k8sCreateWaitDuration time.Duration
+	var gcNodeDeleteInterval time.Duration
 	var nodeDeleteWorkers int
 	var nsDeleteWorkers int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -81,12 +82,13 @@ func main() {
 	flag.DurationVar(&cacheExpiryInterval, "cache-expiry-interval", time.Minute, "Frequency of cached volume re-validation.")
 	flag.DurationVar(&k8sCreatePollInterval, "k8s-create-poll-interval", 1*time.Second, "Frequency of Kubernetes api polling for new objects to appear once created.")
 	flag.DurationVar(&k8sCreateWaitDuration, "k8s-create-wait-duration", 20*time.Second, "Maximum time to wait for new Kubernetes objects to appear.")
+	flag.DurationVar(&gcNodeDeleteInterval, "node-delete-gc-interval", 1*time.Hour, "Frequency of node garbage collection.")
 	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
 	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
 
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true), zap.StacktraceLevel(zapcore.FatalLevel)))
+	ctrl.SetLogger(zap.New(zap.StacktraceLevel(zapcore.FatalLevel)))
 
 	// Block startup until there is a working StorageOS API connection.  Unless
 	// we loop here, we'll get a number of failures on cold cluster start as it
@@ -189,7 +191,7 @@ func main() {
 
 	// Additional controllers go here.
 	setupLog.Info("starting node delete controller ")
-	if err := nodedelete.NewReconciler(api, mgr.GetClient()).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
+	if err := nodedelete.NewReconciler(api, mgr.GetClient(), gcNodeDeleteInterval).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
 		errCh <- fmt.Errorf("node delete reconciler error: %w", err)
 	}
 	setupLog.Info("starting namespace delete controller ")

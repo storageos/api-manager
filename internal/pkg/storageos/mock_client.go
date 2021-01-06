@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func init() {
@@ -21,6 +22,7 @@ type MockClient struct {
 	nodes              map[string]struct{}
 	mu                 sync.RWMutex
 	DeleteNamespaceErr error
+	ListNodesErr       error
 	DeleteNodeErr      error
 	SharedVolsErr      error
 	SharedVolErr       error
@@ -66,6 +68,20 @@ func (c *MockClient) DeleteNamespace(name string) error {
 		c.mu.Unlock()
 	}
 	return nil
+}
+
+// ListNodes returns a list of StorageOS nodes as NamespacedNames.
+func (c *MockClient) ListNodes() ([]types.NamespacedName, error) {
+	if c.ListNodesErr != nil {
+		return nil, c.ListNodesErr
+	}
+	nn := []types.NamespacedName{}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for name := range c.nodes {
+		nn = append(nn, types.NamespacedName{Name: name})
+	}
+	return nn, nil
 }
 
 // AddNode adds a node to the StorageOS cluster.
@@ -165,6 +181,7 @@ func (c *MockClient) Reset() {
 	c.namespaces = make(map[string]struct{})
 	c.nodes = make(map[string]struct{})
 	c.DeleteNamespaceErr = nil
+	c.ListNodesErr = nil
 	c.DeleteNodeErr = nil
 	c.SharedVolErr = nil
 	c.SharedVolsErr = nil

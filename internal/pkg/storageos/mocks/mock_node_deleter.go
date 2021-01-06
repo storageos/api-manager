@@ -6,6 +6,7 @@ package mocks
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
 )
 
@@ -44,4 +45,19 @@ func (m *MockNodeDeleter) DeleteNode(arg0 string) error {
 func (mr *MockNodeDeleterMockRecorder) DeleteNode(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNode", reflect.TypeOf((*MockNodeDeleter)(nil).DeleteNode), arg0)
+}
+
+// ListNodes mocks base method
+func (m *MockNodeDeleter) ListNodes() ([]types.NamespacedName, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNodes")
+	ret0, _ := ret[0].([]types.NamespacedName)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListNodes indicates an expected call of ListNodes
+func (mr *MockNodeDeleterMockRecorder) ListNodes() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodes", reflect.TypeOf((*MockNodeDeleter)(nil).ListNodes))
 }
