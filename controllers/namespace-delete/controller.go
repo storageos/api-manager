@@ -1,6 +1,8 @@
 package nsdelete
 
 import (
+	"context"
+
 	"github.com/go-logr/logr"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
@@ -45,7 +47,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 //
 // Events are not sent as they require an object. By this point the namespace
 // object will no longer be available.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	err := r.api.DeleteNamespace(req.Name)
 	if err != nil && err != storageos.ErrNamespaceNotFound {
 		// Re-queue without error.  We will get frequent transient errors, such
@@ -74,8 +76,7 @@ func (ChangePredicate) Update(event.UpdateEvent) bool {
 
 // Delete determines whether an object delete should trigger a reconcile.
 func (ChangePredicate) Delete(e event.DeleteEvent) bool {
-	// Ignore objects without metadata.
-	return e.Meta != nil
+	return true
 }
 
 // Generic determines whether an generic event should trigger a reconcile.

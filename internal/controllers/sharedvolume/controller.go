@@ -11,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
@@ -229,7 +228,7 @@ func (r *Reconciler) waitForClusterIP(ctx context.Context, nn types.NamespacedNa
 // waitForAvailable fetches a Kubernetes object, polling at the set interval
 // until the timeout for the object to be found.  This is useful for when the
 // object was just created and you want to read it back immediately.
-func (r *Reconciler) waitForAvailable(ctx context.Context, nn types.NamespacedName, obj runtime.Object, interval time.Duration, timeout time.Duration) error {
+func (r *Reconciler) waitForAvailable(ctx context.Context, nn types.NamespacedName, obj client.Object, interval time.Duration, timeout time.Duration) error {
 	return wait.Poll(interval, timeout, func() (bool, error) {
 		err := r.Client.Get(ctx, nn, obj)
 		if err != nil && !apierrors.IsNotFound(err) {
