@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
+	"github.com/storageos/api-manager/internal/pkg/annotations"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,11 +38,11 @@ func SetupNodeDeleteTest(ctx context.Context, isStorageOS bool) *corev1.Node {
 
 		if isStorageOS {
 			driverMap, err := json.Marshal(map[string]string{
-				nodedelete.DriverName: uuid.New().String(),
+				annotations.DriverName: uuid.New().String(),
 			})
 			Expect(err).NotTo(HaveOccurred(), "failed to mars")
 			node.Annotations = map[string]string{
-				nodedelete.DriverAnnotationKey: string(driverMap),
+				annotations.DriverAnnotationKey: string(driverMap),
 			}
 		}
 
@@ -135,7 +136,7 @@ var _ = Describe("Node Delete controller", func() {
 		It("Should not delete the StorageOS Node", func() {
 			By("By setting an invalid annotation")
 			node.Annotations = map[string]string{
-				nodedelete.DriverAnnotationKey: "{\"csi.storageos.com\":}",
+				annotations.DriverAnnotationKey: "{\"csi.storageos.com\":}",
 			}
 			Expect(k8sClient.Update(ctx, node, &client.UpdateOptions{})).Should(Succeed())
 

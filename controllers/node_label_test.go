@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
 	nodelabel "github.com/storageos/api-manager/controllers/node-label"
+	"github.com/storageos/api-manager/internal/pkg/annotations"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,22 +25,24 @@ const (
 // SetupNodeLabelTest will set up a testing environment.  It must be
 // called from each test.
 func SetupNodeLabelTest(ctx context.Context, isStorageOS bool) *corev1.Node {
-	var stopCh chan struct{}
 	node := &corev1.Node{}
 
+	var cancel func()
+
 	BeforeEach(func() {
-		stopCh = make(chan struct{})
+		ctx, cancel = context.WithCancel(ctx)
+
 		*node = corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{Name: "testnode-" + randStringRunes(5)},
 		}
 
 		if isStorageOS {
 			driverMap, err := json.Marshal(map[string]string{
-				nodedelete.DriverName: uuid.New().String(),
+				annotations.DriverName: uuid.New().String(),
 			})
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal csi driver annotation")
 			node.Annotations = map[string]string{
-				nodedelete.DriverAnnotationKey: string(driverMap),
+				annotations.DriverAnnotationKey: string(driverMap),
 			}
 		}
 
@@ -59,7 +61,7 @@ func SetupNodeLabelTest(ctx context.Context, isStorageOS bool) *corev1.Node {
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		go func() {
-			err := mgr.Start(stopCh)
+			err := mgr.Start(ctx)
 			Expect(err).NotTo(HaveOccurred(), "failed to start manager")
 		}()
 
@@ -68,9 +70,9 @@ func SetupNodeLabelTest(ctx context.Context, isStorageOS bool) *corev1.Node {
 	})
 
 	AfterEach(func() {
-		close(stopCh)
 		err := k8sClient.Delete(ctx, node)
 		Expect(err).NotTo(HaveOccurred(), "failed to delete test node")
+		cancel()
 	})
 
 	return node
@@ -294,7 +296,7 @@ var _ = Describe("Node Label controller", func() {
 		It("Should not sync labels to StorageOS Node", func() {
 			By("By setting an invalid annotation")
 			node.Annotations = map[string]string{
-				nodedelete.DriverAnnotationKey: "{\"csi.storageos.com\":}",
+				annotations.DriverAnnotationKey: "{\"csi.storageos.com\":}",
 			}
 			Expect(k8sClient.Update(ctx, node, &client.UpdateOptions{})).Should(Succeed())
 

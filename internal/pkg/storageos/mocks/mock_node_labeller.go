@@ -5,35 +5,34 @@
 package mocks
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
-// MockNodeLabeller is a mock of NodeLabeller interface.
+// MockNodeLabeller is a mock of NodeLabeller interface
 type MockNodeLabeller struct {
 	ctrl     *gomock.Controller
 	recorder *MockNodeLabellerMockRecorder
 }
 
-// MockNodeLabellerMockRecorder is the mock recorder for MockNodeLabeller.
+// MockNodeLabellerMockRecorder is the mock recorder for MockNodeLabeller
 type MockNodeLabellerMockRecorder struct {
 	mock *MockNodeLabeller
 }
 
-// NewMockNodeLabeller creates a new mock instance.
+// NewMockNodeLabeller creates a new mock instance
 func NewMockNodeLabeller(ctrl *gomock.Controller) *MockNodeLabeller {
 	mock := &MockNodeLabeller{ctrl: ctrl}
 	mock.recorder = &MockNodeLabellerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockNodeLabeller) EXPECT() *MockNodeLabellerMockRecorder {
 	return m.recorder
 }
 
-// EnsureNodeLabels mocks base method.
+// EnsureNodeLabels mocks base method
 func (m *MockNodeLabeller) EnsureNodeLabels(arg0 string, arg1 map[string]string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnsureNodeLabels", arg0, arg1)
@@ -41,7 +40,7 @@ func (m *MockNodeLabeller) EnsureNodeLabels(arg0 string, arg1 map[string]string)
 	return ret0
 }
 
-// EnsureNodeLabels indicates an expected call of EnsureNodeLabels.
+// EnsureNodeLabels indicates an expected call of EnsureNodeLabels
 func (mr *MockNodeLabellerMockRecorder) EnsureNodeLabels(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureNodeLabels", reflect.TypeOf((*MockNodeLabeller)(nil).EnsureNodeLabels), arg0, arg1)

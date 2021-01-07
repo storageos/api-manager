@@ -5,35 +5,34 @@
 package mocks
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
-// MockNodeDeleter is a mock of NodeDeleter interface.
+// MockNodeDeleter is a mock of NodeDeleter interface
 type MockNodeDeleter struct {
 	ctrl     *gomock.Controller
 	recorder *MockNodeDeleterMockRecorder
 }
 
-// MockNodeDeleterMockRecorder is the mock recorder for MockNodeDeleter.
+// MockNodeDeleterMockRecorder is the mock recorder for MockNodeDeleter
 type MockNodeDeleterMockRecorder struct {
 	mock *MockNodeDeleter
 }
 
-// NewMockNodeDeleter creates a new mock instance.
+// NewMockNodeDeleter creates a new mock instance
 func NewMockNodeDeleter(ctrl *gomock.Controller) *MockNodeDeleter {
 	mock := &MockNodeDeleter{ctrl: ctrl}
 	mock.recorder = &MockNodeDeleterMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockNodeDeleter) EXPECT() *MockNodeDeleterMockRecorder {
 	return m.recorder
 }
 
-// DeleteNode mocks base method.
+// DeleteNode mocks base method
 func (m *MockNodeDeleter) DeleteNode(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteNode", arg0)
@@ -41,7 +40,7 @@ func (m *MockNodeDeleter) DeleteNode(arg0 string) error {
 	return ret0
 }
 
-// DeleteNode indicates an expected call of DeleteNode.
+// DeleteNode indicates an expected call of DeleteNode
 func (mr *MockNodeDeleterMockRecorder) DeleteNode(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNode", reflect.TypeOf((*MockNodeDeleter)(nil).DeleteNode), arg0)

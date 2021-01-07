@@ -56,9 +56,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 // There is no label sync from StorageOS to Kubernetes.  This is intentional to
 // ensure a simple flow of desired state set by users in Kubernetes to actual
 // state set on the StorageOS node.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	node := &corev1.Node{}
-	ctx := context.Background()
 	if err := r.Get(ctx, req.NamespacedName, node); err != nil {
 		r.Log.Error(err, "unable to fetch Node")
 		// Ignore not-found errors since they can't be fixed by an immediate
@@ -93,22 +92,17 @@ func (c ChangePredicate) Create(event.CreateEvent) bool {
 
 // Update determines whether an object update should trigger a reconcile.
 func (c ChangePredicate) Update(e event.UpdateEvent) bool {
-	// Ignore objects without metadata.
-	if e.MetaOld == nil || e.MetaNew == nil {
-		return false
-	}
-
 	// Ignore nodes that haven't run StorageOS.
-	found, err := annotations.IncludesStorageOSDriver(e.MetaNew.GetAnnotations())
+	found, err := annotations.IncludesStorageOSDriver(e.ObjectNew.GetAnnotations())
 	if err != nil {
-		c.log.Error(err, "failed to process node annotations", "node", e.MetaNew.GetName())
+		c.log.Error(err, "failed to process node annotations", "node", e.ObjectNew.GetName())
 	}
 	if !found {
 		return false
 	}
 
 	// Reconcile only on label changes.
-	if !reflect.DeepEqual(e.MetaOld.GetLabels(), e.MetaNew.GetLabels()) {
+	if !reflect.DeepEqual(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels()) {
 		return true
 	}
 	return false
