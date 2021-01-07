@@ -16,14 +16,6 @@ jobs:
         with:
           args: --timeout=5m
 
-  tidy:
-    name: Tidy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run go tidy
-        run: make tidy && git diff --exit-code && test -z "$(git ls-files --exclude-standard --others)"
-
   test-build:
     name: Run tests and build
     runs-on: ubuntu-latest
@@ -32,6 +24,8 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '1.15.2'
+      - name: Run go tidy
+        run: make tidy && git diff --exit-code && test -z "$(git ls-files --exclude-standard --others)"
       - name: Run go test
         run: make test
       - name: Run go build
