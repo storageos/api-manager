@@ -168,7 +168,7 @@ var _ = Describe("Node Delete controller", func() {
 		})
 	})
 
-	Context("When starting after ak8s Node has been deleted but is still in StorageOS", func() {
+	Context("When starting after a k8s Node has been deleted but is still in StorageOS", func() {
 		node := SetupNodeDeleteTest(ctx, false, true, 1*time.Second)
 		It("The garbage collector should delete the StorageOS Node", func() {
 			By("Expecting StorageOS Node to be deleted")
