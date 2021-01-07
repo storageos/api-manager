@@ -22,11 +22,13 @@ const (
 // SetupNamespaceDeleteTest will set up a testing environment.  It must be
 // called from each test.
 func SetupNamespaceDeleteTest(ctx context.Context) *corev1.Namespace {
-	var stopCh chan struct{}
 	ns := &corev1.Namespace{}
 
+	var cancel func()
+
 	BeforeEach(func() {
-		stopCh = make(chan struct{})
+		ctx, cancel = context.WithCancel(ctx)
+
 		*ns = corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{Name: "testns-" + randStringRunes(5)},
 		}
@@ -46,7 +48,7 @@ func SetupNamespaceDeleteTest(ctx context.Context) *corev1.Namespace {
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		go func() {
-			err := mgr.Start(stopCh)
+			err := mgr.Start(ctx)
 			Expect(err).NotTo(HaveOccurred(), "failed to start manager")
 		}()
 
@@ -55,8 +57,9 @@ func SetupNamespaceDeleteTest(ctx context.Context) *corev1.Namespace {
 	})
 
 	AfterEach(func() {
-		close(stopCh)
 		// Don't delete the namespace, the test should have.
+		// Stop the manager.
+		cancel()
 	})
 
 	return ns

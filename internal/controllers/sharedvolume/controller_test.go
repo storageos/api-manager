@@ -57,7 +57,7 @@ func TestReconcile(t *testing.T) {
 		name         string
 		volumes      []*storageos.SharedVolume
 		cached       []*storageos.SharedVolume
-		pvcs         []runtime.Object
+		pvcs         []client.Object
 		wantServices []corev1.Service
 		wantVolumes  storageos.SharedVolumeList
 		wantCached   []*storageos.SharedVolume
@@ -75,7 +75,7 @@ func TestReconcile(t *testing.T) {
 					Namespace:   "bar",
 				},
 			},
-			pvcs: []runtime.Object{fooPVC},
+			pvcs: []client.Object{fooPVC},
 			wantServices: []corev1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -129,7 +129,7 @@ func TestReconcile(t *testing.T) {
 		},
 		{
 			name: "Cached volume matches - service won't be created",
-			pvcs: []runtime.Object{fooPVC},
+			pvcs: []client.Object{fooPVC},
 			volumes: []*storageos.SharedVolume{
 				{
 					ID:          "1234",
@@ -157,7 +157,7 @@ func TestReconcile(t *testing.T) {
 		},
 		{
 			name:        "Cached volume matches but expired",
-			pvcs:        []runtime.Object{fooPVC},
+			pvcs:        []client.Object{fooPVC},
 			cacheExpiry: time.Nanosecond,
 			volumes: []*storageos.SharedVolume{
 				{
@@ -230,7 +230,7 @@ func TestReconcile(t *testing.T) {
 					InternalEndpoint: "1.2.3.4:1234",
 				},
 			},
-			pvcs: []runtime.Object{fooPVC},
+			pvcs: []client.Object{fooPVC},
 			cached: []*storageos.SharedVolume{
 				{
 					ID:               "1234",
@@ -306,7 +306,7 @@ func TestReconcile(t *testing.T) {
 
 			s := runtime.NewScheme()
 			require.Nil(t, corev1.AddToScheme(s))
-			k8s := fake.NewFakeClientWithScheme(s, tt.pvcs...)
+			k8s := fake.NewClientBuilder().WithScheme(s).WithObjects(tt.pvcs...).Build()
 			recorder := record.NewFakeRecorder(10)
 
 			r := &Reconciler{

@@ -24,11 +24,12 @@ const (
 // SetupNodeDeleteTest will set up a testing environment.  It must be called
 // from each test.
 func SetupNodeDeleteTest(ctx context.Context, isStorageOS bool) *corev1.Node {
-	var stopCh chan struct{}
 	node := &corev1.Node{}
 
+	var cancel func()
+
 	BeforeEach(func() {
-		stopCh = make(chan struct{})
+		ctx, cancel = context.WithCancel(ctx)
 
 		*node = corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{Name: "testnode-" + randStringRunes(5)},
@@ -59,7 +60,7 @@ func SetupNodeDeleteTest(ctx context.Context, isStorageOS bool) *corev1.Node {
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		go func() {
-			err := mgr.Start(stopCh)
+			err := mgr.Start(ctx)
 			Expect(err).NotTo(HaveOccurred(), "failed to start manager")
 		}()
 
@@ -68,8 +69,9 @@ func SetupNodeDeleteTest(ctx context.Context, isStorageOS bool) *corev1.Node {
 	})
 
 	AfterEach(func() {
-		close(stopCh)
 		// Don't delete the node, the test should have.
+		// Stop the manager.
+		cancel()
 	})
 
 	return node

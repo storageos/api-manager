@@ -1,6 +1,7 @@
 package nodedelete
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-logr/logr"
@@ -56,7 +57,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 //
 // Events are not sent as they require an object. By this point the namespace
 // object will no longer be available.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	err := r.api.DeleteNode(req.Name)
 	if err != nil && err != storageos.ErrNodeNotFound {
 		// Re-queue without error.  We will get frequent transient errors, such
@@ -86,13 +87,10 @@ func (c ChangePredicate) Update(event.UpdateEvent) bool {
 
 // Delete determines whether an object delete should trigger a reconcile.
 func (c ChangePredicate) Delete(e event.DeleteEvent) bool {
-	// Ignore objects without metadata.
-	if e.Meta == nil {
-		return false
-	}
-	found, err := hasStorageOSDriverAnnotation(e.Meta.GetAnnotations())
+	// Ignore objects without the StorageOS CSI driver annotation.
+	found, err := hasStorageOSDriverAnnotation(e.Object.GetAnnotations())
 	if err != nil {
-		c.log.Error(err, "failed to process node annotations", "node", e.Meta.GetName())
+		c.log.Error(err, "failed to process node annotations", "node", e.Object.GetName())
 	}
 	return found
 }

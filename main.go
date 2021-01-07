@@ -129,16 +129,19 @@ func main() {
 
 	// Events sent on apiReset channel will trigger the api client to re-initialise.
 	apiReset := make(chan struct{})
-	ctx, cancel := context.WithCancel(context.Background())
 
+	// Events sent on errCh will trigger a graceful shutdown.  Another instance
+	// will take over while the pod restarts.
 	errCh := make(chan error, 3)
-	stopCh := ctrl.SetupSignalHandler()
+
+	// Parent context will be closed on interrupt or sigterm.
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
+
 	var wg sync.WaitGroup
 
 	shutdown := func() {
 		// Stop other goroutines.
 		cancel()
-
 		// Wait for the other goroutines to finish.
 		wg.Wait()
 		setupLog.Info("shutdown complete")
@@ -157,7 +160,7 @@ func main() {
 	// Goroutine to run the kubebuilder manager.
 	wg.Add(1)
 	go func() {
-		err := mgr.Start(stopCh)
+		err := mgr.Start(ctx)
 		if err != nil {
 			errCh <- fmt.Errorf("manager error: %w", err)
 		} else {
@@ -199,7 +202,7 @@ func main() {
 	select {
 	case err = <-errCh:
 		setupLog.Info("exiting", "reason", err)
-	case <-stopCh:
+	case <-ctx.Done():
 		setupLog.Info("shutdown requested")
 	}
 
