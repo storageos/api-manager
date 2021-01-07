@@ -37,7 +37,7 @@ var testEnv *envtest.Environment
 var api *storageos.MockClient
 
 var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter)))
 
 	// Read CRDs from the CRD directory.
 	By("Bootstrapping test environment")
