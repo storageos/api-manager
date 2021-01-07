@@ -27,11 +27,11 @@ kubebuilder:
 
 # Run tests
 test: kubebuilder generate fmt vet manifests
-	go test -timeout 300s ./... -coverprofile cover.out
+	go test -mod=vendor -timeout 300s ./... -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet tidy
-	go build -o bin/manager main.go
+	go build -mod=vendor -o bin/manager main.go
 
 # Prune, add and vendor go dependencies.
 tidy:
@@ -40,7 +40,7 @@ tidy:
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests secret
-	go run ./main.go -api-secret-path=$(PWD)/.secret
+	go run -mod=vendor ./main.go -api-secret-path=$(PWD)/.secret
 
 # Install CRDs into a cluster
 install: manifests
