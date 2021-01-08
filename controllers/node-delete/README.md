@@ -46,7 +46,7 @@ request will be considered successful.
 ## Garbage Collection
 
 In case a node delete event was missed during a restart or outage, a garbage
-collection runs periodically.  It compares the list of nodes know to StorageOS,
+collection runs periodically.  It compares the list of nodes known to StorageOS,
 and removes any that are no longer known to Kubernetes.
 
 Garbage collection is run every hour by default (configurable via the

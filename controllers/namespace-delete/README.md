@@ -1,6 +1,6 @@
 # Namespace Delete Controller
 
-The Namespace Delete Controller is responsible for removing namesapces from the
+The Namespace Delete Controller is responsible for removing namespaces from the
 StorageOS cluster when the namespace has been removed from Kubernetes.
 
 When a StorageOS-provisioned PVC is created in a Kubernetes namespace, if the
@@ -23,9 +23,9 @@ The controller reconcile will trigger on any Kubernetes Namespace delete event.
 
 ## Reconcile
 
-When a Kubernetes namespace is deleted, a request is made to the StorageOS API to
-remove the namespace.  The StorageOS API will only allow the delete to succeed if the
-namespace is empty and does not contain any volumes.
+When a Kubernetes namespace is deleted, a request is made to the StorageOS API
+to remove the namespace.  The StorageOS API will only allow the delete to
+succeed if the namespace is empty and does not contain any volumes.
 
 If the delete request failed, it will be requeued and retried after a backoff
 period.
@@ -33,3 +33,12 @@ period.
 If the namespace was not found, either because it was already deleted or it
 never had a PVC provisioned by StorageOS, the delete request will be considered
 successful.
+
+## Garbage Collection
+
+In case a namespace delete event was missed during a restart or outage, a
+garbage collection runs periodically.  It compares the list of namespaces known
+to StorageOS, and removes any that are no longer known to Kubernetes.
+
+Garbage collection is run every hour by default (configurable via the
+`-namespace-delete-gc-interval` flag).

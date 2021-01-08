@@ -6,6 +6,7 @@ package mocks
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
 )
 
@@ -44,4 +45,19 @@ func (m *MockNamespaceDeleter) DeleteNamespace(arg0 string) error {
 func (mr *MockNamespaceDeleterMockRecorder) DeleteNamespace(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNamespace", reflect.TypeOf((*MockNamespaceDeleter)(nil).DeleteNamespace), arg0)
+}
+
+// ListNamespaces mocks base method
+func (m *MockNamespaceDeleter) ListNamespaces() ([]types.NamespacedName, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNamespaces")
+	ret0, _ := ret[0].([]types.NamespacedName)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListNamespaces indicates an expected call of ListNamespaces
+func (mr *MockNamespaceDeleterMockRecorder) ListNamespaces() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockNamespaceDeleter)(nil).ListNamespaces))
 }

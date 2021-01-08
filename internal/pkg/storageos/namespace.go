@@ -7,6 +7,7 @@ import (
 
 	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	api "github.com/storageos/go-api/v2"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -19,6 +20,33 @@ var (
 //go:generate mockgen -destination=mocks/mock_namespace_deleter.go -package=mocks . NamespaceDeleter
 type NamespaceDeleter interface {
 	DeleteNamespace(name string) error
+	ListNamespaces() ([]types.NamespacedName, error)
+}
+
+// ListNamespaces returns a list of all StorageOS namespace objects.
+func (c *Client) ListNamespaces() ([]types.NamespacedName, error) {
+	funcName := "list_namespaces"
+	start := time.Now()
+	defer func() {
+		metrics.Latency.Observe(funcName, time.Since(start))
+	}()
+	observeErr := func(e error) error {
+		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		return e
+	}
+
+	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
+	defer cancel()
+
+	namespaces, _, err := c.api.ListNamespaces(ctx)
+	if err != nil {
+		return nil, observeErr(err)
+	}
+	nn := []types.NamespacedName{}
+	for _, ns := range namespaces {
+		nn = append(nn, types.NamespacedName{Name: ns.Name})
+	}
+	return nn, nil
 }
 
 // DeleteNamespace removes a namespace from the StorageOS cluster.  Delete will fail if

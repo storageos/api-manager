@@ -21,6 +21,7 @@ type MockClient struct {
 	namespaces         map[string]struct{}
 	nodes              map[string]struct{}
 	mu                 sync.RWMutex
+	ListNamespacesErr  error
 	DeleteNamespaceErr error
 	ListNodesErr       error
 	DeleteNodeErr      error
@@ -37,6 +38,20 @@ func NewMockClient() *MockClient {
 		nodes:      make(map[string]struct{}),
 		mu:         sync.RWMutex{},
 	}
+}
+
+// ListNamespaces returns a list of StorageOS namespaces as NamespacedNames.
+func (c *MockClient) ListNamespaces() ([]types.NamespacedName, error) {
+	if c.ListNamespacesErr != nil {
+		return nil, c.ListNamespacesErr
+	}
+	nn := []types.NamespacedName{}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for name := range c.namespaces {
+		nn = append(nn, types.NamespacedName{Name: name})
+	}
+	return nn, nil
 }
 
 // AddNamespace adds a namespace to the StorageOS cluster.
@@ -180,6 +195,7 @@ func (c *MockClient) Reset() {
 	c.vols = make(map[string]*SharedVolume)
 	c.namespaces = make(map[string]struct{})
 	c.nodes = make(map[string]struct{})
+	c.ListNamespacesErr = nil
 	c.DeleteNamespaceErr = nil
 	c.ListNodesErr = nil
 	c.DeleteNodeErr = nil

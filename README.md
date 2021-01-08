@@ -91,14 +91,16 @@ The following flags are supported:
     	Maximum time to wait for new Kubernetes objects to appear. (default 20s)
   -kubeconfig string
     	Paths to a kubeconfig. Only required if out-of-cluster.
-  -master --kubeconfig
-    	(Deprecated: switch to --kubeconfig) The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.
   -metrics-addr string
     	The address the metric endpoint binds to. (default ":8080")
+  -namespace-delete-gc-interval duration
+    	Frequency of node garbage collection. (default 1h0m0s)
   -namespace-delete-workers int
     	Maximum concurrent namespace delete operations. (default 5)
+  -node-delete-gc-interval duration
+    	Frequency of node garbage collection. (default 1h0m0s)
   -node-delete-workers int
-    	Maximum concurrent node delete operations. (default 5)      
+    	Maximum concurrent node delete operations. (default 5)   
 ```
 
 ## Setup/Development
