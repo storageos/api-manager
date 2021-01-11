@@ -7,11 +7,11 @@ env:
 
 jobs:
   lint:
-    name: lint
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: golangci-lint
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v2.3.0
         with:
           args: --timeout=5m
@@ -24,9 +24,11 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '1.15.2'
-      - name: go-test
+      - name: Run go tidy
+        run: make tidy && git diff --exit-code && test -z "$(git ls-files --exclude-standard --others | tee /dev/fd/2)"
+      - name: Run go test
         run: make test
-      - name: build
+      - name: Run go build
         run: make manager
 
   build-image:
