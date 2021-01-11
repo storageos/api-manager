@@ -127,6 +127,32 @@ The following flags are supported:
     	Zap Level at and above which stacktraces are captured (one of 'info', 'error').
 ```
 
+## Tracing
+
+Opentelemetry tracing can be configured with a Jaeger exporter.  To enable, set
+the following environment variables:
+
+```console
+JAEGER_DISABLED=false
+JAEGER_ENDPOINT=http://<service-address>:14268/api/traces environment
+```
+
+Tracing is not enabled by default.
+
+To run a Jaeger endpoint, see:
+https://www.jaegertracing.io/docs/1.21/getting-started/ 
+
+Or for development purposes:
+
+```console
+docker run -d --name jaeger \
+  -p 16686:16686 \
+  -p 14268:14268 \
+  jaegertracing/all-in-one:1.21
+```
+
+The Web UI will be available at http://localhost:16686.
+
 ## Setup/Development
 
 Ensure a k8s cluster is running and ~/.kube/config contains the kubeconfig, or

@@ -6,8 +6,12 @@ import (
 
 	msyncv1 "github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1"
 	"github.com/go-logr/logr"
-	"github.com/storageos/api-manager/internal/pkg/storageos"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/label"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 // Controller implements the Sync contoller interface, applying node labels to
@@ -36,12 +40,19 @@ func NewController(api NodeLabeller, log logr.Logger) (*Controller, error) {
 // ensure a simple flow of desired state set by users in Kubernetes to actual
 // state set on the StorageOS node.
 func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
+	tr := otel.Tracer("node-label")
+	ctx, span := tr.Start(ctx, "node label ensure")
+	span.SetAttributes(label.String("name", obj.GetName()))
+	defer span.End()
+
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
 	if err := c.api.EnsureNodeLabels(ctx, client.ObjectKeyFromObject(obj), obj.GetLabels()); err != nil {
+		span.RecordError(err)
 		return err
 	}
+	span.SetStatus(codes.Ok, "node labels applied to storageos")
 	c.log.Info("node labels applied to storageos", "name", obj.GetName())
 	return nil
 }
@@ -49,6 +60,10 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 // Diff takes a list of Kubernets node objects and returns them if they exist
 // within StorageOS but the labels are different.
 func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Object, error) {
+	tr := otel.Tracer("node-label")
+	ctx, span := tr.Start(ctx, "node label diff")
+	defer span.End()
+
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
@@ -56,6 +71,7 @@ func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Ob
 
 	nodes, err := c.api.NodeObjects(ctx)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	for _, obj := range objs {
@@ -69,6 +85,8 @@ func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Ob
 			apply = append(apply, obj)
 		}
 	}
+	span.SetAttributes(label.Int("stale nodes", len(apply)))
+	span.SetStatus(codes.Ok, "compared nodes")
 	return apply, nil
 }
 

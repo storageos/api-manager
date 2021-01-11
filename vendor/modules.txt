@@ -1,7 +1,11 @@
 # cloud.google.com/go v0.65.0
 cloud.google.com/go/compute/metadata
+# github.com/DataDog/sketches-go v0.0.1
+github.com/DataDog/sketches-go/ddsketch
 # github.com/antihax/optional v1.0.0
 github.com/antihax/optional
+# github.com/apache/thrift v0.13.0
+github.com/apache/thrift/lib/go/thrift
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
@@ -11,6 +15,7 @@ github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1
 github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1
 github.com/darkowlzz/operator-toolkit/controller/sync/v1
 github.com/darkowlzz/operator-toolkit/object
+github.com/darkowlzz/operator-toolkit/telemetry/export
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/evanphx/json-patch v4.9.0+incompatible
@@ -141,14 +146,49 @@ go.opentelemetry.io/otel/codes
 go.opentelemetry.io/otel/internal
 go.opentelemetry.io/otel/internal/baggage
 go.opentelemetry.io/otel/internal/global
+go.opentelemetry.io/otel/internal/metric
 go.opentelemetry.io/otel/internal/trace/noop
+go.opentelemetry.io/otel/internal/trace/parent
 go.opentelemetry.io/otel/label
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/number
 go.opentelemetry.io/otel/metric/registry
 go.opentelemetry.io/otel/propagation
+go.opentelemetry.io/otel/semconv
 go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/unit
+# go.opentelemetry.io/otel/exporters/otlp v0.15.0
+go.opentelemetry.io/otel/exporters/otlp
+go.opentelemetry.io/otel/exporters/otlp/internal/opentelemetry-proto-gen/collector/metrics/v1
+go.opentelemetry.io/otel/exporters/otlp/internal/opentelemetry-proto-gen/collector/trace/v1
+go.opentelemetry.io/otel/exporters/otlp/internal/opentelemetry-proto-gen/common/v1
+go.opentelemetry.io/otel/exporters/otlp/internal/opentelemetry-proto-gen/metrics/v1
+go.opentelemetry.io/otel/exporters/otlp/internal/opentelemetry-proto-gen/resource/v1
+go.opentelemetry.io/otel/exporters/otlp/internal/opentelemetry-proto-gen/trace/v1
+go.opentelemetry.io/otel/exporters/otlp/internal/transform
+# go.opentelemetry.io/otel/exporters/trace/jaeger v0.15.0
+go.opentelemetry.io/otel/exporters/trace/jaeger
+go.opentelemetry.io/otel/exporters/trace/jaeger/internal/gen-go/jaeger
+# go.opentelemetry.io/otel/sdk v0.15.0
+go.opentelemetry.io/otel/sdk/export/metric
+go.opentelemetry.io/otel/sdk/export/metric/aggregation
+go.opentelemetry.io/otel/sdk/export/trace
+go.opentelemetry.io/otel/sdk/instrumentation
+go.opentelemetry.io/otel/sdk/internal
+go.opentelemetry.io/otel/sdk/metric
+go.opentelemetry.io/otel/sdk/metric/aggregator
+go.opentelemetry.io/otel/sdk/metric/aggregator/array
+go.opentelemetry.io/otel/sdk/metric/aggregator/ddsketch
+go.opentelemetry.io/otel/sdk/metric/aggregator/histogram
+go.opentelemetry.io/otel/sdk/metric/aggregator/lastvalue
+go.opentelemetry.io/otel/sdk/metric/aggregator/minmaxsumcount
+go.opentelemetry.io/otel/sdk/metric/aggregator/sum
+go.opentelemetry.io/otel/sdk/metric/controller/push
+go.opentelemetry.io/otel/sdk/metric/controller/time
+go.opentelemetry.io/otel/sdk/metric/processor/basic
+go.opentelemetry.io/otel/sdk/metric/selector/simple
+go.opentelemetry.io/otel/sdk/resource
+go.opentelemetry.io/otel/sdk/trace
 # go.uber.org/atomic v1.6.0
 go.uber.org/atomic
 # go.uber.org/multierr v1.5.0
@@ -172,12 +212,16 @@ golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
+golang.org/x/net/internal/timeseries
+golang.org/x/net/trace
 # golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 golang.org/x/oauth2
 golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
+# golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
@@ -210,6 +254,8 @@ golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.1.0
 gomodules.xyz/jsonpatch/v2
+# google.golang.org/api v0.32.0
+google.golang.org/api/support/bundler
 # google.golang.org/appengine v1.6.6
 google.golang.org/appengine
 google.golang.org/appengine/internal
@@ -221,6 +267,49 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
+# google.golang.org/genproto v0.0.0-20200904004341-0bd0a958aa1d
+google.golang.org/genproto/googleapis/rpc/status
+# google.golang.org/grpc v1.32.0
+google.golang.org/grpc
+google.golang.org/grpc/attributes
+google.golang.org/grpc/backoff
+google.golang.org/grpc/balancer
+google.golang.org/grpc/balancer/base
+google.golang.org/grpc/balancer/grpclb/state
+google.golang.org/grpc/balancer/roundrobin
+google.golang.org/grpc/binarylog/grpc_binarylog_v1
+google.golang.org/grpc/codes
+google.golang.org/grpc/connectivity
+google.golang.org/grpc/credentials
+google.golang.org/grpc/encoding
+google.golang.org/grpc/encoding/proto
+google.golang.org/grpc/grpclog
+google.golang.org/grpc/internal
+google.golang.org/grpc/internal/backoff
+google.golang.org/grpc/internal/balancerload
+google.golang.org/grpc/internal/binarylog
+google.golang.org/grpc/internal/buffer
+google.golang.org/grpc/internal/channelz
+google.golang.org/grpc/internal/credentials
+google.golang.org/grpc/internal/envconfig
+google.golang.org/grpc/internal/grpclog
+google.golang.org/grpc/internal/grpcrand
+google.golang.org/grpc/internal/grpcsync
+google.golang.org/grpc/internal/grpcutil
+google.golang.org/grpc/internal/resolver/dns
+google.golang.org/grpc/internal/resolver/passthrough
+google.golang.org/grpc/internal/serviceconfig
+google.golang.org/grpc/internal/status
+google.golang.org/grpc/internal/syscall
+google.golang.org/grpc/internal/transport
+google.golang.org/grpc/keepalive
+google.golang.org/grpc/metadata
+google.golang.org/grpc/peer
+google.golang.org/grpc/resolver
+google.golang.org/grpc/serviceconfig
+google.golang.org/grpc/stats
+google.golang.org/grpc/status
+google.golang.org/grpc/tap
 # google.golang.org/protobuf v1.25.0
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire

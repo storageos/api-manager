@@ -8,6 +8,9 @@ import (
 	msyncv1 "github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1"
 	"github.com/darkowlzz/operator-toolkit/object"
 	"github.com/go-logr/logr"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/label"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,6 +45,16 @@ func NewController(api VolumeLabeller, scheme *runtime.Scheme, log logr.Logger) 
 // ensure a simple flow of desired state set by users in Kubernetes to actual
 // state set on the StorageOS volume.
 func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
+	tr := otel.Tracer("pvc-label")
+	ctx, span := tr.Start(ctx, "pvc label ensure")
+	span.SetAttributes(label.String("name", obj.GetName()))
+	defer span.End()
+
+	observeErr := func(err error) error {
+		span.RecordError(err)
+		return err
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
@@ -50,21 +63,22 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 	// unstructured object, and then reading from the spec.
 	u, err := object.GetUnstructuredObject(c.scheme, obj)
 	if err != nil {
-		return err
+		return observeErr(err)
 	}
 	pvName, ok, err := unstructured.NestedString(u.Object, []string{"spec", "volumeName"}...)
 	if err != nil {
-		return fmt.Errorf("failed to get pv name from pvc: %w", err)
+		return observeErr(fmt.Errorf("failed to get pv name from pvc: %w", err))
 	}
 	if !ok {
-		return fmt.Errorf("pv for pvc not yet provisioned: %w", err)
+		return observeErr(fmt.Errorf("pv for pvc not yet provisioned: %w", err))
 	}
 
 	// Use the PV name, and the PVC namespace for the StorageOS volume lookup.
 	key := client.ObjectKey{Name: pvName, Namespace: obj.GetNamespace()}
 	if err := c.api.EnsureVolumeLabels(ctx, key, obj.GetLabels()); err != nil {
-		return err
+		return observeErr(err)
 	}
+	span.SetStatus(codes.Ok, "pvc labels applied to storageos")
 	c.log.Info("pvc labels applied to storageos", "name", obj.GetName())
 	return nil
 }
@@ -72,6 +86,10 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 // Diff takes a list of Kubernets PVC objects and returns them if they exist
 // as volumes within StorageOS but the labels are different.
 func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Object, error) {
+	tr := otel.Tracer("pvc-label")
+	ctx, span := tr.Start(ctx, "pvc label diff")
+	defer span.End()
+
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
@@ -79,6 +97,7 @@ func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Ob
 
 	volumes, err := c.api.VolumeObjects(ctx)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	for _, obj := range objs {
@@ -92,6 +111,8 @@ func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Ob
 			apply = append(apply, obj)
 		}
 	}
+	span.SetAttributes(label.Int("stale volumes", len(apply)))
+	span.SetStatus(codes.Ok, "compared volumes")
 	return apply, nil
 }
 

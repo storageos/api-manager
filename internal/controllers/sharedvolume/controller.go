@@ -8,6 +8,9 @@ import (
 	"github.com/go-logr/logr"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/label"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,17 +77,32 @@ func NewReconciler(api storageos.VolumeSharer, apiReset chan<- struct{}, k8s cli
 // that are no longer required, this is done via OwnerReferences.
 func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiryInterval, k8sCreatePollInterval, k8sCreateWaitDuration time.Duration) error {
 	for {
+		tr := otel.Tracer("shared-volume")
+		ctx, span := tr.Start(ctx, "shared volume reconciler")
+
 		start := time.Now()
 
 		// Query shared volumes info.
 		volumes, err := r.api.ListSharedVolumes(ctx)
 		if err != nil {
+			span.RecordError(errors.Wrap(err, "failed to list shared volumes"))
 			r.log.Error(err, "failed to list shared volumes")
 			r.apiReset <- struct{}{}
 		}
+		span.SetAttributes(label.Int("volumes", len(volumes)))
 
 		for _, vol := range volumes {
 			log := r.log.WithValues("svc", vol.ServiceName, "pvc", vol.PVCName, "namespace", vol.Namespace)
+
+			// New tracing span for each volume.
+			ctx, span := tr.Start(ctx, "reconcile shared volume")
+			span.SetAttributes(label.String("pvc", vol.PVCName))
+			span.SetAttributes(label.String("namespace", vol.Namespace))
+
+			observeErr := func(err error, msg string) {
+				span.RecordError(errors.Wrap(err, msg))
+				log.Error(err, msg)
+			}
 
 			// Fetch volume from cache. If the cached entry is the same then
 			// skip the k8s api requests to verify until the cache entry
@@ -94,10 +112,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 				cachedVol, ok := obj.(*storageos.SharedVolume)
 				if !ok {
 					log.Error(ErrCastCache, "failed to cast cache object to SharedVolume type", "object", obj)
+					span.RecordError(err)
+					span.End()
 					continue
 				}
 				if cachedVol.IsEqual(vol) {
-					// No update needed.
+					span.AddEvent("no update needed")
+					span.End()
 					continue
 				}
 			}
@@ -110,7 +131,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 			pvc := &corev1.PersistentVolumeClaim{}
 			if err := r.Client.Get(ctx, types.NamespacedName{Name: vol.PVCName, Namespace: vol.Namespace}, pvc); err != nil {
 				if !apierrors.IsNotFound(err) {
-					log.Error(err, "failed to fetch pvc for shared volume")
+					observeErr(err, "failed to fetch pvc for shared volume")
+					span.End()
 					continue
 				}
 			}
@@ -122,26 +144,34 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 			}
 			externalEndpoint, err := r.ensureService(ctx, vol, ownerRef, k8sCreatePollInterval, k8sCreateWaitDuration)
 			if err != nil {
-				log.Error(err, "shared volume create/update failed")
+				observeErr(err, "shared volume create/update failed")
+				span.End()
 				continue
 			}
 
 			if externalEndpoint != vol.ExternalEndpoint {
 				if err := r.api.SetExternalEndpoint(ctx, vol.ID, vol.Namespace, externalEndpoint); err != nil {
-					log.Error(err, "shared volume external endpoint update failed")
+					observeErr(err, "shared volume external endpoint update failed")
+					span.End()
 					continue
 				}
 				log.Info("shared volume ready for use", "external", externalEndpoint)
+				span.AddEvent("shared volume ready for use")
 				vol.ExternalEndpoint = externalEndpoint
 			}
 
 			// Create/update/verify succeeded, update cache including resetting
 			// expiry.
 			r.volumes.Set(vol.ID, vol, cacheExpiryInterval)
+
+			span.SetStatus(codes.Ok, "shared volume reconciled")
+			span.End()
 		}
 
 		// Record reconcile duration.
 		ReconcileDuration.Observe(time.Since(start))
+
+		span.End()
 
 		// Wait before polling again or exit if the context has been cancelled.
 		select {
@@ -155,6 +185,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 // ensureService makes sure that the required k8s objects are up-to-date for the
 // given SharedVolume.  Returns the public endpoint for the service.
 func (r *Reconciler) ensureService(ctx context.Context, sv *storageos.SharedVolume, ownerRef metav1.OwnerReference, k8sCreatePollInterval time.Duration, k8sCreateWaitDuration time.Duration) (string, error) {
+	tr := otel.Tracer("shared-volume")
+	ctx, span := tr.Start(ctx, "ensure shared volume service")
+	span.SetAttributes(label.String("pvc", sv.PVCName))
+	span.SetAttributes(label.String("namespace", sv.Namespace))
+	defer span.End()
+
+	observeErr := func(err error, msg string) error {
+		e := errors.Wrap(err, msg)
+		span.RecordError(e)
+		return e
+	}
+
 	nn := types.NamespacedName{
 		Name:      sv.ServiceName,
 		Namespace: sv.Namespace,
@@ -166,21 +208,23 @@ func (r *Reconciler) ensureService(ctx context.Context, sv *storageos.SharedVolu
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			if err := r.Client.Create(ctx, sv.Service(ownerRef)); err != nil {
-				return "", errors.Wrap(err, "failed to create service resource")
+				return "", observeErr(err, "failed to create service resource")
 			}
 			if err := r.waitForClusterIP(ctx, nn, svc, k8sCreatePollInterval, k8sCreateWaitDuration); err != nil {
-				return "", errors.Wrap(err, "failed to get service resource after create")
+				return "", observeErr(err, "failed to get service resource after create")
 			}
+			span.AddEvent("shared volume service created")
 			log.Info("shared volume service created", "external", frontend(svc))
 			r.recorder.Event(svc, "Normal", "Created", fmt.Sprintf("Created service for shared volume %s/%s", sv.Namespace, sv.ServiceName))
 		} else {
-			return "", errors.Wrap(err, "failed to get service, aborting reconcile")
+			return "", observeErr(err, "failed to get service, aborting reconcile")
 		}
 	}
 	if !sv.ServiceIsEqual(svc) {
 		if err := r.Client.Update(ctx, sv.ServiceUpdate(svc), &client.UpdateOptions{}); err != nil {
-			return "", errors.Wrap(err, "failed to update service resource")
+			return "", observeErr(err, "failed to update service resource")
 		}
+		span.AddEvent("shared volume service updated")
 		log.Info("shared volume service updated", "external", frontend(svc))
 	}
 
@@ -189,25 +233,31 @@ func (r *Reconciler) ensureService(ctx context.Context, sv *storageos.SharedVolu
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			if err := r.Client.Create(ctx, sv.Endpoints()); err != nil {
-				return "", errors.Wrap(err, "failed to create endpoints resource")
+				return "", observeErr(err, "failed to create endpoints resource")
 			}
 			if err := r.waitForAvailable(ctx, nn, ep, k8sCreatePollInterval, k8sCreateWaitDuration); err != nil {
-				return "", errors.Wrap(err, "failed to get endpoints resource after create")
+				return "", observeErr(err, "failed to get endpoints resource after create")
 			}
+			span.AddEvent("shared volume endpoint created")
 			log.Info("shared volume endpoint created", "internal", sv.InternalEndpoint)
 		} else {
-			return "", errors.Wrap(err, "failed to get endpoint, aborting reconcile")
+			return "", observeErr(err, "failed to get endpoint, aborting reconcile")
 		}
 	}
 	if !sv.EndpointsIsEqual(ep) {
 		if err := r.Client.Update(ctx, sv.EndpointsUpdate(ep), &client.UpdateOptions{}); err != nil {
-			return "", errors.Wrap(err, "failed to update endpoints resource")
+			return "", observeErr(err, "failed to update endpoints resource")
 		}
+		span.AddEvent("shared volume endpoint updated")
 		log.Info("shared volume endpoint updated", "internal", sv.InternalEndpoint)
 		r.recorder.Event(svc, "Warning", "Updated", fmt.Sprintf("Shared volume service target changed %s/%s", sv.Namespace, sv.ServiceName))
 	}
 
-	return frontend(svc), nil
+	endpoint := frontend(svc)
+	span.SetAttributes(label.String("endpoint", endpoint))
+	span.SetStatus(codes.Ok, "shared volume service configured")
+
+	return endpoint, nil
 }
 
 // waitForClusterIP polls at the set interval until the timeout for the service
