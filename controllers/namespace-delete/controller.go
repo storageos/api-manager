@@ -37,8 +37,8 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 // to remove it from management.
 func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 	err := c.api.DeleteNamespace(obj.GetName())
-	if err != nil && err != storageos.ErrNodeNotFound {
-		return errors.Wrap(err, "re-queing operation")
+	if err != nil && err != storageos.ErrNamespaceNotFound {
+		return errors.Wrap(err, "requeuing operation")
 	}
 	c.log.Info("namespace decommissioned in storageos", "name", obj.GetName())
 	return nil

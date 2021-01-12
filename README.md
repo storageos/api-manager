@@ -94,7 +94,7 @@ The following flags are supported:
   -metrics-addr string
     	The address the metric endpoint binds to. (default ":8080")
   -namespace-delete-gc-interval duration
-    	Frequency of node garbage collection. (default 1h0m0s)
+    	Frequency of namespace garbage collection. (default 1h0m0s)
   -namespace-delete-workers int
     	Maximum concurrent namespace delete operations. (default 5)
   -node-delete-gc-interval duration

@@ -108,16 +108,20 @@ var _ = Describe("Namespace Delete controller", func() {
 			if val, ok := os.LookupEnv("USE_EXISTING_CLUSTER"); !ok || val == "false" {
 				Skip("Namespace delete events not seen in envtest")
 			}
-			Expect(api.DeleteNamespace(ns.Name)).Should(Succeed())
+
+			By("By causing the StorageOS Namespace delete to fail with a 404")
 			api.DeleteNamespaceErr = storageos.ErrNamespaceNotFound
 
 			By("By deleting the k8s Namespace")
 			Expect(k8sClient.Delete(ctx, ns)).Should(Succeed())
 
-			By("Expecting StorageOS Namespace to be deleted")
-			Eventually(func() bool {
-				return api.NamespaceExists(ns.Name)
-			}, timeout, interval).Should(BeFalse())
+			By("Expecting StorageOS Delete Namespace to be called only once")
+			Eventually(func() int {
+				return api.DeleteNamespaceCallCount[ns.Name]
+			}, timeout, interval).Should(Equal(1))
+			Consistently(func() int {
+				return api.DeleteNamespaceCallCount[ns.Name]
+			}, duration, interval).Should(Equal(1))
 		})
 	})
 
@@ -141,6 +145,11 @@ var _ = Describe("Namespace Delete controller", func() {
 			Consistently(func() bool {
 				return api.NamespaceExists(ns.Name)
 			}, duration, interval).Should(BeTrue())
+
+			By("Expecting StorageOS Delete Namespace to be called multiple times")
+			Eventually(func() int {
+				return api.DeleteNamespaceCallCount[ns.Name]
+			}, timeout, interval).Should(BeNumerically(">", 1))
 		})
 	})
 

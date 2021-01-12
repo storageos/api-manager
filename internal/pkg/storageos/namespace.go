@@ -3,6 +3,7 @@ package storageos
 import (
 	"context"
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
@@ -14,6 +15,10 @@ var (
 	// ErrNamespaceNotFound is returned if a namespace was provided but it was
 	// not found.
 	ErrNamespaceNotFound = errors.New("namespace not found")
+
+	// ErrNamespaceInUse is returned when an operation can't be completed because
+	// StorageOS detects that the namespace is still in use.
+	ErrNamespaceInUse = errors.New("namespace still in use")
 )
 
 //NamespaceDeleter provides access to removing namespaces from StorageOS.
@@ -70,10 +75,20 @@ func (c *Client) DeleteNamespace(name string) error {
 		return observeErr(err)
 	}
 
-	if _, err = c.api.DeleteNamespace(ctx, ns.Id, ns.Version, nil); err != nil {
-		return observeErr(err)
+	resp, err := c.api.DeleteNamespace(ctx, ns.Id, ns.Version, nil)
+	if err != nil {
+		err = observeErr(err)
+
+		switch resp.StatusCode {
+		case http.StatusConflict:
+			return ErrNamespaceInUse
+		case http.StatusNotFound:
+			return ErrNamespaceNotFound
+		default:
+			return err
+		}
 	}
-	return observeErr(nil)
+	return nil
 }
 
 // getNamespaceByName returns the StorageOS namespace object matching the name, if any.

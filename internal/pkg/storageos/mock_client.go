@@ -17,26 +17,30 @@ func init() {
 
 // MockClient provides a test interface to the StorageOS api.
 type MockClient struct {
-	vols               map[string]*SharedVolume
-	namespaces         map[string]struct{}
-	nodes              map[string]struct{}
-	mu                 sync.RWMutex
-	ListNamespacesErr  error
-	DeleteNamespaceErr error
-	ListNodesErr       error
-	DeleteNodeErr      error
-	SharedVolsErr      error
-	SharedVolErr       error
-	SetEndpointErr     error
+	vols                     map[string]*SharedVolume
+	namespaces               map[string]struct{}
+	nodes                    map[string]struct{}
+	mu                       sync.RWMutex
+	DeleteNamespaceCallCount map[string]int
+	DeleteNodeCallCount      map[string]int
+	ListNamespacesErr        error
+	DeleteNamespaceErr       error
+	ListNodesErr             error
+	DeleteNodeErr            error
+	SharedVolsErr            error
+	SharedVolErr             error
+	SetEndpointErr           error
 }
 
 // NewMockClient returns an initialized MockClient.
 func NewMockClient() *MockClient {
 	return &MockClient{
-		vols:       make(map[string]*SharedVolume),
-		namespaces: make(map[string]struct{}),
-		nodes:      make(map[string]struct{}),
-		mu:         sync.RWMutex{},
+		vols:                     make(map[string]*SharedVolume),
+		namespaces:               make(map[string]struct{}),
+		nodes:                    make(map[string]struct{}),
+		DeleteNamespaceCallCount: make(map[string]int),
+		DeleteNodeCallCount:      make(map[string]int),
+		mu:                       sync.RWMutex{},
 	}
 }
 
@@ -74,14 +78,16 @@ func (c *MockClient) NamespaceExists(name string) bool {
 
 // DeleteNamespace removes a namespace from the StorageOS cluster.
 func (c *MockClient) DeleteNamespace(name string) error {
+	c.DeleteNamespaceCallCount[name]++
 	if c.DeleteNamespaceErr != nil {
 		return c.DeleteNamespaceErr
 	}
-	if c.NamespaceExists(name) {
-		c.mu.Lock()
-		delete(c.namespaces, name)
-		c.mu.Unlock()
+	if !c.NamespaceExists(name) {
+		return ErrNamespaceNotFound
 	}
+	c.mu.Lock()
+	delete(c.namespaces, name)
+	c.mu.Unlock()
 	return nil
 }
 
@@ -119,14 +125,16 @@ func (c *MockClient) NodeExists(name string) bool {
 
 // DeleteNode removes a node from the StorageOS cluster.
 func (c *MockClient) DeleteNode(name string) error {
+	c.DeleteNodeCallCount[name]++
 	if c.DeleteNodeErr != nil {
 		return c.DeleteNodeErr
 	}
-	if c.NodeExists(name) {
-		c.mu.Lock()
-		delete(c.nodes, name)
-		c.mu.Unlock()
+	if !c.NodeExists(name) {
+		return ErrNodeNotFound
 	}
+	c.mu.Lock()
+	delete(c.nodes, name)
+	c.mu.Unlock()
 	return nil
 }
 
@@ -195,6 +203,8 @@ func (c *MockClient) Reset() {
 	c.vols = make(map[string]*SharedVolume)
 	c.namespaces = make(map[string]struct{})
 	c.nodes = make(map[string]struct{})
+	c.DeleteNamespaceCallCount = make(map[string]int)
+	c.DeleteNodeCallCount = make(map[string]int)
 	c.ListNamespacesErr = nil
 	c.DeleteNamespaceErr = nil
 	c.ListNodesErr = nil
