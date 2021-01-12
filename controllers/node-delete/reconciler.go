@@ -5,6 +5,7 @@ import (
 	"time"
 
 	objectv1 "github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1"
+	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -22,7 +23,7 @@ type Reconciler struct {
 	api        storageos.NodeDeleter
 	gcInterval time.Duration
 
-	objectv1.SyncReconciler
+	objectv1.Reconciler
 }
 
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
@@ -47,15 +48,17 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 		return err
 	}
 
+	// Set the garbage collection interval.
+	r.Reconciler.SetGarbageCollectionPeriod(r.gcInterval)
+
 	// Initialize the reconciler.
-	err = r.SyncReconciler.Init(mgr, &corev1.Node{}, &corev1.NodeList{},
-		objectv1.WithName("node-delete"),
-		objectv1.WithController(c),
-		objectv1.WithGarbageCollectionPeriod(r.gcInterval),
-		objectv1.WithLogger(r.log),
+	err = r.Reconciler.Init(mgr, &corev1.Node{}, &corev1.NodeList{},
+		syncv1.WithName("node-delete"),
+		syncv1.WithController(c),
+		syncv1.WithLogger(r.log),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create new SyncReconciler: %w", err)
+		return fmt.Errorf("failed to create new reconciler: %w", err)
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).

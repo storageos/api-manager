@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	objectv1 "github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1"
+	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
@@ -19,7 +19,7 @@ type Controller struct {
 	log logr.Logger
 }
 
-var _ objectv1.Controller = &Controller{}
+var _ syncv1.Controller = &Controller{}
 
 // NewController returns a Controller that implements node garbage collection in
 // StorageOS.
