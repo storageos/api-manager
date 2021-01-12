@@ -3,12 +3,12 @@ package nodedelete
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 

@@ -7,11 +7,12 @@ import (
 	objectv1 "github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1"
 	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
 	"github.com/go-logr/logr"
-	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 // Reconciler reconciles a Namespace object by deleting the StorageOS namespace
