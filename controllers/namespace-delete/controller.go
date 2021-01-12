@@ -3,83 +3,51 @@ package nsdelete
 import (
 	"context"
 
-	"github.com/go-logr/logr"
-	"github.com/storageos/api-manager/internal/pkg/storageos"
-	corev1 "k8s.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	objectv1 "github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1"
+	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
-// Reconciler reconciles a Namespace object by deleting the StorageOS namespace
-// when the corresponding Kubernetes namespace is deleted.
-type Reconciler struct {
-	client.Client
-	Log logr.Logger
+// Controller implements the SyncReconciler contoller interface, deleting
+// namespaces in StorageOS when they have been detected as deleted in
+// Kubernetes.
+type Controller struct {
 	api storageos.NamespaceDeleter
+	log logr.Logger
 }
 
-// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+var _ objectv1.Controller = &Controller{}
 
-// NewReconciler returns a new Namespace delete reconciler.
-func NewReconciler(api storageos.NamespaceDeleter, k8s client.Client) *Reconciler {
-	return &Reconciler{
-		Client: k8s,
-		Log:    ctrl.Log.WithName("controllers").WithName("NamespaceDelete"),
-		api:    api,
-	}
+// NewController returns a Controller that implements namespace garbage
+// collection in StorageOS.
+func NewController(api storageos.NamespaceDeleter, log logr.Logger) (*Controller, error) {
+	return &Controller{api: api, log: log}, nil
 }
 
-// SetupWithManager registers the controller with the controller manager.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		WithOptions(controller.Options{MaxConcurrentReconciles: workers}).
-		For(&corev1.Namespace{}).
-		WithEventFilter(ChangePredicate{}).
-		Complete(r)
+// Ensure is a no-op.  We only care about deletes.
+func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
+	return nil
 }
 
-// Reconcile deletes the StorageOS namespace.  The delete will fail if there are
-// still volumes in the namespace.  Any errors will result in a requeue, with
-// standard back-off retries.
-//
-// Events are not sent as they require an object. By this point the namespace
-// object will no longer be available.
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	err := r.api.DeleteNamespace(req.Name)
+// Delete receives a k8s object that's been deleted and calls the StorageOS api
+// to remove it from management.
+func (c Controller) Delete(ctx context.Context, obj client.Object) error {
+	err := c.api.DeleteNamespace(obj.GetName())
 	if err != nil && err != storageos.ErrNamespaceNotFound {
-		// Re-queue without error.  We will get frequent transient errors, such
-		// as version conflicts or locked objects - that's ok.  Even refusal to
-		// delete due to remaining volumes should be seen as transient and
-		// should not raise an error.
-		return ctrl.Result{Requeue: true}, nil
+		return errors.Wrap(err, "requeuing operation")
 	}
-	return ctrl.Result{}, nil
+	c.log.Info("namespace decommissioned in storageos", "name", obj.GetName())
+	return nil
 }
 
-// ChangePredicate filters events before enqueuing the keys.
-type ChangePredicate struct {
-	predicate.Funcs
-}
-
-// Create determines whether an object create should trigger a reconcile.
-func (ChangePredicate) Create(event.CreateEvent) bool {
-	return false
-}
-
-// Update determines whether an object update should trigger a reconcile.
-func (ChangePredicate) Update(event.UpdateEvent) bool {
-	return false
-}
-
-// Delete determines whether an object delete should trigger a reconcile.
-func (ChangePredicate) Delete(e event.DeleteEvent) bool {
-	return true
-}
-
-// Generic determines whether an generic event should trigger a reconcile.
-func (ChangePredicate) Generic(event.GenericEvent) bool {
-	return false
+// List returns a list of namespaces known to StorageOS, as NamespacedNames.
+// This is used for garbage collection and can be expensive. The garbage
+// collector is run in a separate goroutine periodically, not affecting the main
+// reconciliation control-loop.
+func (c Controller) List(ctx context.Context) ([]types.NamespacedName, error) {
+	return c.api.ListNamespaces()
 }

@@ -37,7 +37,7 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 	err := c.api.DeleteNode(obj.GetName())
 	if err != nil && err != storageos.ErrNodeNotFound {
-		return errors.Wrap(err, "re-queing operation")
+		return errors.Wrap(err, "requeuing operation")
 	}
 	c.log.Info("node decommissioned in storageos", "name", obj.GetName())
 	return nil

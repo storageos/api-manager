@@ -1,4 +1,4 @@
-// Package annotation contains helers for working with Kubernetes Annotations.
+// Package annotation contains helpers for working with Kubernetes Annotations.
 package annotation
 
 import (

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -107,16 +108,19 @@ var _ = Describe("Node Delete controller", func() {
 	Context("When deleting a k8s Node and the StorageOS node has already been deleted", func() {
 		node := SetupNodeDeleteTest(ctx, true, true, defaultNodeDeleteGCInterval)
 		It("Should not fail", func() {
-			Expect(api.DeleteNode(node.Name)).Should(Succeed())
+			By("By causing the StorageOS Node delete to fail with a 404")
 			api.DeleteNodeErr = storageos.ErrNodeNotFound
 
 			By("By deleting the k8s Node")
 			Expect(k8sClient.Delete(ctx, node)).Should(Succeed())
 
-			By("Expecting StorageOS Node to be deleted")
-			Eventually(func() bool {
-				return api.NodeExists(node.Name)
-			}, timeout, interval).Should(BeFalse())
+			By("Expecting StorageOS Delete Node to be called only once")
+			Eventually(func() int {
+				return api.DeleteNodeCallCount[node.Name]
+			}, timeout, interval).Should(Equal(1))
+			Consistently(func() int {
+				return api.DeleteNodeCallCount[node.Name]
+			}, duration, interval).Should(Equal(1))
 		})
 	})
 
@@ -136,6 +140,12 @@ var _ = Describe("Node Delete controller", func() {
 	Context("When deleting a k8s Node with a malformed StorageOS driver registration", func() {
 		node := SetupNodeDeleteTest(ctx, true, false, defaultNodeDeleteGCInterval)
 		It("Should not delete the StorageOS Node", func() {
+			// Skip test if not running in envtest.  k8s will disallow the
+			// malformed annotation.
+			if val, ok := os.LookupEnv("USE_EXISTING_CLUSTER"); ok && val == "true" {
+				Skip("k8s will reject malformed annotation")
+			}
+
 			By("By setting an invalid annotation")
 			node.Annotations = map[string]string{
 				nodedelete.DriverAnnotationKey: "{\"csi.storageos.com\":}",
@@ -165,6 +175,11 @@ var _ = Describe("Node Delete controller", func() {
 			Consistently(func() bool {
 				return api.NodeExists(node.Name)
 			}, duration, interval).Should(BeTrue())
+
+			By("Expecting StorageOS Delete Node to be called multiple times")
+			Eventually(func() int {
+				return api.DeleteNodeCallCount[node.Name]
+			}, timeout, interval).Should(BeNumerically(">", 1))
 		})
 	})
 
