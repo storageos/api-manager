@@ -33,6 +33,7 @@ import (
 
 	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
+	nodelabel "github.com/storageos/api-manager/controllers/node-label"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	apimetrics "github.com/storageos/api-manager/internal/pkg/storageos/metrics"
@@ -69,8 +70,10 @@ func main() {
 	var k8sCreateWaitDuration time.Duration
 	var gcNamespaceDeleteInterval time.Duration
 	var gcNodeDeleteInterval time.Duration
+	var resyncNodeLabelInterval time.Duration
 	var nsDeleteWorkers int
 	var nodeDeleteWorkers int
+	var nodeLabelSyncWorkers int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -85,8 +88,10 @@ func main() {
 	flag.DurationVar(&k8sCreateWaitDuration, "k8s-create-wait-duration", 20*time.Second, "Maximum time to wait for new Kubernetes objects to appear.")
 	flag.DurationVar(&gcNamespaceDeleteInterval, "namespace-delete-gc-interval", 1*time.Hour, "Frequency of namespace garbage collection.")
 	flag.DurationVar(&gcNodeDeleteInterval, "node-delete-gc-interval", 1*time.Hour, "Frequency of node garbage collection.")
+	flag.DurationVar(&resyncNodeLabelInterval, "node-label-resync-interval", 1*time.Hour, "Frequency of node label resync.")
 	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
 	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
+	flag.IntVar(&nodeLabelSyncWorkers, "node-label-sync-workers", 5, "Maximum concurrent node label sync operations.")
 
 	flag.Parse()
 
@@ -192,6 +197,10 @@ func main() {
 	}()
 
 	// Additional controllers go here.
+	setupLog.Info("starting node label sync controller ")
+	if err := nodelabel.NewReconciler(api, mgr.GetClient(), resyncNodeLabelInterval).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
+		errCh <- fmt.Errorf("node label reconciler error: %w", err)
+	}
 	setupLog.Info("starting node delete controller ")
 	if err := nodedelete.NewReconciler(api, mgr.GetClient(), gcNodeDeleteInterval).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
 		errCh <- fmt.Errorf("node delete reconciler error: %w", err)

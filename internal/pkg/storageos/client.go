@@ -27,8 +27,9 @@ type ControlPlane interface {
 	ListNamespaces(ctx context.Context) ([]api.Namespace, *http.Response, error)
 	DeleteNamespace(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNamespaceOpts) (*http.Response, error)
 	ListNodes(ctx context.Context) ([]api.Node, *http.Response, error)
-	UpdateNode(ctx context.Context, id string, updateNodeData api.UpdateNodeData, localVarOptionals *api.UpdateNodeOpts) (api.Node, *http.Response, error)
+	UpdateNode(ctx context.Context, id string, updateNodeData api.UpdateNodeData) (api.Node, *http.Response, error)
 	DeleteNode(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNodeOpts) (*http.Response, error)
+	SetComputeOnly(ctx context.Context, id string, setComputeOnlyNodeData api.SetComputeOnlyNodeData, localVarOptionals *api.SetComputeOnlyOpts) (api.Node, *http.Response, error)
 	ListVolumes(ctx context.Context, namespaceID string) ([]api.Volume, *http.Response, error)
 	GetVolume(ctx context.Context, namespaceID string, id string) (api.Volume, *http.Response, error)
 	UpdateNFSVolumeMountEndpoint(ctx context.Context, namespaceID string, id string, nfsVolumeMountEndpoint api.NfsVolumeMountEndpoint, localVarOptionals *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error)
@@ -75,6 +76,18 @@ var (
 	// complete.  It should be longer than the HTTPTimeout.
 	DefaultRequestTimeout = 20 * time.Second
 )
+
+// NewTestAPIClient returns a client that uses the provided ControlPlane api
+// client. Intended for tests that use a mocked StorageOS api.  This avoids
+// having to publically expose the api on the Client struct.
+func NewTestAPIClient(api ControlPlane) *Client {
+	return &Client{
+		api:       api,
+		transport: http.DefaultTransport,
+		ctx:       context.TODO(),
+		traced:    false,
+	}
+}
 
 // New returns a pre-authenticated client for the StorageOS API.  The
 // authentication token must be refreshed periodically using

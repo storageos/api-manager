@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -20,6 +21,7 @@ type MockClient struct {
 	vols                     map[string]*SharedVolume
 	namespaces               map[string]struct{}
 	nodes                    map[string]struct{}
+	nodeLabels               map[string]string
 	mu                       sync.RWMutex
 	DeleteNamespaceCallCount map[string]int
 	DeleteNodeCallCount      map[string]int
@@ -27,6 +29,8 @@ type MockClient struct {
 	DeleteNamespaceErr       error
 	ListNodesErr             error
 	DeleteNodeErr            error
+	EnsureNodeLabelsErr      error
+	GetNodeLabelsErr         error
 	SharedVolsErr            error
 	SharedVolErr             error
 	SetEndpointErr           error
@@ -38,6 +42,7 @@ func NewMockClient() *MockClient {
 		vols:                     make(map[string]*SharedVolume),
 		namespaces:               make(map[string]struct{}),
 		nodes:                    make(map[string]struct{}),
+		nodeLabels:               make(map[string]string),
 		DeleteNamespaceCallCount: make(map[string]int),
 		DeleteNodeCallCount:      make(map[string]int),
 		mu:                       sync.RWMutex{},
@@ -138,6 +143,42 @@ func (c *MockClient) DeleteNode(name string) error {
 	return nil
 }
 
+// EnsureNodeLabels applies a set of labels to the StorageOS node.
+func (c *MockClient) EnsureNodeLabels(name string, labels map[string]string) error {
+	if c.EnsureNodeLabelsErr != nil {
+		return c.EnsureNodeLabelsErr
+	}
+
+	var errors *multierror.Error
+	var newLabels = make(map[string]string)
+
+	for k, v := range labels {
+		switch {
+		case !IsReservedLabel(k):
+			newLabels[k] = v
+		case k == ReservedLabelComputeOnly:
+			newLabels[k] = v
+		default:
+			errors = multierror.Append(errors, ErrReservedLabelUnknown)
+		}
+	}
+
+	c.mu.Lock()
+	c.nodeLabels = newLabels
+	c.mu.Unlock()
+	return errors.ErrorOrNil()
+}
+
+// GetNodeLabels retrieves the set of labels.
+func (c *MockClient) GetNodeLabels(name string) (map[string]string, error) {
+	if c.GetNodeLabelsErr != nil {
+		return nil, c.GetNodeLabelsErr
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.nodeLabels, nil
+}
+
 // ListSharedVolumes returns a list of active shared volumes.
 func (c *MockClient) ListSharedVolumes() (SharedVolumeList, error) {
 	if c.SharedVolsErr != nil {
@@ -203,12 +244,15 @@ func (c *MockClient) Reset() {
 	c.vols = make(map[string]*SharedVolume)
 	c.namespaces = make(map[string]struct{})
 	c.nodes = make(map[string]struct{})
+	c.nodeLabels = make(map[string]string)
 	c.DeleteNamespaceCallCount = make(map[string]int)
 	c.DeleteNodeCallCount = make(map[string]int)
 	c.ListNamespacesErr = nil
 	c.DeleteNamespaceErr = nil
 	c.ListNodesErr = nil
 	c.DeleteNodeErr = nil
+	c.EnsureNodeLabelsErr = nil
+	c.GetNodeLabelsErr = nil
 	c.SharedVolErr = nil
 	c.SharedVolsErr = nil
 	c.SetEndpointErr = nil
