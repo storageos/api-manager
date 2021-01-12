@@ -10,12 +10,13 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
-	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 const (

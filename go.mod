@@ -3,7 +3,7 @@ module github.com/storageos/api-manager
 go 1.13
 
 require (
-	github.com/darkowlzz/operator-toolkit v0.0.0-20210105215748-5a0df6fa186c
+	github.com/darkowlzz/operator-toolkit v0.0.0-20210112124925-25f960dfef39
 	github.com/go-logr/logr v0.3.0
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1
@@ -16,8 +16,6 @@ require (
 	github.com/storageos/go-api/v2 v2.3.0
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/zap v1.15.0
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
-	google.golang.org/protobuf v1.25.0 // indirect
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.19.2

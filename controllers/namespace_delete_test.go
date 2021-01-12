@@ -8,11 +8,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
-	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 const (
