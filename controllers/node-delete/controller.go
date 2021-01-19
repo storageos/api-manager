@@ -48,5 +48,5 @@ func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 // run in a separate goroutine periodically, not affecting the main
 // reconciliation control-loop.
 func (c Controller) List(ctx context.Context) ([]types.NamespacedName, error) {
-	return c.api.ListNodes()
+	return c.api.NodeNamespacedNames()
 }

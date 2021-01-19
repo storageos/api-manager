@@ -30,12 +30,6 @@ var (
 	ErrReservedLabelUnknown = errors.New("invalid reserved label")
 )
 
-// NodeLabeller provides access to update node labels.
-//go:generate mockgen -destination=mocks/mock_node_labeller.go -package=mocks . NodeLabeller
-type NodeLabeller interface {
-	EnsureNodeLabels(name string, labels map[string]string) error
-}
-
 // IsReservedLabel returns true if the key is a StorageOS reserved label name.
 // It does not validate whether the key is valid.
 func IsReservedLabel(key string) bool {

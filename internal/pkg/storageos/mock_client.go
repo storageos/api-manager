@@ -16,11 +16,39 @@ func init() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 }
 
+// MockNode can be be used to replace an api node.
+type MockNode struct {
+	id        string
+	name      string
+	namespace string
+	labels    map[string]string
+}
+
+// GetID returns the object ID.
+func (m MockNode) GetID() string {
+	return m.id
+}
+
+// GetName returns the object name.
+func (m MockNode) GetName() string {
+	return m.name
+}
+
+// GetNamespace returns the object namespace.
+func (m MockNode) GetNamespace() string {
+	return m.namespace
+}
+
+// GetLabels returns the object labels.
+func (m MockNode) GetLabels() map[string]string {
+	return m.labels
+}
+
 // MockClient provides a test interface to the StorageOS api.
 type MockClient struct {
 	vols                     map[string]*SharedVolume
 	namespaces               map[string]struct{}
-	nodes                    map[string]struct{}
+	nodes                    map[string]Object
 	nodeLabels               map[string]string
 	mu                       sync.RWMutex
 	DeleteNamespaceCallCount map[string]int
@@ -41,7 +69,7 @@ func NewMockClient() *MockClient {
 	return &MockClient{
 		vols:                     make(map[string]*SharedVolume),
 		namespaces:               make(map[string]struct{}),
-		nodes:                    make(map[string]struct{}),
+		nodes:                    make(map[string]Object),
 		nodeLabels:               make(map[string]string),
 		DeleteNamespaceCallCount: make(map[string]int),
 		DeleteNodeCallCount:      make(map[string]int),
@@ -96,8 +124,18 @@ func (c *MockClient) DeleteNamespace(name string) error {
 	return nil
 }
 
-// ListNodes returns a list of StorageOS nodes as NamespacedNames.
-func (c *MockClient) ListNodes() ([]types.NamespacedName, error) {
+// NodeObjects returns a map of nodes objects, keyed on node name.
+func (c *MockClient) NodeObjects() (map[string]Object, error) {
+	if c.ListNodesErr != nil {
+		return nil, c.ListNodesErr
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.nodes, nil
+}
+
+// NodeNamespacedNames returns a list of StorageOS nodes as NamespacedNames.
+func (c *MockClient) NodeNamespacedNames() ([]types.NamespacedName, error) {
 	if c.ListNodesErr != nil {
 		return nil, c.ListNodesErr
 	}
@@ -113,7 +151,7 @@ func (c *MockClient) ListNodes() ([]types.NamespacedName, error) {
 // AddNode adds a node to the StorageOS cluster.
 func (c *MockClient) AddNode(name string) error {
 	c.mu.Lock()
-	c.nodes[name] = struct{}{}
+	c.nodes[name] = MockNode{}
 	c.mu.Unlock()
 	return nil
 }
@@ -243,7 +281,7 @@ func (c *MockClient) Reset() {
 	c.mu.Lock()
 	c.vols = make(map[string]*SharedVolume)
 	c.namespaces = make(map[string]struct{})
-	c.nodes = make(map[string]struct{})
+	c.nodes = make(map[string]Object)
 	c.nodeLabels = make(map[string]string)
 	c.DeleteNamespaceCallCount = make(map[string]int)
 	c.DeleteNodeCallCount = make(map[string]int)

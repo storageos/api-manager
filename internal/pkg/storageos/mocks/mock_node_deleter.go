@@ -47,17 +47,17 @@ func (mr *MockNodeDeleterMockRecorder) DeleteNode(arg0 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNode", reflect.TypeOf((*MockNodeDeleter)(nil).DeleteNode), arg0)
 }
 
-// ListNodes mocks base method
-func (m *MockNodeDeleter) ListNodes() ([]types.NamespacedName, error) {
+// NodeNamespacedNames mocks base method
+func (m *MockNodeDeleter) NodeNamespacedNames() ([]types.NamespacedName, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNodes")
+	ret := m.ctrl.Call(m, "NodeNamespacedNames")
 	ret0, _ := ret[0].([]types.NamespacedName)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListNodes indicates an expected call of ListNodes
-func (mr *MockNodeDeleterMockRecorder) ListNodes() *gomock.Call {
+// NodeNamespacedNames indicates an expected call of NodeNamespacedNames
+func (mr *MockNodeDeleterMockRecorder) NodeNamespacedNames() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodes", reflect.TypeOf((*MockNodeDeleter)(nil).ListNodes))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NodeNamespacedNames", reflect.TypeOf((*MockNodeDeleter)(nil).NodeNamespacedNames))
 }

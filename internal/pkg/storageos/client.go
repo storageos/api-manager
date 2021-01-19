@@ -18,6 +18,8 @@ import (
 )
 
 //go:generate mockgen -destination=mocks/mock_control_plane.go -package=mocks . ControlPlane
+//go:generate mockgen -destination=mocks/mock_identifier.go -package=mocks . Identifier
+//go:generate mockgen -destination=mocks/mock_object.go -package=mocks . Object
 
 // ControlPlane is the subset of the StorageOS control plane ControlPlane that
 // api-manager requires.  New methods should be added here as needed, then the
@@ -33,6 +35,19 @@ type ControlPlane interface {
 	ListVolumes(ctx context.Context, namespaceID string) ([]api.Volume, *http.Response, error)
 	GetVolume(ctx context.Context, namespaceID string, id string) (api.Volume, *http.Response, error)
 	UpdateNFSVolumeMountEndpoint(ctx context.Context, namespaceID string, id string, nfsVolumeMountEndpoint api.NfsVolumeMountEndpoint, localVarOptionals *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error)
+}
+
+// Identifier is a StorageOS object that has an identity.
+type Identifier interface {
+	GetID() string
+	GetName() string
+	GetNamespace() string
+}
+
+// Object is a StorageOS object with metadata.
+type Object interface {
+	Identifier
+	GetLabels() map[string]string
 }
 
 // Client provides access to the StorageOS API.

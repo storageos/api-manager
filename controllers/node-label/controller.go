@@ -2,28 +2,27 @@ package nodelabel
 
 import (
 	"context"
+	"reflect"
 
-	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
+	msyncv1 "github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 // Controller implements the Sync contoller interface, applying node labels to
 // StorageOS nodes.
 type Controller struct {
-	api storageos.NodeLabeller
+	api NodeLabeller
 	log logr.Logger
 }
 
-var _ syncv1.Controller = &Controller{}
+var _ msyncv1.Controller = &Controller{}
 
 // NewController returns a Controller that implements node label sync in
 // StorageOS.
-func NewController(api storageos.NodeLabeller, log logr.Logger) (*Controller, error) {
+func NewController(api NodeLabeller, log logr.Logger) (*Controller, error) {
 	return &Controller{api: api, log: log}, nil
 }
 
@@ -43,6 +42,29 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 	}
 	c.log.Info("node labels applied to storageos", "name", obj.GetName())
 	return nil
+}
+
+// Diff takes a list of Kubernets node objects and returns them if they exist
+// within StorageOS but the labels are different.
+func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Object, error) {
+	var apply []client.Object
+
+	nodes, err := c.api.NodeObjects()
+	if err != nil {
+		return nil, err
+	}
+	for _, obj := range objs {
+		node, ok := nodes[obj.GetName()]
+		if !ok || node == nil {
+			// Ignore nodes not already known to StorageOS.
+			continue
+		}
+		// If labels don't match, return original object.
+		if !reflect.DeepEqual(obj.GetLabels(), node.GetLabels()) {
+			apply = append(apply, obj)
+		}
+	}
+	return apply, nil
 }
 
 // Delete is a no-op.  The node-delete controller will handle deletes.

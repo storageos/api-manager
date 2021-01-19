@@ -27,12 +27,40 @@ var (
 //go:generate mockgen -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
 type NodeDeleter interface {
 	DeleteNode(name string) error
-	ListNodes() ([]types.NamespacedName, error)
+	NodeNamespacedNames() ([]types.NamespacedName, error)
 }
 
-// ListNodes returns a list of all StorageOS node objects.
-func (c *Client) ListNodes() ([]types.NamespacedName, error) {
-	funcName := "list_nodes"
+// NodeObjects returns a map of node objects, keyed on node name for efficient
+// lookups.
+func (c *Client) NodeObjects() (map[string]Object, error) {
+	funcName := "node_objects"
+	start := time.Now()
+	defer func() {
+		metrics.Latency.Observe(funcName, time.Since(start))
+	}()
+	observeErr := func(e error) error {
+		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		return e
+	}
+
+	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
+	defer cancel()
+
+	nodes, _, err := c.api.ListNodes(ctx)
+	if err != nil {
+		return nil, observeErr(err)
+	}
+	nodeLabels := make(map[string]Object)
+	for _, node := range nodes {
+		nodeLabels[node.GetName()] = node
+	}
+
+	return nodeLabels, nil
+}
+
+// NodeNamespacedNames returns a list of all StorageOS node objects.
+func (c *Client) NodeNamespacedNames() ([]types.NamespacedName, error) {
+	funcName := "node_namespaced_names"
 	start := time.Now()
 	defer func() {
 		metrics.Latency.Observe(funcName, time.Since(start))
