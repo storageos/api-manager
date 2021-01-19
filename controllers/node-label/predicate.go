@@ -11,14 +11,13 @@ import (
 )
 
 // Predicate filters events before enqueuing the keys.  Ignore all but Update
-// events, and then filter out events from non-StorageOS nodes.
+// events, and then filter out events from non-StorageOS nodes.  Trigger a
+// resync when labels have changed.
 //
-// Nodes added to the cluster will need to wait for the next label resync to
-// have labels from the initial object applied.  We can't react to create events
-// as the node will not exist in StorageOS yet.
-//
-// TODO(sc) consider reacting to Annotation changes, and triggering a resync
-// when the StorageOS CSI driver annotation in added.
+// Nodes added to the cluster will not immediately be added to StorageOS, so we
+// can't react to node create events.  Instead, trigger a resync when the
+// StorageOS CSI driver annotation has been added, indicating that the node is
+// known to StorageOS and can receive label updates.
 type Predicate struct {
 	predicate.IgnoreFuncs
 	log logr.Logger
@@ -27,15 +26,24 @@ type Predicate struct {
 // Update determines whether an object update should trigger a reconcile.
 func (p Predicate) Update(e event.UpdateEvent) bool {
 	// Ignore nodes that haven't run StorageOS.
-	found, err := annotation.StorageOSCSIDriver(e.ObjectNew)
+	isStorageOS, err := annotation.StorageOSCSIDriver(e.ObjectNew)
 	if err != nil {
-		p.log.Error(err, "failed to process node annotations", "node", e.ObjectNew.GetName())
+		p.log.Error(err, "failed to process current node annotations", "node", e.ObjectNew.GetName())
 	}
-	if !found {
+	if !isStorageOS {
 		return false
 	}
 
-	// Reconcile only on label changes.
+	// Reconcile if the StorageOS CSI annotation was just added.
+	wasStorageOS, err := annotation.StorageOSCSIDriver(e.ObjectOld)
+	if err != nil {
+		p.log.Error(err, "failed to process previous node annotations", "node", e.ObjectOld.GetName())
+	}
+	if !wasStorageOS {
+		return true
+	}
+
+	// Otherwise reconcile on label changes.
 	if !reflect.DeepEqual(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels()) {
 		return true
 	}

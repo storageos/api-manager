@@ -41,12 +41,9 @@ func SetupNodeLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels 
 		}
 
 		if isStorageOS {
-			driverMap, err := json.Marshal(map[string]string{
-				annotation.DriverName: uuid.New().String(),
-			})
-			Expect(err).NotTo(HaveOccurred(), "failed to marshal csi driver annotation")
+			k, v := getCSIAnnotation()
 			node.Annotations = map[string]string{
-				annotation.DriverAnnotationKey: string(driverMap),
+				k: v,
 			}
 		}
 
@@ -80,6 +77,14 @@ func SetupNodeLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels 
 	})
 
 	return node
+}
+
+// getCSIAnnotation is a helper to return a valid StorageOS CSI Driver annotation.
+func getCSIAnnotation() (string, string) {
+	driverMap, _ := json.Marshal(map[string]string{
+		annotation.DriverName: uuid.New().String(),
+	})
+	return annotation.DriverAnnotationKey, string(driverMap)
 }
 
 var _ = Describe("Node Label controller", func() {
@@ -318,6 +323,36 @@ var _ = Describe("Node Label controller", func() {
 				}
 				return labels
 			}, duration, interval).ShouldNot(Equal(unreservedLabels))
+		})
+	})
+
+	Context("When adding the StorageOS driver registration to a node with existing labels", func() {
+		node := SetupNodeLabelSyncTest(ctx, false, mixedLabels, defaultNodeLabelResyncInterval)
+		It("Should sync labels to StorageOS Node", func() {
+			By("Expecting StorageOS Node labels to be empty")
+			Consistently(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, duration, interval).Should(BeEmpty())
+
+			By("By adding the StorageOS annotation")
+			k, v := getCSIAnnotation()
+			node.Annotations = map[string]string{
+				k: v,
+			}
+			Expect(k8sClient.Update(ctx, node, &client.UpdateOptions{})).Should(Succeed())
+
+			By("Expecting StorageOS Node labels to match")
+			Eventually(func() map[string]string {
+				labels, err := api.GetNodeLabels(node.Name)
+				if err != nil {
+					return nil
+				}
+				return labels
+			}, timeout, interval).Should(Equal(mixedLabels))
 		})
 	})
 

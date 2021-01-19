@@ -15,6 +15,11 @@ where the node has the StorageOS CSI driver annotation.
 The annotation is added by the CSI node driver registrar when StorageOS starts
 on the node.  Once added, it is not removed.
 
+The controller reconcile will also be triggered when the StorageOS CSI driver
+annotation is added to a node.  This allows the existing node labels to be
+applied almost immediately to a node when it starts running StorageOS for the
+first time.
+
 ## Reconcile
 
 When the labels on a Kubernetes node with the StorageOS CSI driver annotation is
@@ -41,11 +46,6 @@ fails, the whole set of labels will be retried until they all succeed.
 In case a node label update event was missed during a restart or outage, a
 resync runs periodically.  It re-applies the set of Kubernetes node labels to
 StorageOS nodes.
-
-This is also used when a Kubernetes node is added to the cluster.  Initially
-StorageOS will not be running on the node so it is not possible to sync labels
-from the node create event.  Instead, the labels will be synchronized on the
-next resync.
 
 Node label resync is run every hour by default (configurable via the
 `--node-label-resync-interval` flag).
