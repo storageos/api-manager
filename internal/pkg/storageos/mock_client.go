@@ -10,45 +10,43 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 func init() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 }
 
-// MockNode can be be used to replace an api node.
-type MockNode struct {
-	id        string
-	name      string
-	namespace string
-	labels    map[string]string
+// MockObject can be be used to replace an api object.
+type MockObject struct {
+	id     string
+	name   string
+	labels map[string]string
 }
 
 // GetID returns the object ID.
-func (m MockNode) GetID() string {
+func (m MockObject) GetID() string {
 	return m.id
 }
 
 // GetName returns the object name.
-func (m MockNode) GetName() string {
+func (m MockObject) GetName() string {
 	return m.name
 }
 
 // GetNamespace returns the object namespace.
-func (m MockNode) GetNamespace() string {
-	return m.namespace
+func (m MockObject) GetNamespace() string {
+	return ""
 }
 
 // GetLabels returns the object labels.
-func (m MockNode) GetLabels() map[string]string {
+func (m MockObject) GetLabels() map[string]string {
 	return m.labels
 }
 
 // MockClient provides a test interface to the StorageOS api.
 type MockClient struct {
 	vols                     map[string]*SharedVolume
-	namespaces               map[string]struct{}
+	namespaces               map[string]Object
 	nodes                    map[string]Object
 	nodeLabels               map[string]string
 	mu                       sync.RWMutex
@@ -69,7 +67,7 @@ type MockClient struct {
 func NewMockClient() *MockClient {
 	return &MockClient{
 		vols:                     make(map[string]*SharedVolume),
-		namespaces:               make(map[string]struct{}),
+		namespaces:               make(map[string]Object),
 		nodes:                    make(map[string]Object),
 		nodeLabels:               make(map[string]string),
 		DeleteNamespaceCallCount: make(map[string]int),
@@ -78,24 +76,24 @@ func NewMockClient() *MockClient {
 	}
 }
 
-// ListNamespaces returns a list of StorageOS namespaces as NamespacedNames.
-func (c *MockClient) ListNamespaces(ctx context.Context) ([]types.NamespacedName, error) {
+// ListNamespaces returns a list of StorageOS namespace objects.
+func (c *MockClient) ListNamespaces(ctx context.Context) ([]Object, error) {
 	if c.ListNamespacesErr != nil {
 		return nil, c.ListNamespacesErr
 	}
-	nn := []types.NamespacedName{}
+	ret := []Object{}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	for name := range c.namespaces {
-		nn = append(nn, types.NamespacedName{Name: name})
+	for _, ns := range c.namespaces {
+		ret = append(ret, ns)
 	}
-	return nn, nil
+	return ret, nil
 }
 
 // AddNamespace adds a namespace to the StorageOS cluster.
 func (c *MockClient) AddNamespace(name string) error {
 	c.mu.Lock()
-	c.namespaces[name] = struct{}{}
+	c.namespaces[name] = MockObject{name: name}
 	c.mu.Unlock()
 	return nil
 }
@@ -135,24 +133,24 @@ func (c *MockClient) NodeObjects(ctx context.Context) (map[string]Object, error)
 	return c.nodes, nil
 }
 
-// NodeNamespacedNames returns a list of StorageOS nodes as NamespacedNames.
-func (c *MockClient) NodeNamespacedNames(ctx context.Context) ([]types.NamespacedName, error) {
+// ListNodes returns a list of StorageOS node objects.
+func (c *MockClient) ListNodes(ctx context.Context) ([]Object, error) {
 	if c.ListNodesErr != nil {
 		return nil, c.ListNodesErr
 	}
-	nn := []types.NamespacedName{}
+	ret := []Object{}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	for name := range c.nodes {
-		nn = append(nn, types.NamespacedName{Name: name})
+	for _, node := range c.nodes {
+		ret = append(ret, node)
 	}
-	return nn, nil
+	return ret, nil
 }
 
 // AddNode adds a node to the StorageOS cluster.
 func (c *MockClient) AddNode(name string) error {
 	c.mu.Lock()
-	c.nodes[name] = MockNode{}
+	c.nodes[name] = MockObject{name: name}
 	c.mu.Unlock()
 	return nil
 }
@@ -281,7 +279,7 @@ func (c *MockClient) Delete(id string, namespace string) {
 func (c *MockClient) Reset() {
 	c.mu.Lock()
 	c.vols = make(map[string]*SharedVolume)
-	c.namespaces = make(map[string]struct{})
+	c.namespaces = make(map[string]Object)
 	c.nodes = make(map[string]Object)
 	c.nodeLabels = make(map[string]string)
 	c.DeleteNamespaceCallCount = make(map[string]int)

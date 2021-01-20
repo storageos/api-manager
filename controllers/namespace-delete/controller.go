@@ -55,5 +55,9 @@ func (c Controller) List(ctx context.Context) ([]types.NamespacedName, error) {
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
-	return c.api.ListNamespaces(ctx)
+	objects, err := c.api.ListNamespaces(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return storageos.NamespacedNames(objects), nil
 }
