@@ -42,7 +42,7 @@ func SetupNodeDeleteTest(ctx context.Context, createK8sNode bool, isStorageOS bo
 			driverMap, err := json.Marshal(map[string]string{
 				nodedelete.DriverName: uuid.New().String(),
 			})
-			Expect(err).NotTo(HaveOccurred(), "failed to mars")
+			Expect(err).NotTo(HaveOccurred(), "failed to marshal csi driver annotation")
 			node.Annotations = map[string]string{
 				nodedelete.DriverAnnotationKey: string(driverMap),
 			}

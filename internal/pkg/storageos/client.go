@@ -18,6 +18,8 @@ import (
 )
 
 //go:generate mockgen -destination=mocks/mock_control_plane.go -package=mocks . ControlPlane
+//go:generate mockgen -destination=mocks/mock_identifier.go -package=mocks . Identifier
+//go:generate mockgen -destination=mocks/mock_object.go -package=mocks . Object
 
 // ControlPlane is the subset of the StorageOS control plane ControlPlane that
 // api-manager requires.  New methods should be added here as needed, then the
@@ -27,11 +29,25 @@ type ControlPlane interface {
 	ListNamespaces(ctx context.Context) ([]api.Namespace, *http.Response, error)
 	DeleteNamespace(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNamespaceOpts) (*http.Response, error)
 	ListNodes(ctx context.Context) ([]api.Node, *http.Response, error)
-	UpdateNode(ctx context.Context, id string, updateNodeData api.UpdateNodeData, localVarOptionals *api.UpdateNodeOpts) (api.Node, *http.Response, error)
+	UpdateNode(ctx context.Context, id string, updateNodeData api.UpdateNodeData) (api.Node, *http.Response, error)
 	DeleteNode(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNodeOpts) (*http.Response, error)
+	SetComputeOnly(ctx context.Context, id string, setComputeOnlyNodeData api.SetComputeOnlyNodeData, localVarOptionals *api.SetComputeOnlyOpts) (api.Node, *http.Response, error)
 	ListVolumes(ctx context.Context, namespaceID string) ([]api.Volume, *http.Response, error)
 	GetVolume(ctx context.Context, namespaceID string, id string) (api.Volume, *http.Response, error)
 	UpdateNFSVolumeMountEndpoint(ctx context.Context, namespaceID string, id string, nfsVolumeMountEndpoint api.NfsVolumeMountEndpoint, localVarOptionals *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error)
+}
+
+// Identifier is a StorageOS object that has an identity.
+type Identifier interface {
+	GetID() string
+	GetName() string
+	GetNamespace() string
+}
+
+// Object is a StorageOS object with metadata.
+type Object interface {
+	Identifier
+	GetLabels() map[string]string
 }
 
 // Client provides access to the StorageOS API.
@@ -75,6 +91,18 @@ var (
 	// complete.  It should be longer than the HTTPTimeout.
 	DefaultRequestTimeout = 20 * time.Second
 )
+
+// NewTestAPIClient returns a client that uses the provided ControlPlane api
+// client. Intended for tests that use a mocked StorageOS api.  This avoids
+// having to publically expose the api on the Client struct.
+func NewTestAPIClient(api ControlPlane) *Client {
+	return &Client{
+		api:       api,
+		transport: http.DefaultTransport,
+		ctx:       context.TODO(),
+		traced:    false,
+	}
+}
 
 // New returns a pre-authenticated client for the StorageOS API.  The
 // authentication token must be refreshed periodically using
@@ -222,6 +250,11 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 			return ctx.Err()
 		}
 	}
+}
+
+// AddToken adds the current authentication token to a given context.
+func (c *Client) AddToken(ctx context.Context) context.Context {
+	return context.WithValue(ctx, api.ContextAccessToken, c.ctx.Value(api.ContextAccessToken))
 }
 
 // respAuthToken is a helper to pull the auth token out of a HTTP Response.

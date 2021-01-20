@@ -145,6 +145,22 @@ func (mr *MockControlPlaneMockRecorder) RefreshJwt(arg0 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshJwt", reflect.TypeOf((*MockControlPlane)(nil).RefreshJwt), arg0)
 }
 
+// SetComputeOnly mocks base method
+func (m *MockControlPlane) SetComputeOnly(arg0 context.Context, arg1 string, arg2 api.SetComputeOnlyNodeData, arg3 *api.SetComputeOnlyOpts) (api.Node, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetComputeOnly", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(api.Node)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SetComputeOnly indicates an expected call of SetComputeOnly
+func (mr *MockControlPlaneMockRecorder) SetComputeOnly(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetComputeOnly", reflect.TypeOf((*MockControlPlane)(nil).SetComputeOnly), arg0, arg1, arg2, arg3)
+}
+
 // UpdateNFSVolumeMountEndpoint mocks base method
 func (m *MockControlPlane) UpdateNFSVolumeMountEndpoint(arg0 context.Context, arg1, arg2 string, arg3 api.NfsVolumeMountEndpoint, arg4 *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error) {
 	m.ctrl.T.Helper()
@@ -161,9 +177,9 @@ func (mr *MockControlPlaneMockRecorder) UpdateNFSVolumeMountEndpoint(arg0, arg1,
 }
 
 // UpdateNode mocks base method
-func (m *MockControlPlane) UpdateNode(arg0 context.Context, arg1 string, arg2 api.UpdateNodeData, arg3 *api.UpdateNodeOpts) (api.Node, *http.Response, error) {
+func (m *MockControlPlane) UpdateNode(arg0 context.Context, arg1 string, arg2 api.UpdateNodeData) (api.Node, *http.Response, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNode", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "UpdateNode", arg0, arg1, arg2)
 	ret0, _ := ret[0].(api.Node)
 	ret1, _ := ret[1].(*http.Response)
 	ret2, _ := ret[2].(error)
@@ -171,7 +187,7 @@ func (m *MockControlPlane) UpdateNode(arg0 context.Context, arg1 string, arg2 ap
 }
 
 // UpdateNode indicates an expected call of UpdateNode
-func (mr *MockControlPlaneMockRecorder) UpdateNode(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockControlPlaneMockRecorder) UpdateNode(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNode", reflect.TypeOf((*MockControlPlane)(nil).UpdateNode), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNode", reflect.TypeOf((*MockControlPlane)(nil).UpdateNode), arg0, arg1, arg2)
 }
