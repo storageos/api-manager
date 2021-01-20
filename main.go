@@ -57,6 +57,7 @@ func init() {
 }
 
 func main() {
+	var loggerOpts zap.Options
 	var metricsAddr string
 	var enableLeaderElection bool
 	var apiSecretPath string
@@ -88,9 +89,17 @@ func main() {
 	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
 	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
 
+	loggerOpts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.StacktraceLevel(zapcore.FatalLevel)))
+	f := func(ec *zapcore.EncoderConfig) {
+		ec.TimeKey = "timestamp"
+		ec.EncodeTime = zapcore.RFC3339NanoTimeEncoder
+	}
+	encoderOpts := func(o *zap.Options) {
+		o.EncoderConfigOptions = append(o.EncoderConfigOptions, f)
+	}
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&loggerOpts), zap.StacktraceLevel(zapcore.PanicLevel), encoderOpts))
 
 	// Block startup until there is a working StorageOS API connection.  Unless
 	// we loop here, we'll get a number of failures on cold cluster start as it
