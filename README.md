@@ -100,7 +100,15 @@ The following flags are supported:
   -node-delete-gc-interval duration
     	Frequency of node garbage collection. (default 1h0m0s)
   -node-delete-workers int
-    	Maximum concurrent node delete operations. (default 5)   
+    	Maximum concurrent node delete operations. (default 5)
+  -zap-devel
+    	Development Mode defaults(encoder=consoleEncoder,logLevel=Debug,stackTraceLevel=Warn). Production Mode defaults(encoder=jsonEncoder,logLevel=Info,stackTraceLevel=Error)
+  -zap-encoder value
+    	Zap log encoding (one of 'json' or 'console')
+  -zap-log-level value
+    	Zap Level to configure the verbosity of logging. Can be one of 'debug', 'info', 'error', or any integer value > 0 which corresponds to custom debug levels of increasing verbosity
+  -zap-stacktrace-level value
+    	Zap Level at and above which stacktraces are captured (one of 'info', 'error').
 ```
 
 ## Setup/Development
