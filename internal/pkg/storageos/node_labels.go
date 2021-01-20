@@ -43,7 +43,7 @@ func IsReservedLabel(key string) bool {
 // individual API endpoints to ensure that they are applied atomically.
 //
 // Unreserved labels are copied as a blob and are not evaluated.
-func (c *Client) EnsureNodeLabels(name string, labels map[string]string) error {
+func (c *Client) EnsureNodeLabels(ctx context.Context, name string, labels map[string]string) error {
 	var unreservedLabels = make(map[string]string)
 	var computeOnly = false
 	var errors *multierror.Error
@@ -65,12 +65,12 @@ func (c *Client) EnsureNodeLabels(name string, labels map[string]string) error {
 
 	// Apply reserved labels.  Labels that have been removed or have been
 	// changed to an invalid value will get their default re-applied.
-	if err := c.EnsureComputeOnly(name, computeOnly); err != nil && err != ErrNodeNotFound {
+	if err := c.EnsureComputeOnly(ctx, name, computeOnly); err != nil && err != ErrNodeNotFound {
 		errors = multierror.Append(errors, err)
 	}
 
 	// Apply unreserved labels as a blob, removing any that are no longer set.
-	if err := c.EnsureUnreservedNodeLabels(name, unreservedLabels); err != nil && err != ErrNodeNotFound {
+	if err := c.EnsureUnreservedNodeLabels(ctx, name, unreservedLabels); err != nil && err != ErrNodeNotFound {
 		errors = multierror.Append(errors, err)
 	}
 
@@ -80,7 +80,7 @@ func (c *Client) EnsureNodeLabels(name string, labels map[string]string) error {
 // EnsureUnreservedNodeLabels applies a set of labels to the StorageOS node if different.
 // Existing labels will be overwritten.  The set of labels must not include
 // StorageOS reserved labels.
-func (c *Client) EnsureUnreservedNodeLabels(name string, labels map[string]string) error {
+func (c *Client) EnsureUnreservedNodeLabels(ctx context.Context, name string, labels map[string]string) error {
 	funcName := "ensure_unreserved_node_labels"
 	start := time.Now()
 	defer func() {
@@ -95,8 +95,7 @@ func (c *Client) EnsureUnreservedNodeLabels(name string, labels map[string]strin
 		labels = make(map[string]string)
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	node, err := c.getNodeByName(ctx, name)
 	if err != nil {
@@ -122,7 +121,7 @@ func (c *Client) EnsureUnreservedNodeLabels(name string, labels map[string]strin
 
 // EnsureComputeOnly ensures that the compute-only behaviour has been applied to
 // the StorageOS node.
-func (c *Client) EnsureComputeOnly(name string, enabled bool) error {
+func (c *Client) EnsureComputeOnly(ctx context.Context, name string, enabled bool) error {
 	funcName := "ensure_compute_only"
 	start := time.Now()
 	defer func() {
@@ -133,8 +132,7 @@ func (c *Client) EnsureComputeOnly(name string, enabled bool) error {
 		return e
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	node, err := c.getNodeByName(ctx, name)
 	if err != nil {

@@ -1,6 +1,7 @@
 package nodelabel
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -18,8 +19,8 @@ import (
 // NodeLabeller provides access to update node labels.
 //go:generate mockgen -destination=mocks/mock_node_labeller.go -package=mocks . NodeLabeller
 type NodeLabeller interface {
-	EnsureNodeLabels(name string, labels map[string]string) error
-	NodeObjects() (map[string]storageos.Object, error)
+	EnsureNodeLabels(ctx context.Context, name string, labels map[string]string) error
+	NodeObjects(ctx context.Context) (map[string]storageos.Object, error)
 }
 
 // Reconciler reconciles a Node object by applying labels from the Kubernetes

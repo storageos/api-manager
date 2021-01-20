@@ -1,6 +1,7 @@
 package storageos
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -125,7 +126,7 @@ func (c *MockClient) DeleteNamespace(name string) error {
 }
 
 // NodeObjects returns a map of nodes objects, keyed on node name.
-func (c *MockClient) NodeObjects() (map[string]Object, error) {
+func (c *MockClient) NodeObjects(ctx context.Context) (map[string]Object, error) {
 	if c.ListNodesErr != nil {
 		return nil, c.ListNodesErr
 	}
@@ -182,7 +183,7 @@ func (c *MockClient) DeleteNode(name string) error {
 }
 
 // EnsureNodeLabels applies a set of labels to the StorageOS node.
-func (c *MockClient) EnsureNodeLabels(name string, labels map[string]string) error {
+func (c *MockClient) EnsureNodeLabels(ctx context.Context, name string, labels map[string]string) error {
 	if c.EnsureNodeLabelsErr != nil {
 		return c.EnsureNodeLabelsErr
 	}

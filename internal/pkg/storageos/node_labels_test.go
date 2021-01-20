@@ -1,6 +1,7 @@
 package storageos_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -205,7 +206,7 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 				tt.prepare(nodeName, mockCP)
 			}
 
-			if err := c.EnsureNodeLabels(nodeName, tt.labels); (err != nil) != tt.wantErr {
+			if err := c.EnsureNodeLabels(context.Background(), nodeName, tt.labels); (err != nil) != tt.wantErr {
 				t.Errorf("Client.EnsureNodeLabels() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -32,7 +32,7 @@ type NodeDeleter interface {
 
 // NodeObjects returns a map of node objects, keyed on node name for efficient
 // lookups.
-func (c *Client) NodeObjects() (map[string]Object, error) {
+func (c *Client) NodeObjects(ctx context.Context) (map[string]Object, error) {
 	funcName := "node_objects"
 	start := time.Now()
 	defer func() {
@@ -43,8 +43,7 @@ func (c *Client) NodeObjects() (map[string]Object, error) {
 		return e
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	nodes, _, err := c.api.ListNodes(ctx)
 	if err != nil {

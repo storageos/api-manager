@@ -7,6 +7,7 @@ import (
 	msyncv1 "github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,7 +38,10 @@ func NewController(api NodeLabeller, log logr.Logger) (*Controller, error) {
 // ensure a simple flow of desired state set by users in Kubernetes to actual
 // state set on the StorageOS node.
 func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
-	if err := c.api.EnsureNodeLabels(obj.GetName(), obj.GetLabels()); err != nil {
+	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
+	defer cancel()
+
+	if err := c.api.EnsureNodeLabels(ctx, obj.GetName(), obj.GetLabels()); err != nil {
 		return errors.Wrap(err, "requeuing operation")
 	}
 	c.log.Info("node labels applied to storageos", "name", obj.GetName())
@@ -47,9 +51,12 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 // Diff takes a list of Kubernets node objects and returns them if they exist
 // within StorageOS but the labels are different.
 func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Object, error) {
+	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
+	defer cancel()
+
 	var apply []client.Object
 
-	nodes, err := c.api.NodeObjects()
+	nodes, err := c.api.NodeObjects(ctx)
 	if err != nil {
 		return nil, err
 	}

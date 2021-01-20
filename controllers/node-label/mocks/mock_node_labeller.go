@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	storageos "github.com/storageos/api-manager/internal/pkg/storageos"
 	reflect "reflect"
@@ -34,30 +35,30 @@ func (m *MockNodeLabeller) EXPECT() *MockNodeLabellerMockRecorder {
 }
 
 // EnsureNodeLabels mocks base method
-func (m *MockNodeLabeller) EnsureNodeLabels(arg0 string, arg1 map[string]string) error {
+func (m *MockNodeLabeller) EnsureNodeLabels(arg0 context.Context, arg1 string, arg2 map[string]string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnsureNodeLabels", arg0, arg1)
+	ret := m.ctrl.Call(m, "EnsureNodeLabels", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // EnsureNodeLabels indicates an expected call of EnsureNodeLabels
-func (mr *MockNodeLabellerMockRecorder) EnsureNodeLabels(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockNodeLabellerMockRecorder) EnsureNodeLabels(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureNodeLabels", reflect.TypeOf((*MockNodeLabeller)(nil).EnsureNodeLabels), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureNodeLabels", reflect.TypeOf((*MockNodeLabeller)(nil).EnsureNodeLabels), arg0, arg1, arg2)
 }
 
 // NodeObjects mocks base method
-func (m *MockNodeLabeller) NodeObjects() (map[string]storageos.Object, error) {
+func (m *MockNodeLabeller) NodeObjects(arg0 context.Context) (map[string]storageos.Object, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NodeObjects")
+	ret := m.ctrl.Call(m, "NodeObjects", arg0)
 	ret0, _ := ret[0].(map[string]storageos.Object)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NodeObjects indicates an expected call of NodeObjects
-func (mr *MockNodeLabellerMockRecorder) NodeObjects() *gomock.Call {
+func (mr *MockNodeLabellerMockRecorder) NodeObjects(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NodeObjects", reflect.TypeOf((*MockNodeLabeller)(nil).NodeObjects))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NodeObjects", reflect.TypeOf((*MockNodeLabeller)(nil).NodeObjects), arg0)
 }

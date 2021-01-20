@@ -252,6 +252,11 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 	}
 }
 
+// AddToken adds the current authentication token to a given context.
+func (c *Client) AddToken(ctx context.Context) context.Context {
+	return context.WithValue(ctx, api.ContextAccessToken, c.ctx.Value(api.ContextAccessToken))
+}
+
 // respAuthToken is a helper to pull the auth token out of a HTTP Response.
 func respAuthToken(resp *http.Response) string {
 	if value := resp.Header.Get("Authorization"); value != "" {
