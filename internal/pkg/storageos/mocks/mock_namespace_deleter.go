@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
@@ -34,30 +35,30 @@ func (m *MockNamespaceDeleter) EXPECT() *MockNamespaceDeleterMockRecorder {
 }
 
 // DeleteNamespace mocks base method
-func (m *MockNamespaceDeleter) DeleteNamespace(arg0 string) error {
+func (m *MockNamespaceDeleter) DeleteNamespace(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteNamespace", arg0)
+	ret := m.ctrl.Call(m, "DeleteNamespace", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteNamespace indicates an expected call of DeleteNamespace
-func (mr *MockNamespaceDeleterMockRecorder) DeleteNamespace(arg0 interface{}) *gomock.Call {
+func (mr *MockNamespaceDeleterMockRecorder) DeleteNamespace(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNamespace", reflect.TypeOf((*MockNamespaceDeleter)(nil).DeleteNamespace), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNamespace", reflect.TypeOf((*MockNamespaceDeleter)(nil).DeleteNamespace), arg0, arg1)
 }
 
 // ListNamespaces mocks base method
-func (m *MockNamespaceDeleter) ListNamespaces() ([]types.NamespacedName, error) {
+func (m *MockNamespaceDeleter) ListNamespaces(arg0 context.Context) ([]types.NamespacedName, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNamespaces")
+	ret := m.ctrl.Call(m, "ListNamespaces", arg0)
 	ret0, _ := ret[0].([]types.NamespacedName)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListNamespaces indicates an expected call of ListNamespaces
-func (mr *MockNamespaceDeleterMockRecorder) ListNamespaces() *gomock.Call {
+func (mr *MockNamespaceDeleterMockRecorder) ListNamespaces(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockNamespaceDeleter)(nil).ListNamespaces))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockNamespaceDeleter)(nil).ListNamespaces), arg0)
 }

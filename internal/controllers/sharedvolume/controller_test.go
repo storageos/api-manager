@@ -376,7 +376,7 @@ func TestReconcile(t *testing.T) {
 					t.Errorf("SharedVolume.Reconcile() cache got:\n%v\n, want:\n%v", got, wnt)
 				}
 			}
-			got, err := r.api.ListSharedVolumes()
+			got, err := r.api.ListSharedVolumes(ctx)
 			if err != nil {
 				t.Errorf("SharedVolume.ListSharedVolumes() error: %v", err)
 			}

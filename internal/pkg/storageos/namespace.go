@@ -24,12 +24,12 @@ var (
 //NamespaceDeleter provides access to removing namespaces from StorageOS.
 //go:generate mockgen -destination=mocks/mock_namespace_deleter.go -package=mocks . NamespaceDeleter
 type NamespaceDeleter interface {
-	DeleteNamespace(name string) error
-	ListNamespaces() ([]types.NamespacedName, error)
+	DeleteNamespace(ctx context.Context, name string) error
+	ListNamespaces(ctx context.Context) ([]types.NamespacedName, error)
 }
 
 // ListNamespaces returns a list of all StorageOS namespace objects.
-func (c *Client) ListNamespaces() ([]types.NamespacedName, error) {
+func (c *Client) ListNamespaces(ctx context.Context) ([]types.NamespacedName, error) {
 	funcName := "list_namespaces"
 	start := time.Now()
 	defer func() {
@@ -40,8 +40,7 @@ func (c *Client) ListNamespaces() ([]types.NamespacedName, error) {
 		return e
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	namespaces, _, err := c.api.ListNamespaces(ctx)
 	if err != nil {
@@ -56,7 +55,7 @@ func (c *Client) ListNamespaces() ([]types.NamespacedName, error) {
 
 // DeleteNamespace removes a namespace from the StorageOS cluster.  Delete will fail if
 // pre-requisites are not met (i.e. namespace has volumes).
-func (c *Client) DeleteNamespace(name string) error {
+func (c *Client) DeleteNamespace(ctx context.Context, name string) error {
 	funcName := "delete_namespace"
 	start := time.Now()
 	defer func() {
@@ -67,8 +66,7 @@ func (c *Client) DeleteNamespace(name string) error {
 		return e
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	ns, err := c.getNamespaceByName(ctx, name)
 	if err != nil {

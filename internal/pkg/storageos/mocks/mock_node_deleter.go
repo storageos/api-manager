@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
@@ -34,30 +35,30 @@ func (m *MockNodeDeleter) EXPECT() *MockNodeDeleterMockRecorder {
 }
 
 // DeleteNode mocks base method
-func (m *MockNodeDeleter) DeleteNode(arg0 string) error {
+func (m *MockNodeDeleter) DeleteNode(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteNode", arg0)
+	ret := m.ctrl.Call(m, "DeleteNode", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteNode indicates an expected call of DeleteNode
-func (mr *MockNodeDeleterMockRecorder) DeleteNode(arg0 interface{}) *gomock.Call {
+func (mr *MockNodeDeleterMockRecorder) DeleteNode(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNode", reflect.TypeOf((*MockNodeDeleter)(nil).DeleteNode), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNode", reflect.TypeOf((*MockNodeDeleter)(nil).DeleteNode), arg0, arg1)
 }
 
 // NodeNamespacedNames mocks base method
-func (m *MockNodeDeleter) NodeNamespacedNames() ([]types.NamespacedName, error) {
+func (m *MockNodeDeleter) NodeNamespacedNames(arg0 context.Context) ([]types.NamespacedName, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NodeNamespacedNames")
+	ret := m.ctrl.Call(m, "NodeNamespacedNames", arg0)
 	ret0, _ := ret[0].([]types.NamespacedName)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NodeNamespacedNames indicates an expected call of NodeNamespacedNames
-func (mr *MockNodeDeleterMockRecorder) NodeNamespacedNames() *gomock.Call {
+func (mr *MockNodeDeleterMockRecorder) NodeNamespacedNames(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NodeNamespacedNames", reflect.TypeOf((*MockNodeDeleter)(nil).NodeNamespacedNames))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NodeNamespacedNames", reflect.TypeOf((*MockNodeDeleter)(nil).NodeNamespacedNames), arg0)
 }

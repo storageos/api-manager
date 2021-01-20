@@ -35,7 +35,10 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 // Delete receives a k8s object that's been deleted and calls the StorageOS api
 // to remove it from management.
 func (c Controller) Delete(ctx context.Context, obj client.Object) error {
-	err := c.api.DeleteNode(obj.GetName())
+	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
+	defer cancel()
+
+	err := c.api.DeleteNode(ctx, obj.GetName())
 	if err != nil && err != storageos.ErrNodeNotFound {
 		return errors.Wrap(err, "requeuing operation")
 	}
@@ -48,5 +51,8 @@ func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 // run in a separate goroutine periodically, not affecting the main
 // reconciliation control-loop.
 func (c Controller) List(ctx context.Context) ([]types.NamespacedName, error) {
-	return c.api.NodeNamespacedNames()
+	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
+	defer cancel()
+
+	return c.api.NodeNamespacedNames(ctx)
 }

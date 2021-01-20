@@ -38,12 +38,12 @@ var (
 // VolumeSharer provides access to StorageOS SharedVolumes.
 //go:generate mockgen -destination=mocks/mock_volume_sharer.go -package=mocks . VolumeSharer
 type VolumeSharer interface {
-	ListSharedVolumes() (SharedVolumeList, error)
-	SetExternalEndpoint(id string, namespace string, endpoint string) error
+	ListSharedVolumes(ctx context.Context) (SharedVolumeList, error)
+	SetExternalEndpoint(ctx context.Context, id string, namespace string, endpoint string) error
 }
 
 // ListSharedVolumes returns a list of active shared volumes.
-func (c *Client) ListSharedVolumes() (SharedVolumeList, error) {
+func (c *Client) ListSharedVolumes(ctx context.Context) (SharedVolumeList, error) {
 	funcName := "list_shared_volumes"
 	start := time.Now()
 	defer func() {
@@ -54,8 +54,7 @@ func (c *Client) ListSharedVolumes() (SharedVolumeList, error) {
 		return e
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	namespaces, _, err := c.api.ListNamespaces(ctx)
 	if err != nil {
@@ -122,7 +121,7 @@ func toSharedVolume(namespace string, vol api.Volume) (*SharedVolume, error) {
 
 // SetExternalEndpoint sets the external endpoint on a SharedVolume.  The
 // endpoint should be <host|ip>:<port>.
-func (c *Client) SetExternalEndpoint(id string, namespace string, endpoint string) error {
+func (c *Client) SetExternalEndpoint(ctx context.Context, id string, namespace string, endpoint string) error {
 	funcName := "set_external_endpoint"
 	start := time.Now()
 	defer func() {
@@ -133,8 +132,7 @@ func (c *Client) SetExternalEndpoint(id string, namespace string, endpoint strin
 		return e
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	curVol, err := c.getVolume(ctx, id, namespace)
 	if err != nil {
