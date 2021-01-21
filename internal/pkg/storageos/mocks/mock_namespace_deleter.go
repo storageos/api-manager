@@ -7,7 +7,7 @@ package mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	types "k8s.io/apimachinery/pkg/types"
+	storageos "github.com/storageos/api-manager/internal/pkg/storageos"
 	reflect "reflect"
 )
 
@@ -49,10 +49,10 @@ func (mr *MockNamespaceDeleterMockRecorder) DeleteNamespace(arg0, arg1 interface
 }
 
 // ListNamespaces mocks base method
-func (m *MockNamespaceDeleter) ListNamespaces(arg0 context.Context) ([]types.NamespacedName, error) {
+func (m *MockNamespaceDeleter) ListNamespaces(arg0 context.Context) ([]storageos.Object, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListNamespaces", arg0)
-	ret0, _ := ret[0].([]types.NamespacedName)
+	ret0, _ := ret[0].([]storageos.Object)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	api "github.com/storageos/go-api/v2"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -27,7 +26,7 @@ var (
 //go:generate mockgen -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
 type NodeDeleter interface {
 	DeleteNode(ctx context.Context, name string) error
-	NodeNamespacedNames(ctx context.Context) ([]types.NamespacedName, error)
+	ListNodes(ctx context.Context) ([]Object, error)
 }
 
 // NodeObjects returns a map of node objects, keyed on node name for efficient
@@ -49,17 +48,17 @@ func (c *Client) NodeObjects(ctx context.Context) (map[string]Object, error) {
 	if err != nil {
 		return nil, observeErr(err)
 	}
-	nodeLabels := make(map[string]Object)
+	objects := make(map[string]Object)
 	for _, node := range nodes {
-		nodeLabels[node.GetName()] = node
+		objects[node.GetName()] = node
 	}
 
-	return nodeLabels, nil
+	return objects, nil
 }
 
-// NodeNamespacedNames returns a list of all StorageOS node objects.
-func (c *Client) NodeNamespacedNames(ctx context.Context) ([]types.NamespacedName, error) {
-	funcName := "node_namespaced_names"
+// ListNodes returns a list of all StorageOS node objects.
+func (c *Client) ListNodes(ctx context.Context) ([]Object, error) {
+	funcName := "list_nodes"
 	start := time.Now()
 	defer func() {
 		metrics.Latency.Observe(funcName, time.Since(start))
@@ -75,11 +74,12 @@ func (c *Client) NodeNamespacedNames(ctx context.Context) ([]types.NamespacedNam
 	if err != nil {
 		return nil, observeErr(err)
 	}
-	nn := []types.NamespacedName{}
+	objects := []Object{}
 	for _, node := range nodes {
-		nn = append(nn, types.NamespacedName{Name: node.Name})
+		objects = append(objects, node)
 	}
-	return nn, nil
+
+	return objects, nil
 }
 
 // DeleteNode removes a node from the StorageOS cluster.  Delete will fail if
