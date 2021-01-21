@@ -79,7 +79,7 @@ func NewMockClient() *MockClient {
 }
 
 // ListNamespaces returns a list of StorageOS namespaces as NamespacedNames.
-func (c *MockClient) ListNamespaces() ([]types.NamespacedName, error) {
+func (c *MockClient) ListNamespaces(ctx context.Context) ([]types.NamespacedName, error) {
 	if c.ListNamespacesErr != nil {
 		return nil, c.ListNamespacesErr
 	}
@@ -111,7 +111,7 @@ func (c *MockClient) NamespaceExists(name string) bool {
 }
 
 // DeleteNamespace removes a namespace from the StorageOS cluster.
-func (c *MockClient) DeleteNamespace(name string) error {
+func (c *MockClient) DeleteNamespace(ctx context.Context, name string) error {
 	c.DeleteNamespaceCallCount[name]++
 	if c.DeleteNamespaceErr != nil {
 		return c.DeleteNamespaceErr
@@ -136,7 +136,7 @@ func (c *MockClient) NodeObjects(ctx context.Context) (map[string]Object, error)
 }
 
 // NodeNamespacedNames returns a list of StorageOS nodes as NamespacedNames.
-func (c *MockClient) NodeNamespacedNames() ([]types.NamespacedName, error) {
+func (c *MockClient) NodeNamespacedNames(ctx context.Context) ([]types.NamespacedName, error) {
 	if c.ListNodesErr != nil {
 		return nil, c.ListNodesErr
 	}
@@ -168,7 +168,7 @@ func (c *MockClient) NodeExists(name string) bool {
 }
 
 // DeleteNode removes a node from the StorageOS cluster.
-func (c *MockClient) DeleteNode(name string) error {
+func (c *MockClient) DeleteNode(ctx context.Context, name string) error {
 	c.DeleteNodeCallCount[name]++
 	if c.DeleteNodeErr != nil {
 		return c.DeleteNodeErr
@@ -219,7 +219,7 @@ func (c *MockClient) GetNodeLabels(name string) (map[string]string, error) {
 }
 
 // ListSharedVolumes returns a list of active shared volumes.
-func (c *MockClient) ListSharedVolumes() (SharedVolumeList, error) {
+func (c *MockClient) ListSharedVolumes(ctx context.Context) (SharedVolumeList, error) {
 	if c.SharedVolsErr != nil {
 		return nil, c.SharedVolsErr
 	}
@@ -234,7 +234,7 @@ func (c *MockClient) ListSharedVolumes() (SharedVolumeList, error) {
 
 // SetExternalEndpoint sets the external endpoint on a SharedVolume.  The
 // endpoint should be <host|ip>:<port>.
-func (c *MockClient) SetExternalEndpoint(id string, namespace string, endpoint string) error {
+func (c *MockClient) SetExternalEndpoint(ctx context.Context, id string, namespace string, endpoint string) error {
 	if c.SetEndpointErr != nil {
 		return c.SetEndpointErr
 	}

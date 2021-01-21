@@ -77,7 +77,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 		start := time.Now()
 
 		// Query shared volumes info.
-		volumes, err := r.api.ListSharedVolumes()
+		volumes, err := r.api.ListSharedVolumes(ctx)
 		if err != nil {
 			r.log.Error(err, "failed to list shared volumes")
 			r.apiReset <- struct{}{}
@@ -127,7 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 			}
 
 			if externalEndpoint != vol.ExternalEndpoint {
-				if err := r.api.SetExternalEndpoint(vol.ID, vol.Namespace, externalEndpoint); err != nil {
+				if err := r.api.SetExternalEndpoint(ctx, vol.ID, vol.Namespace, externalEndpoint); err != nil {
 					log.Error(err, "shared volume external endpoint update failed")
 					continue
 				}

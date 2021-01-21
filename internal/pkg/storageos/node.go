@@ -26,8 +26,8 @@ var (
 //NodeDeleter provides access to removing nodes from StorageOS.
 //go:generate mockgen -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
 type NodeDeleter interface {
-	DeleteNode(name string) error
-	NodeNamespacedNames() ([]types.NamespacedName, error)
+	DeleteNode(ctx context.Context, name string) error
+	NodeNamespacedNames(ctx context.Context) ([]types.NamespacedName, error)
 }
 
 // NodeObjects returns a map of node objects, keyed on node name for efficient
@@ -58,7 +58,7 @@ func (c *Client) NodeObjects(ctx context.Context) (map[string]Object, error) {
 }
 
 // NodeNamespacedNames returns a list of all StorageOS node objects.
-func (c *Client) NodeNamespacedNames() ([]types.NamespacedName, error) {
+func (c *Client) NodeNamespacedNames(ctx context.Context) ([]types.NamespacedName, error) {
 	funcName := "node_namespaced_names"
 	start := time.Now()
 	defer func() {
@@ -69,8 +69,7 @@ func (c *Client) NodeNamespacedNames() ([]types.NamespacedName, error) {
 		return e
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	nodes, _, err := c.api.ListNodes(ctx)
 	if err != nil {
@@ -88,7 +87,7 @@ func (c *Client) NodeNamespacedNames() ([]types.NamespacedName, error) {
 // 		(1) The node appears offline
 // 		(2) No node lock is held
 //      (3) No master deployments live on the node (i.e. node must be detected as no active volumes).
-func (c *Client) DeleteNode(name string) error {
+func (c *Client) DeleteNode(ctx context.Context, name string) error {
 	funcName := "delete_node"
 	start := time.Now()
 	defer func() {
@@ -99,8 +98,7 @@ func (c *Client) DeleteNode(name string) error {
 		return e
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, DefaultRequestTimeout)
-	defer cancel()
+	ctx = c.AddToken(ctx)
 
 	node, err := c.getNodeByName(ctx, name)
 	if err != nil {
