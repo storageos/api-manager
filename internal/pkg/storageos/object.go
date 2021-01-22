@@ -2,14 +2,20 @@ package storageos
 
 import "k8s.io/apimachinery/pkg/types"
 
-// NamespacedNames converts objects to Kubernetes NamespacedNames.
-func NamespacedNames(objects []Object) []types.NamespacedName {
-	nn := []types.NamespacedName{}
+// ObjectKey identifies a Kubernetes Object.
+// https://github.com/kubernetes-sigs/controller-runtime/blob/74fd294a89c65c8efc17ab92e0d2014d36e357a8/pkg/client/interfaces.go
+type ObjectKey = types.NamespacedName
+
+// ObjectKeyFromObject returns the ObjectKey given a runtime.Object.
+func ObjectKeyFromObject(obj Object) ObjectKey {
+	return ObjectKey{Namespace: obj.GetNamespace(), Name: obj.GetName()}
+}
+
+// ObjectKeys converts objects to Kubernetes ObjectKeys.
+func ObjectKeys(objects []Object) []ObjectKey {
+	keys := []ObjectKey{}
 	for _, obj := range objects {
-		nn = append(nn, types.NamespacedName{
-			Name:      obj.GetName(),
-			Namespace: obj.GetNamespace(),
-		})
+		keys = append(keys, ObjectKeyFromObject(obj))
 	}
-	return nn
+	return keys
 }

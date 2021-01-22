@@ -34,6 +34,7 @@ import (
 	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
 	nodelabel "github.com/storageos/api-manager/controllers/node-label"
+	pvclabel "github.com/storageos/api-manager/controllers/pvc-label"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	apimetrics "github.com/storageos/api-manager/internal/pkg/storageos/metrics"
@@ -72,9 +73,11 @@ func main() {
 	var gcNamespaceDeleteInterval time.Duration
 	var gcNodeDeleteInterval time.Duration
 	var resyncNodeLabelInterval time.Duration
+	var resyncPVCLabelInterval time.Duration
 	var nsDeleteWorkers int
 	var nodeDeleteWorkers int
 	var nodeLabelSyncWorkers int
+	var pvcLabelSyncWorkers int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -90,9 +93,11 @@ func main() {
 	flag.DurationVar(&gcNamespaceDeleteInterval, "namespace-delete-gc-interval", 1*time.Hour, "Frequency of namespace garbage collection.")
 	flag.DurationVar(&gcNodeDeleteInterval, "node-delete-gc-interval", 1*time.Hour, "Frequency of node garbage collection.")
 	flag.DurationVar(&resyncNodeLabelInterval, "node-label-resync-interval", 1*time.Hour, "Frequency of node label resync.")
+	flag.DurationVar(&resyncPVCLabelInterval, "pvc-label-resync-interval", 1*time.Hour, "Frequency of PVC label resync.")
 	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
 	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
 	flag.IntVar(&nodeLabelSyncWorkers, "node-label-sync-workers", 5, "Maximum concurrent node label sync operations.")
+	flag.IntVar(&pvcLabelSyncWorkers, "pvc-label-sync-workers", 5, "Maximum concurrent PVC label sync operations.")
 
 	loggerOpts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -206,6 +211,10 @@ func main() {
 	}()
 
 	// Additional controllers go here.
+	setupLog.Info("starting PVC label sync controller ")
+	if err := pvclabel.NewReconciler(api, mgr.GetClient(), resyncPVCLabelInterval).SetupWithManager(mgr, pvcLabelSyncWorkers); err != nil {
+		errCh <- fmt.Errorf("pvc label reconciler error: %w", err)
+	}
 	setupLog.Info("starting node label sync controller ")
 	if err := nodelabel.NewReconciler(api, mgr.GetClient(), resyncNodeLabelInterval).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
 		errCh <- fmt.Errorf("node label reconciler error: %w", err)

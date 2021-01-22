@@ -101,6 +101,14 @@ The following flags are supported:
     	Frequency of node garbage collection. (default 1h0m0s)
   -node-delete-workers int
     	Maximum concurrent node delete operations. (default 5)
+  -node-label-resync-interval duration
+    	Frequency of node label resync. (default 1h0m0s)
+  -node-label-sync-workers int
+    	Maximum concurrent node label sync operations. (default 5)
+  -pvc-label-resync-interval duration
+    	Frequency of PVC label resync. (default 1h0m0s)
+  -pvc-label-sync-workers int
+    	Maximum concurrent PVC label sync operations. (default 5)
   -zap-devel
     	Development Mode defaults(encoder=consoleEncoder,logLevel=Debug,stackTraceLevel=Warn). Production Mode defaults(encoder=jsonEncoder,logLevel=Info,stackTraceLevel=Error)
   -zap-encoder value

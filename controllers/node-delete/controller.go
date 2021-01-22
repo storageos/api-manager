@@ -58,5 +58,5 @@ func (c Controller) List(ctx context.Context) ([]types.NamespacedName, error) {
 	if err != nil {
 		return nil, err
 	}
-	return storageos.NamespacedNames(objects), nil
+	return storageos.ObjectKeys(objects), nil
 }

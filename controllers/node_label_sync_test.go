@@ -9,13 +9,14 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	nodelabel "github.com/storageos/api-manager/controllers/node-label"
-	"github.com/storageos/api-manager/internal/pkg/annotation"
-	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	nodelabel "github.com/storageos/api-manager/controllers/node-label"
+	"github.com/storageos/api-manager/internal/pkg/annotation"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 const (

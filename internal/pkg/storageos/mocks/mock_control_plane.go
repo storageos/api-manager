@@ -161,6 +161,22 @@ func (mr *MockControlPlaneMockRecorder) SetComputeOnly(arg0, arg1, arg2, arg3 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetComputeOnly", reflect.TypeOf((*MockControlPlane)(nil).SetComputeOnly), arg0, arg1, arg2, arg3)
 }
 
+// SetReplicas mocks base method
+func (m *MockControlPlane) SetReplicas(arg0 context.Context, arg1, arg2 string, arg3 api.SetReplicasRequest, arg4 *api.SetReplicasOpts) (api.AcceptedMessage, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetReplicas", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(api.AcceptedMessage)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SetReplicas indicates an expected call of SetReplicas
+func (mr *MockControlPlaneMockRecorder) SetReplicas(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReplicas", reflect.TypeOf((*MockControlPlane)(nil).SetReplicas), arg0, arg1, arg2, arg3, arg4)
+}
+
 // UpdateNFSVolumeMountEndpoint mocks base method
 func (m *MockControlPlane) UpdateNFSVolumeMountEndpoint(arg0 context.Context, arg1, arg2 string, arg3 api.NfsVolumeMountEndpoint, arg4 *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error) {
 	m.ctrl.T.Helper()
@@ -190,4 +206,20 @@ func (m *MockControlPlane) UpdateNode(arg0 context.Context, arg1 string, arg2 ap
 func (mr *MockControlPlaneMockRecorder) UpdateNode(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNode", reflect.TypeOf((*MockControlPlane)(nil).UpdateNode), arg0, arg1, arg2)
+}
+
+// UpdateVolume mocks base method
+func (m *MockControlPlane) UpdateVolume(arg0 context.Context, arg1, arg2 string, arg3 api.UpdateVolumeData, arg4 *api.UpdateVolumeOpts) (api.Volume, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateVolume", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(api.Volume)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateVolume indicates an expected call of UpdateVolume
+func (mr *MockControlPlaneMockRecorder) UpdateVolume(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateVolume", reflect.TypeOf((*MockControlPlane)(nil).UpdateVolume), arg0, arg1, arg2, arg3, arg4)
 }
