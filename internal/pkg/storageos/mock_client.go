@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -18,46 +19,53 @@ func init() {
 
 // MockObject can be be used to replace an api object.
 type MockObject struct {
-	id     string
-	name   string
-	labels map[string]string
+	ID        string
+	Name      string
+	Namespace string
+	Labels    map[string]string
 }
 
 // GetID returns the object ID.
 func (m MockObject) GetID() string {
-	return m.id
+	return m.ID
 }
 
 // GetName returns the object name.
 func (m MockObject) GetName() string {
-	return m.name
+	return m.Name
 }
 
 // GetNamespace returns the object namespace.
 func (m MockObject) GetNamespace() string {
-	return ""
+	return m.Namespace
 }
 
 // GetLabels returns the object labels.
 func (m MockObject) GetLabels() map[string]string {
-	return m.labels
+	return m.Labels
 }
 
 // MockClient provides a test interface to the StorageOS api.
 type MockClient struct {
-	vols                     map[string]*SharedVolume
+	sharedvols               map[string]*SharedVolume
 	namespaces               map[string]Object
 	nodes                    map[string]Object
+	volumes                  map[client.ObjectKey]Object
 	nodeLabels               map[string]string
 	mu                       sync.RWMutex
 	DeleteNamespaceCallCount map[string]int
 	DeleteNodeCallCount      map[string]int
 	ListNamespacesErr        error
 	DeleteNamespaceErr       error
+	GetNodeErr               error
+	NodeObjectsErr           error
 	ListNodesErr             error
 	DeleteNodeErr            error
 	EnsureNodeLabelsErr      error
 	GetNodeLabelsErr         error
+	GetVolumeErr             error
+	VolumeObjectsErr         error
+	EnsureVolumeLabelsErr    error
 	SharedVolsErr            error
 	SharedVolErr             error
 	SetEndpointErr           error
@@ -66,9 +74,10 @@ type MockClient struct {
 // NewMockClient returns an initialized MockClient.
 func NewMockClient() *MockClient {
 	return &MockClient{
-		vols:                     make(map[string]*SharedVolume),
+		sharedvols:               make(map[string]*SharedVolume),
 		namespaces:               make(map[string]Object),
 		nodes:                    make(map[string]Object),
+		volumes:                  make(map[client.ObjectKey]Object),
 		nodeLabels:               make(map[string]string),
 		DeleteNamespaceCallCount: make(map[string]int),
 		DeleteNodeCallCount:      make(map[string]int),
@@ -93,7 +102,7 @@ func (c *MockClient) ListNamespaces(ctx context.Context) ([]Object, error) {
 // AddNamespace adds a namespace to the StorageOS cluster.
 func (c *MockClient) AddNamespace(name string) error {
 	c.mu.Lock()
-	c.namespaces[name] = MockObject{name: name}
+	c.namespaces[name] = MockObject{Name: name}
 	c.mu.Unlock()
 	return nil
 }
@@ -125,8 +134,8 @@ func (c *MockClient) DeleteNamespace(ctx context.Context, name string) error {
 
 // NodeObjects returns a map of nodes objects, keyed on node name.
 func (c *MockClient) NodeObjects(ctx context.Context) (map[string]Object, error) {
-	if c.ListNodesErr != nil {
-		return nil, c.ListNodesErr
+	if c.NodeObjectsErr != nil {
+		return nil, c.NodeObjectsErr
 	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -150,7 +159,7 @@ func (c *MockClient) ListNodes(ctx context.Context) ([]Object, error) {
 // AddNode adds a node to the StorageOS cluster.
 func (c *MockClient) AddNode(name string) error {
 	c.mu.Lock()
-	c.nodes[name] = MockObject{name: name}
+	c.nodes[name] = MockObject{Name: name}
 	c.mu.Unlock()
 	return nil
 }
@@ -216,6 +225,73 @@ func (c *MockClient) GetNodeLabels(name string) (map[string]string, error) {
 	return c.nodeLabels, nil
 }
 
+// AddVolume adds a volume to the StorageOS cluster.
+func (c *MockClient) AddVolume(obj Object) error {
+	c.mu.Lock()
+	c.volumes[ObjectKeyFromObject(obj)] = obj
+	c.mu.Unlock()
+	return nil
+}
+
+// GetVolume retrieves a volume object.
+func (c *MockClient) GetVolume(key client.ObjectKey) (Object, error) {
+	if c.GetVolumeErr != nil {
+		return nil, c.GetVolumeErr
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	obj, ok := c.volumes[key]
+	if !ok {
+		return nil, ErrVolumeNotFound
+	}
+	return obj, nil
+}
+
+// VolumeObjects returns a map of volume objects, keyed on NamespacedName.
+func (c *MockClient) VolumeObjects(ctx context.Context) (map[client.ObjectKey]Object, error) {
+	if c.ListNodesErr != nil {
+		return nil, c.ListNodesErr
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.volumes, nil
+}
+
+// EnsureVolumeLabels applies a set of labels to the StorageOS volume.
+func (c *MockClient) EnsureVolumeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error {
+	if c.EnsureVolumeLabelsErr != nil {
+		return c.EnsureVolumeLabelsErr
+	}
+
+	var errors *multierror.Error
+	var newLabels = make(map[string]string)
+
+	for k, v := range labels {
+		switch {
+		case !IsReservedLabel(k):
+			newLabels[k] = v
+		case k == ReservedLabelReplicas:
+			newLabels[k] = v
+		default:
+			errors = multierror.Append(errors, ErrReservedLabelUnknown)
+		}
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	n, ok := c.volumes[key]
+	if !ok {
+		return ErrVolumeNotFound
+	}
+	c.volumes[key] = &MockObject{
+		ID:        n.GetID(),
+		Name:      n.GetName(),
+		Namespace: n.GetNamespace(),
+		Labels:    newLabels,
+	}
+	return errors.ErrorOrNil()
+}
+
 // ListSharedVolumes returns a list of active shared volumes.
 func (c *MockClient) ListSharedVolumes(ctx context.Context) (SharedVolumeList, error) {
 	if c.SharedVolsErr != nil {
@@ -223,7 +299,7 @@ func (c *MockClient) ListSharedVolumes(ctx context.Context) (SharedVolumeList, e
 	}
 	c.mu.RLock()
 	list := SharedVolumeList{}
-	for _, v := range c.vols {
+	for _, v := range c.sharedvols {
 		list = append(list, v)
 	}
 	c.mu.RUnlock()
@@ -239,10 +315,10 @@ func (c *MockClient) SetExternalEndpoint(ctx context.Context, id string, namespa
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if _, ok := c.vols[strings.Join([]string{namespace, id}, "/")]; !ok {
+	if _, ok := c.sharedvols[strings.Join([]string{namespace, id}, "/")]; !ok {
 		return ErrNotFound
 	}
-	c.vols[strings.Join([]string{namespace, id}, "/")].ExternalEndpoint = endpoint
+	c.sharedvols[strings.Join([]string{namespace, id}, "/")].ExternalEndpoint = endpoint
 	return nil
 }
 
@@ -253,7 +329,7 @@ func (c *MockClient) Get(id string, namespace string) (*SharedVolume, error) {
 	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	v, ok := c.vols[strings.Join([]string{namespace, id}, "/")]
+	v, ok := c.sharedvols[strings.Join([]string{namespace, id}, "/")]
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -263,7 +339,7 @@ func (c *MockClient) Get(id string, namespace string) (*SharedVolume, error) {
 // Set adds or replaces a shared volume, and also returns it.
 func (c *MockClient) Set(v *SharedVolume) *SharedVolume {
 	c.mu.Lock()
-	c.vols[strings.Join([]string{v.Namespace, v.ID}, "/")] = v
+	c.sharedvols[strings.Join([]string{v.Namespace, v.ID}, "/")] = v
 	c.mu.Unlock()
 	return v
 }
@@ -271,14 +347,14 @@ func (c *MockClient) Set(v *SharedVolume) *SharedVolume {
 // Delete a shared volume.
 func (c *MockClient) Delete(id string, namespace string) {
 	c.mu.Lock()
-	delete(c.vols, strings.Join([]string{namespace, id}, "/"))
+	delete(c.sharedvols, strings.Join([]string{namespace, id}, "/"))
 	c.mu.Unlock()
 }
 
 // Reset the shared volume list.
 func (c *MockClient) Reset() {
 	c.mu.Lock()
-	c.vols = make(map[string]*SharedVolume)
+	c.sharedvols = make(map[string]*SharedVolume)
 	c.namespaces = make(map[string]Object)
 	c.nodes = make(map[string]Object)
 	c.nodeLabels = make(map[string]string)

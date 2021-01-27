@@ -151,6 +151,7 @@ func (c *Client) SetExternalEndpoint(ctx context.Context, id string, namespace s
 	return observeErr(nil)
 }
 
+// TODO: Merge with getVolumeByKey() and accept a key.
 func (c *Client) getVolume(ctx context.Context, id string, namespace string) (*api.Volume, error) {
 	ns, err := c.getNamespace(ctx, namespace)
 
@@ -161,6 +162,7 @@ func (c *Client) getVolume(ctx context.Context, id string, namespace string) (*a
 	return &vol, err
 }
 
+// TODO: Merge with getNamespaceByName() and accept a key.
 func (c *Client) getNamespace(ctx context.Context, namespace string) (*api.Namespace, error) {
 	namespaces, _, err := c.api.ListNamespaces(ctx)
 	if err != nil {

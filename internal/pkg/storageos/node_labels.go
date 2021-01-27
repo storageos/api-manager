@@ -2,39 +2,15 @@ package storageos
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	api "github.com/storageos/go-api/v2"
 )
-
-const (
-	// ReservedLabelPrefix is the string prefix used to identify StorageOS
-	// reserved labels.  Most reserved labels will require specific API calls to
-	// apply to the StorageOS object.
-	ReservedLabelPrefix = "storageos.com/"
-
-	// ReservedLabelComputeOnly is the node label used to indicate that a node
-	// should not store data and should instead access it remotely.
-	ReservedLabelComputeOnly = ReservedLabelPrefix + "computeonly"
-)
-
-var (
-	// ErrReservedLabelUnknown can be used to indicate that a label with the
-	// reserved prefix was provided, but not supported.
-	ErrReservedLabelUnknown = errors.New("invalid reserved label")
-)
-
-// IsReservedLabel returns true if the key is a StorageOS reserved label name.
-// It does not validate whether the key is valid.
-func IsReservedLabel(key string) bool {
-	return strings.HasPrefix(key, ReservedLabelPrefix)
-}
 
 // EnsureNodeLabels applies a set of labels to a StorageOS node.
 //
@@ -46,35 +22,39 @@ func IsReservedLabel(key string) bool {
 func (c *Client) EnsureNodeLabels(ctx context.Context, name string, labels map[string]string) error {
 	var unreservedLabels = make(map[string]string)
 	var computeOnly = false
-	var errors *multierror.Error
+	var errs *multierror.Error
 	var err error
 
 	for k, v := range labels {
 		switch {
 		case !IsReservedLabel(k):
 			unreservedLabels[k] = v
+		case k == ReservedLabelNoCache ||
+			k == ReservedLabelNoCompress ||
+			k == ReservedLabelReplicas:
+			errs = multierror.Append(errs, errors.Wrap(ErrReservedLabelInvalid, k))
 		case k == ReservedLabelComputeOnly:
 			computeOnly, err = strconv.ParseBool(v)
 			if err != nil {
-				errors = multierror.Append(errors, err)
+				errs = multierror.Append(errs, errors.Wrap(err, k))
 			}
 		default:
-			errors = multierror.Append(errors, ErrReservedLabelUnknown)
+			errs = multierror.Append(errs, errors.Wrap(ErrReservedLabelUnknown, k))
 		}
 	}
 
 	// Apply reserved labels.  Labels that have been removed or have been
 	// changed to an invalid value will get their default re-applied.
 	if err := c.EnsureComputeOnly(ctx, name, computeOnly); err != nil && err != ErrNodeNotFound {
-		errors = multierror.Append(errors, err)
+		errs = multierror.Append(errs, err)
 	}
 
 	// Apply unreserved labels as a blob, removing any that are no longer set.
 	if err := c.EnsureUnreservedNodeLabels(ctx, name, unreservedLabels); err != nil && err != ErrNodeNotFound {
-		errors = multierror.Append(errors, err)
+		errs = multierror.Append(errs, err)
 	}
 
-	return errors.ErrorOrNil()
+	return errs.ErrorOrNil()
 }
 
 // EnsureUnreservedNodeLabels applies a set of labels to the StorageOS node if different.

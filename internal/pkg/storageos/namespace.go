@@ -88,7 +88,9 @@ func (c *Client) DeleteNamespace(ctx context.Context, name string) error {
 	return nil
 }
 
-// getNamespaceByName returns the StorageOS namespace object matching the name, if any.
+// getNamespaceByName returns the StorageOS namespace object matching the name,
+// if any.
+// TODO: Merge with getNamespace() and accept a key.
 func (c *Client) getNamespaceByName(ctx context.Context, name string) (*api.Namespace, error) {
 	namespaces, _, err := c.api.ListNamespaces(ctx)
 	if err != nil {
