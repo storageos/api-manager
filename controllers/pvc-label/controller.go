@@ -2,12 +2,12 @@ package pvclabel
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	msyncv1 "github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1"
 	"github.com/darkowlzz/operator-toolkit/object"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,16 +54,16 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 	}
 	pvName, ok, err := unstructured.NestedString(u.Object, []string{"spec", "volumeName"}...)
 	if err != nil {
-		return errors.Wrap(err, "failed to get pv name from pvc")
+		return fmt.Errorf("failed to get pv name from pvc: %w", err)
 	}
 	if !ok {
-		return errors.Wrap(err, "pv for pvc not yet provisioned")
+		return fmt.Errorf("pv for pvc not yet provisioned: %w", err)
 	}
 
 	// Use the PV name, and the PVC namespace for the StorageOS volume lookup.
 	key := client.ObjectKey{Name: pvName, Namespace: obj.GetNamespace()}
 	if err := c.api.EnsureVolumeLabels(ctx, key, obj.GetLabels()); err != nil {
-		return errors.Wrap(err, "requeuing operation")
+		return err
 	}
 	c.log.Info("pvc labels applied to storageos", "name", obj.GetName())
 	return nil

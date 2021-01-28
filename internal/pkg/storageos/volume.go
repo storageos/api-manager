@@ -24,7 +24,7 @@ func (c *Client) VolumeObjects(ctx context.Context) (map[client.ObjectKey]Object
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -50,7 +50,7 @@ func (c *Client) ListVolumes(ctx context.Context) ([]Object, error) {
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -75,9 +75,9 @@ func (c *Client) getVolumes(ctx context.Context) ([]api.Volume, error) {
 		return nil, err
 	}
 	for _, ns := range namespaces {
-		nsVols, _, err := c.api.ListVolumes(ctx, ns.GetID())
+		nsVols, resp, err := c.api.ListVolumes(ctx, ns.GetID())
 		if err != nil {
-			return nil, err
+			return nil, api.MapAPIError(err, resp)
 		}
 		volumes = append(volumes, nsVols...)
 	}
@@ -91,9 +91,9 @@ func (c *Client) getVolumeByKey(ctx context.Context, key client.ObjectKey) (*api
 		return nil, err
 	}
 
-	volumes, _, err := c.api.ListVolumes(ctx, ns.Id)
+	volumes, resp, err := c.api.ListVolumes(ctx, ns.Id)
 	if err != nil {
-		return nil, err
+		return nil, api.MapAPIError(err, resp)
 	}
 	for _, vol := range volumes {
 		if vol.Name == key.Name {

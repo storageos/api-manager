@@ -138,7 +138,7 @@ func main() {
 			break
 		}
 		setupLog.Info(fmt.Sprintf("unable to connect to storageos api, retrying in %s", apiRetryInterval), "msg", err)
-		apimetrics.Errors.Increment("setup", storageos.GetAPIErrorRootCause(err))
+		apimetrics.Errors.Increment("setup", err)
 		time.Sleep(apiRetryInterval)
 	}
 	setupLog.V(1).Info("connected to the storageos api")

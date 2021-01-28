@@ -38,15 +38,15 @@ func (c *Client) NodeObjects(ctx context.Context) (map[string]Object, error) {
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
 	ctx = c.AddToken(ctx)
 
-	nodes, _, err := c.api.ListNodes(ctx)
+	nodes, resp, err := c.api.ListNodes(ctx)
 	if err != nil {
-		return nil, observeErr(err)
+		return nil, observeErr(api.MapAPIError(err, resp))
 	}
 	objects := make(map[string]Object)
 	for _, node := range nodes {
@@ -64,15 +64,15 @@ func (c *Client) ListNodes(ctx context.Context) ([]Object, error) {
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
 	ctx = c.AddToken(ctx)
 
-	nodes, _, err := c.api.ListNodes(ctx)
+	nodes, resp, err := c.api.ListNodes(ctx)
 	if err != nil {
-		return nil, observeErr(err)
+		return nil, observeErr(api.MapAPIError(err, resp))
 	}
 	objects := []Object{}
 	for _, node := range nodes {
@@ -94,7 +94,7 @@ func (c *Client) DeleteNode(ctx context.Context, name string) error {
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -107,7 +107,7 @@ func (c *Client) DeleteNode(ctx context.Context, name string) error {
 
 	resp, err := c.api.DeleteNode(ctx, node.Id, node.Version, nil)
 	if err != nil {
-		err = observeErr(err)
+		err = api.MapAPIError(err, resp)
 
 		switch resp.StatusCode {
 		case http.StatusConflict:
@@ -125,9 +125,9 @@ func (c *Client) DeleteNode(ctx context.Context, name string) error {
 
 // getNodeByName returns the StorageOS node object matching the name, if any.
 func (c *Client) getNodeByName(ctx context.Context, name string) (*api.Node, error) {
-	nodes, _, err := c.api.ListNodes(ctx)
+	nodes, resp, err := c.api.ListNodes(ctx)
 	if err != nil {
-		return nil, err
+		return nil, api.MapAPIError(err, resp)
 	}
 	for _, node := range nodes {
 		if node.Name == name {

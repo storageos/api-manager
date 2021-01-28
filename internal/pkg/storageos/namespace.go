@@ -35,15 +35,15 @@ func (c *Client) ListNamespaces(ctx context.Context) ([]Object, error) {
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
 	ctx = c.AddToken(ctx)
 
-	namespaces, _, err := c.api.ListNamespaces(ctx)
+	namespaces, resp, err := c.api.ListNamespaces(ctx)
 	if err != nil {
-		return nil, observeErr(err)
+		return nil, observeErr(api.MapAPIError(err, resp))
 	}
 	objects := []Object{}
 	for _, ns := range namespaces {
@@ -61,7 +61,7 @@ func (c *Client) DeleteNamespace(ctx context.Context, name string) error {
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -74,7 +74,7 @@ func (c *Client) DeleteNamespace(ctx context.Context, name string) error {
 
 	resp, err := c.api.DeleteNamespace(ctx, ns.Id, ns.Version, nil)
 	if err != nil {
-		err = observeErr(err)
+		err = observeErr(api.MapAPIError(err, resp))
 
 		switch resp.StatusCode {
 		case http.StatusConflict:
@@ -92,9 +92,9 @@ func (c *Client) DeleteNamespace(ctx context.Context, name string) error {
 // if any.
 // TODO: Merge with getNamespace() and accept a key.
 func (c *Client) getNamespaceByName(ctx context.Context, name string) (*api.Namespace, error) {
-	namespaces, _, err := c.api.ListNamespaces(ctx)
+	namespaces, resp, err := c.api.ListNamespaces(ctx)
 	if err != nil {
-		return nil, err
+		return nil, api.MapAPIError(err, resp)
 	}
 	for _, ns := range namespaces {
 		if ns.Name == name {

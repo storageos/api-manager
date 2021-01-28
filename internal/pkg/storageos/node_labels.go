@@ -22,8 +22,8 @@ import (
 func (c *Client) EnsureNodeLabels(ctx context.Context, name string, labels map[string]string) error {
 	var unreservedLabels = make(map[string]string)
 	var computeOnly = false
-	var errs *multierror.Error
 	var err error
+	var errs = &multierror.Error{ErrorFormat: ListErrors}
 
 	for k, v := range labels {
 		switch {
@@ -67,7 +67,7 @@ func (c *Client) EnsureUnreservedNodeLabels(ctx context.Context, name string, la
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -93,8 +93,8 @@ func (c *Client) EnsureUnreservedNodeLabels(ctx context.Context, name string, la
 		return nil
 	}
 
-	if _, _, err = c.api.UpdateNode(ctx, node.Id, api.UpdateNodeData{Labels: labels, Version: node.Version}); err != nil {
-		return observeErr(err)
+	if _, resp, err := c.api.UpdateNode(ctx, node.Id, api.UpdateNodeData{Labels: labels, Version: node.Version}); err != nil {
+		return observeErr(api.MapAPIError(err, resp))
 	}
 	return observeErr(nil)
 }
@@ -108,7 +108,7 @@ func (c *Client) EnsureComputeOnly(ctx context.Context, name string, enabled boo
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -139,8 +139,8 @@ func (c *Client) EnsureComputeOnly(ctx context.Context, name string, enabled boo
 	}
 
 	// Apply update.
-	if _, _, err = c.api.SetComputeOnly(ctx, node.Id, api.SetComputeOnlyNodeData{ComputeOnly: enabled, Version: node.Version}, &api.SetComputeOnlyOpts{}); err != nil {
-		return observeErr(err)
+	if _, resp, err := c.api.SetComputeOnly(ctx, node.Id, api.SetComputeOnlyNodeData{ComputeOnly: enabled, Version: node.Version}, &api.SetComputeOnlyOpts{}); err != nil {
+		return observeErr(api.MapAPIError(err, resp))
 	}
 	return observeErr(nil)
 }
