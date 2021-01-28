@@ -25,6 +25,17 @@ const (
 	// ready to process events.  The manager starts asychronously, so without a
 	// wait, events may be missed.
 	managerWaitDuration = 1 * time.Second
+
+	// defaultWorkers is the number of concurrent requests that test controllers
+	// can operate on in paralllel.
+	defaultWorkers = 1
+
+	// defaultSyncDelay sets the sync controller to run almost immediately.
+	defaultSyncDelay = 1 * time.Second
+
+	// defaultSyncInterval is set to zero to disable sync.  Tests should enable
+	// it when required.
+	defaultSyncInterval = time.Duration(0)
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to

@@ -3,7 +3,7 @@ module github.com/storageos/api-manager
 go 1.13
 
 require (
-	github.com/darkowlzz/operator-toolkit v0.0.0-20210119145329-cd50276d2a58
+	github.com/darkowlzz/operator-toolkit v0.0.0-20210127153629-3694257a34c2
 	github.com/go-logr/logr v0.3.0
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1

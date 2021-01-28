@@ -74,6 +74,10 @@ func main() {
 	var gcNodeDeleteInterval time.Duration
 	var resyncNodeLabelInterval time.Duration
 	var resyncPVCLabelInterval time.Duration
+	var gcNamespaceDeleteDelay time.Duration
+	var gcNodeDeleteDelay time.Duration
+	var resyncNodeLabelDelay time.Duration
+	var resyncPVCLabelDelay time.Duration
 	var nsDeleteWorkers int
 	var nodeDeleteWorkers int
 	var nodeLabelSyncWorkers int
@@ -94,6 +98,10 @@ func main() {
 	flag.DurationVar(&gcNodeDeleteInterval, "node-delete-gc-interval", 1*time.Hour, "Frequency of node garbage collection.")
 	flag.DurationVar(&resyncNodeLabelInterval, "node-label-resync-interval", 1*time.Hour, "Frequency of node label resync.")
 	flag.DurationVar(&resyncPVCLabelInterval, "pvc-label-resync-interval", 1*time.Hour, "Frequency of PVC label resync.")
+	flag.DurationVar(&gcNamespaceDeleteDelay, "namespace-delete-gc-delay", 20*time.Second, "Startup delay of initial namespace garbage collection.")
+	flag.DurationVar(&gcNodeDeleteDelay, "node-delete-gc-delay", 30*time.Second, "Startup delay of initial node garbage collection.")
+	flag.DurationVar(&resyncNodeLabelDelay, "node-label-resync-delay", 10*time.Second, "Startup delay of initial node label resync.")
+	flag.DurationVar(&resyncPVCLabelDelay, "pvc-label-resync-delay", 5*time.Second, "Startup delay of initial PVC label resync.")
 	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
 	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
 	flag.IntVar(&nodeLabelSyncWorkers, "node-label-sync-workers", 5, "Maximum concurrent node label sync operations.")
@@ -212,19 +220,19 @@ func main() {
 
 	// Additional controllers go here.
 	setupLog.Info("starting PVC label sync controller ")
-	if err := pvclabel.NewReconciler(api, mgr.GetClient(), resyncPVCLabelInterval).SetupWithManager(mgr, pvcLabelSyncWorkers); err != nil {
+	if err := pvclabel.NewReconciler(api, mgr.GetClient(), resyncPVCLabelDelay, resyncPVCLabelInterval).SetupWithManager(mgr, pvcLabelSyncWorkers); err != nil {
 		errCh <- fmt.Errorf("pvc label reconciler error: %w", err)
 	}
 	setupLog.Info("starting node label sync controller ")
-	if err := nodelabel.NewReconciler(api, mgr.GetClient(), resyncNodeLabelInterval).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
+	if err := nodelabel.NewReconciler(api, mgr.GetClient(), resyncNodeLabelDelay, resyncNodeLabelInterval).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
 		errCh <- fmt.Errorf("node label reconciler error: %w", err)
 	}
 	setupLog.Info("starting node delete controller ")
-	if err := nodedelete.NewReconciler(api, mgr.GetClient(), gcNodeDeleteInterval).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
+	if err := nodedelete.NewReconciler(api, mgr.GetClient(), gcNodeDeleteDelay, gcNodeDeleteInterval).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
 		errCh <- fmt.Errorf("node delete reconciler error: %w", err)
 	}
 	setupLog.Info("starting namespace delete controller ")
-	if err := nsdelete.NewReconciler(api, mgr.GetClient(), gcNamespaceDeleteInterval).SetupWithManager(mgr, nsDeleteWorkers); err != nil {
+	if err := nsdelete.NewReconciler(api, mgr.GetClient(), gcNamespaceDeleteDelay, gcNamespaceDeleteInterval).SetupWithManager(mgr, nsDeleteWorkers); err != nil {
 		errCh <- fmt.Errorf("namespace delete reconciler error: %w", err)
 	}
 

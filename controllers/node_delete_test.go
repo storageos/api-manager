@@ -19,14 +19,9 @@ import (
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
-const (
-	nodeDeleteTestWorkers       = 1
-	defaultNodeDeleteGCInterval = time.Hour // Don't let gc run by default.
-)
-
 // SetupNodeDeleteTest will set up a testing environment.  It must be called
 // from each test.
-func SetupNodeDeleteTest(ctx context.Context, createK8sNode bool, isStorageOS bool, gcInterval time.Duration) *corev1.Node {
+func SetupNodeDeleteTest(ctx context.Context, createK8sNode bool, isStorageOS bool, gcEnabled bool) *corev1.Node {
 	node := &corev1.Node{}
 
 	var cancel func()
@@ -60,8 +55,13 @@ func SetupNodeDeleteTest(ctx context.Context, createK8sNode bool, isStorageOS bo
 		mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
-		controller := nodedelete.NewReconciler(api, mgr.GetClient(), gcInterval)
-		err = controller.SetupWithManager(mgr, nodeDeleteTestWorkers)
+		gcInterval := defaultSyncInterval
+		if gcEnabled {
+			gcInterval = time.Hour
+		}
+
+		controller := nodedelete.NewReconciler(api, mgr.GetClient(), defaultSyncDelay, gcInterval)
+		err = controller.SetupWithManager(mgr, defaultWorkers)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		go func() {
@@ -94,7 +94,7 @@ var _ = Describe("Node Delete controller", func() {
 	ctx := context.Background()
 
 	Context("When deleting a k8s Node with the StorageOS driver registered", func() {
-		node := SetupNodeDeleteTest(ctx, true, true, defaultNodeDeleteGCInterval)
+		node := SetupNodeDeleteTest(ctx, true, true, false)
 		It("Should delete the StorageOS Node", func() {
 			By("By deleting the k8s Node")
 			Expect(k8sClient.Delete(ctx, node)).Should(Succeed())
@@ -107,7 +107,7 @@ var _ = Describe("Node Delete controller", func() {
 	})
 
 	Context("When deleting a k8s Node and the StorageOS node has already been deleted", func() {
-		node := SetupNodeDeleteTest(ctx, true, true, defaultNodeDeleteGCInterval)
+		node := SetupNodeDeleteTest(ctx, true, true, false)
 		It("Should not fail", func() {
 			By("By causing the StorageOS Node delete to fail with a 404")
 			api.DeleteNodeErr = storageos.ErrNodeNotFound
@@ -126,7 +126,7 @@ var _ = Describe("Node Delete controller", func() {
 	})
 
 	Context("When deleting a k8s Node without the StorageOS driver registration", func() {
-		node := SetupNodeDeleteTest(ctx, true, false, defaultNodeDeleteGCInterval)
+		node := SetupNodeDeleteTest(ctx, true, false, false)
 		It("Should not delete the StorageOS Node", func() {
 			By("By deleting the k8s Node")
 			Expect(k8sClient.Delete(ctx, node)).Should(Succeed())
@@ -139,7 +139,7 @@ var _ = Describe("Node Delete controller", func() {
 	})
 
 	Context("When deleting a k8s Node with a malformed StorageOS driver registration", func() {
-		node := SetupNodeDeleteTest(ctx, true, false, defaultNodeDeleteGCInterval)
+		node := SetupNodeDeleteTest(ctx, true, false, false)
 		It("Should not delete the StorageOS Node", func() {
 			// Skip test if not running in envtest.  k8s will disallow the
 			// malformed annotation.
@@ -164,7 +164,7 @@ var _ = Describe("Node Delete controller", func() {
 	})
 
 	Context("When deleting a k8s Node that still has volumes", func() {
-		node := SetupNodeDeleteTest(ctx, true, true, defaultNodeDeleteGCInterval)
+		node := SetupNodeDeleteTest(ctx, true, true, false)
 		It("Should not delete the StorageOS Node", func() {
 			By("By causing the StorageOS Node delete to fail")
 			api.DeleteNodeErr = errors.New("delete failed")
@@ -185,7 +185,7 @@ var _ = Describe("Node Delete controller", func() {
 	})
 
 	Context("When starting after a k8s Node has been deleted but is still in StorageOS", func() {
-		node := SetupNodeDeleteTest(ctx, false, true, 1*time.Second)
+		node := SetupNodeDeleteTest(ctx, false, true, true)
 		It("The garbage collector should delete the StorageOS Node", func() {
 			By("Expecting StorageOS Node to be deleted")
 			Eventually(func() bool {

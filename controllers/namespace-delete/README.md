@@ -41,4 +41,8 @@ garbage collection runs periodically.  It compares the list of namespaces known
 to StorageOS, and removes any that are no longer known to Kubernetes.
 
 Garbage collection is run every hour by default (configurable via the
-`-namespace-delete-gc-interval` flag).
+`-namespace-delete-gc-interval` flag).  It can be disabled by setting
+`-namespace-delete-gc-interval` to `0s`.
+
+Garbage collection is run on startup after a delay defined by the
+`-namespace-delete-gc-delay` flag.

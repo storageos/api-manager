@@ -8,7 +8,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -77,9 +76,4 @@ func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Ob
 // Delete is a no-op.  The node-delete controller will handle deletes.
 func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 	return nil
-}
-
-// List is a no-op.  The reconcile performs its own resync.
-func (c Controller) List(ctx context.Context) ([]types.NamespacedName, error) {
-	return nil, nil
 }

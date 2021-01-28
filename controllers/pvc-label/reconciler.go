@@ -29,6 +29,7 @@ type Reconciler struct {
 	client.Client
 	log            logr.Logger
 	api            VolumeLabeller
+	resyncDelay    time.Duration
 	resyncInterval time.Duration
 
 	msyncv1.Reconciler
@@ -40,11 +41,12 @@ type Reconciler struct {
 //
 // The resyncInterval determines how often the periodic resync operation should
 // be run.
-func NewReconciler(api VolumeLabeller, k8s client.Client, resyncInterval time.Duration) *Reconciler {
+func NewReconciler(api VolumeLabeller, k8s client.Client, resyncDelay time.Duration, resyncInterval time.Duration) *Reconciler {
 	return &Reconciler{
 		Client:         k8s,
 		log:            ctrl.Log,
 		api:            api,
+		resyncDelay:    resyncDelay,
 		resyncInterval: resyncInterval,
 	}
 }
@@ -57,6 +59,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 	}
 
 	// Set the resync interval.
+	r.Reconciler.SetStartupSyncDelay(r.resyncDelay)
 	r.Reconciler.SetResyncPeriod(r.resyncInterval)
 
 	// Initialize the reconciler.

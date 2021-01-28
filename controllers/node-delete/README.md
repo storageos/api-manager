@@ -50,4 +50,8 @@ collection runs periodically.  It compares the list of nodes known to StorageOS,
 and removes any that are no longer known to Kubernetes.
 
 Garbage collection is run every hour by default (configurable via the
-`-node-delete-gc-interval` flag).
+`-node-delete-gc-interval` flag).  It can be disabled by setting
+`-node-delete-gc-interval` to `0s`.
+
+Garbage collection is run on startup after a delay defined by the
+`-node-delete-gc-delay` flag.
