@@ -9,7 +9,7 @@ import (
 // that occurred along with a list of the errors.
 func ListErrors(es []error) string {
 	if len(es) == 1 {
-		return fmt.Sprintf("1 error occurred: %s", es[0])
+		return es[0].Error()
 	}
 
 	points := make([]string, len(es))
