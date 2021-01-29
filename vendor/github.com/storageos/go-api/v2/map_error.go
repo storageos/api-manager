@@ -142,8 +142,8 @@ func MapAPIError(err error, resp *http.Response) error {
 	case http.StatusLocked:
 		return api.NewLockedError(details)
 
-	// TODO(CP-3925): This may need changing to present a friendly error, or
-	// it may be done up the call stack.
+	// This may need changing to present a friendly error, or it may be done up
+	// the call stack.
 	case http.StatusUnavailableForLegalReasons:
 		return api.NewLicenceCapabilityError(details)
 
