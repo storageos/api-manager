@@ -48,4 +48,8 @@ resync runs periodically.  It re-applies the set of Kubernetes node labels to
 StorageOS nodes.
 
 Node label resync is run every hour by default (configurable via the
-`--node-label-resync-interval` flag).
+`-node-label-resync-interval` flag).  It can be disabled by setting
+`-node-label-resync-interval` to `0s`.
+
+Resync is run on startup after a delay defined by the
+`-node-label-resync-delay` flag.

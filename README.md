@@ -93,18 +93,26 @@ The following flags are supported:
     	Paths to a kubeconfig. Only required if out-of-cluster.
   -metrics-addr string
     	The address the metric endpoint binds to. (default ":8080")
+  -namespace-delete-gc-delay duration
+    	Startup delay of initial namespace garbage collection. (default 20s)
   -namespace-delete-gc-interval duration
     	Frequency of namespace garbage collection. (default 1h0m0s)
   -namespace-delete-workers int
     	Maximum concurrent namespace delete operations. (default 5)
+  -node-delete-gc-delay duration
+    	Startup delay of initial node garbage collection. (default 30s)
   -node-delete-gc-interval duration
     	Frequency of node garbage collection. (default 1h0m0s)
   -node-delete-workers int
     	Maximum concurrent node delete operations. (default 5)
+  -node-label-resync-delay duration
+    	Startup delay of initial node label resync. (default 10s)
   -node-label-resync-interval duration
     	Frequency of node label resync. (default 1h0m0s)
   -node-label-sync-workers int
     	Maximum concurrent node label sync operations. (default 5)
+  -pvc-label-resync-delay duration
+    	Startup delay of initial PVC label resync. (default 5s)
   -pvc-label-resync-interval duration
     	Frequency of PVC label resync. (default 1h0m0s)
   -pvc-label-sync-workers int

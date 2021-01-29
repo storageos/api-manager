@@ -6,7 +6,7 @@ github.com/antihax/optional
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/darkowlzz/operator-toolkit v0.0.0-20210119145329-cd50276d2a58
+# github.com/darkowlzz/operator-toolkit v0.0.0-20210127153629-3694257a34c2
 github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1
 github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1
 github.com/darkowlzz/operator-toolkit/controller/sync/v1

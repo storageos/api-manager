@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/storageos/api-manager/internal/pkg/storageos"
@@ -99,9 +98,4 @@ func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Ob
 // Delete is a no-op.  Volume removal is handled via CSI.
 func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 	return nil
-}
-
-// List is a no-op.  The reconcile performs its own resync.
-func (c Controller) List(ctx context.Context) ([]types.NamespacedName, error) {
-	return nil, nil
 }

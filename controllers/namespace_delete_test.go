@@ -16,14 +16,9 @@ import (
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
-const (
-	nsDeleteTestWorkers              = 1
-	defaultNamespaceDeleteGCInterval = time.Hour // Don't let gc run by default.
-)
-
 // SetupNamespaceDeleteTest will set up a testing environment.  It must be
 // called from each test.
-func SetupNamespaceDeleteTest(ctx context.Context, createK8sNamespace bool, gcInterval time.Duration) *corev1.Namespace {
+func SetupNamespaceDeleteTest(ctx context.Context, createK8sNamespace bool, gcEnabled bool) *corev1.Namespace {
 	ns := &corev1.Namespace{}
 
 	var cancel func()
@@ -47,8 +42,13 @@ func SetupNamespaceDeleteTest(ctx context.Context, createK8sNamespace bool, gcIn
 		mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
-		controller := nsdelete.NewReconciler(api, mgr.GetClient(), gcInterval)
-		err = controller.SetupWithManager(mgr, nsDeleteTestWorkers)
+		gcInterval := defaultSyncInterval
+		if gcEnabled {
+			gcInterval = time.Hour
+		}
+
+		controller := nsdelete.NewReconciler(api, mgr.GetClient(), defaultSyncDelay, gcInterval)
+		err = controller.SetupWithManager(mgr, defaultWorkers)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		go func() {
@@ -81,7 +81,7 @@ var _ = Describe("Namespace Delete controller", func() {
 	ctx := context.Background()
 
 	Context("When deleting a k8s Namespace", func() {
-		ns := SetupNamespaceDeleteTest(ctx, true, defaultNamespaceDeleteGCInterval)
+		ns := SetupNamespaceDeleteTest(ctx, true, false)
 		It("Should delete the StorageOS Namespace", func() {
 			// Skip test if running in envtest.  envtest doesn't handle namespace
 			// deletion in the same way as other objects, so the delete event is never
@@ -101,7 +101,7 @@ var _ = Describe("Namespace Delete controller", func() {
 	})
 
 	Context("When deleting a k8s Namespace and the StorageOS Namespace has already been deleted", func() {
-		ns := SetupNamespaceDeleteTest(ctx, true, defaultNamespaceDeleteGCInterval)
+		ns := SetupNamespaceDeleteTest(ctx, true, false)
 		It("Should not fail", func() {
 			// Skip test if running in envtest.  envtest doesn't handle namespace
 			// deletion in the same way as other objects, so the delete event is never
@@ -127,7 +127,7 @@ var _ = Describe("Namespace Delete controller", func() {
 	})
 
 	Context("When deleting a k8s Namespace that still has volumes", func() {
-		ns := SetupNamespaceDeleteTest(ctx, true, defaultNamespaceDeleteGCInterval)
+		ns := SetupNamespaceDeleteTest(ctx, true, false)
 		It("Should not delete the StorageOS Namespace", func() {
 			// Skip test if running in envtest.  envtest doesn't handle namespace
 			// deletion in the same way as other objects, so the delete event is never
@@ -155,7 +155,7 @@ var _ = Describe("Namespace Delete controller", func() {
 	})
 
 	Context("When starting after a k8s Namespace has been deleted but is still in StorageOS", func() {
-		ns := SetupNamespaceDeleteTest(ctx, false, 1*time.Second)
+		ns := SetupNamespaceDeleteTest(ctx, false, true)
 		It("The garbage collector should delete the StorageOS Namespace", func() {
 			By("Expecting StorageOS Namespace to be deleted")
 			Eventually(func() bool {

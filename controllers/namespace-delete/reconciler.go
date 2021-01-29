@@ -21,6 +21,7 @@ type Reconciler struct {
 	client.Client
 	log        logr.Logger
 	api        storageos.NamespaceDeleter
+	gcDelay    time.Duration
 	gcInterval time.Duration
 
 	objectv1.Reconciler
@@ -32,11 +33,12 @@ type Reconciler struct {
 //
 // The gcInterval determines how often the periodic resync operation should be
 // run.
-func NewReconciler(api storageos.NamespaceDeleter, k8s client.Client, gcInterval time.Duration) *Reconciler {
+func NewReconciler(api storageos.NamespaceDeleter, k8s client.Client, gcDelay time.Duration, gcInterval time.Duration) *Reconciler {
 	return &Reconciler{
 		Client:     k8s,
 		log:        ctrl.Log,
 		api:        api,
+		gcDelay:    gcDelay,
 		gcInterval: gcInterval,
 	}
 }
@@ -49,12 +51,12 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
 	}
 
 	// Set the garbage collection interval.
+	r.Reconciler.SetStartupGarbageCollectionDelay(r.gcDelay)
 	r.Reconciler.SetGarbageCollectionPeriod(r.gcInterval)
 
 	// Initialize the reconciler.
-	err = r.Reconciler.Init(mgr, &corev1.Namespace{}, &corev1.NamespaceList{},
+	err = r.Reconciler.Init(mgr, c, &corev1.Namespace{}, &corev1.NamespaceList{},
 		syncv1.WithName("ns-delete"),
-		syncv1.WithController(c),
 		syncv1.WithLogger(r.log),
 	)
 	if err != nil {

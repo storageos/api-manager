@@ -24,13 +24,9 @@ const (
 // objects.
 type Reconciler struct {
 	syncv1.Reconciler
-	disableGarbageCollector bool
-	garbageCollectionPeriod time.Duration
-}
-
-// DisableGarbageCollector disables the garbage collector.
-func (s *Reconciler) DisableGarbageCollector() {
-	s.disableGarbageCollector = true
+	Ctrlr                         Controller
+	garbageCollectionPeriod       time.Duration
+	startupGarbageCollectionDelay time.Duration
 }
 
 // SetGarbageCollectionPeriod sets the garbage collection period.
@@ -38,23 +34,30 @@ func (s *Reconciler) SetGarbageCollectionPeriod(period time.Duration) {
 	s.garbageCollectionPeriod = period
 }
 
-// Init initializes the reconciler.
-func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
-	// Add a garbage collector sync func if garbage collector is not disabled.
-	if !s.disableGarbageCollector {
-		// If the period is zero, use the default period.
-		if s.garbageCollectionPeriod == zeroDuration {
-			s.garbageCollectionPeriod = DefaultGarbageCollectionPeriod
-		}
+// SetStartupGarbageCollectionDelay sets a delay for the initial garbage
+// collection at startup.
+// NOTE: Setting this too low can result in failure due to uninitialized
+// controller components.
+func (s *Reconciler) SetStartupGarbageCollectionDelay(period time.Duration) {
+	s.startupGarbageCollectionDelay = period
+}
 
-		sf := syncv1.NewSyncFunc(s.collectGarbage, s.garbageCollectionPeriod)
+// Init initializes the reconciler.
+func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
+	// Add a garbage collector sync func if garbage collection period is not
+	// zero.
+	if s.garbageCollectionPeriod > zeroDuration {
+		sf := syncv1.NewSyncFunc(s.collectGarbage, s.garbageCollectionPeriod, s.startupGarbageCollectionDelay)
 		sfs := []syncv1.SyncFunc{sf}
 
 		opts = append(opts, syncv1.WithSyncFuncs(sfs))
 	}
 
+	// Set controller.
+	s.Ctrlr = ctrlr
+
 	// Initialize the base sync reconciler.
-	return s.Reconciler.Init(mgr, prototype, prototypeList, opts...)
+	return s.Reconciler.Init(mgr, ctrlr, prototype, prototypeList, opts...)
 }
 
 // collectGarbage lists all the prototype objects in k8s and the associated

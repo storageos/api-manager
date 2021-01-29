@@ -12,26 +12,16 @@ import (
 	"github.com/darkowlzz/operator-toolkit/object"
 )
 
-const (
-	// DefaultResyncPeriod is the default period at which resync is executed.
-	DefaultResyncPeriod time.Duration = 5 * time.Minute
-
-	zeroDuration time.Duration = 0 * time.Minute
-)
+const zeroDuration time.Duration = 0 * time.Minute
 
 // Reconciler defines an external metadata sync reconciler based on the Sync
 // reconciler with a sync function for resynchronization of the external
 // objects.
 type Reconciler struct {
 	syncv1.Reconciler
-	Ctrlr         Controller
-	disableResync bool
-	resyncPeriod  time.Duration
-}
-
-// DisableResync disables the resync operation.
-func (s *Reconciler) DisableResync() {
-	s.disableResync = true
+	Ctrlr            Controller
+	resyncPeriod     time.Duration
+	startupSyncDelay time.Duration
 }
 
 // SetResyncPeriod sets the resync interval.
@@ -39,16 +29,18 @@ func (s *Reconciler) SetResyncPeriod(period time.Duration) {
 	s.resyncPeriod = period
 }
 
+// StartupSyncDelay sets a delay for the initial resync at startup.
+// NOTE: Setting this too low can result in failure due to uninitialized
+// controller components.
+func (s *Reconciler) SetStartupSyncDelay(period time.Duration) {
+	s.startupSyncDelay = period
+}
+
 // Init initializes the reconciler.
 func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
-	// Add a resync func if resync is not disabled.
-	if !s.disableResync {
-		// If the period is zero, use the default period.
-		if s.resyncPeriod == zeroDuration {
-			s.resyncPeriod = DefaultResyncPeriod
-		}
-
-		sf := syncv1.NewSyncFunc(s.resync, s.resyncPeriod)
+	// Add a resync func if resync period is not zero.
+	if s.resyncPeriod > zeroDuration {
+		sf := syncv1.NewSyncFunc(s.resync, s.resyncPeriod, s.startupSyncDelay)
 		sfs := []syncv1.SyncFunc{sf}
 
 		opts = append(opts, syncv1.WithSyncFuncs(sfs))
@@ -57,11 +49,8 @@ func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.O
 	// Set controller.
 	s.Ctrlr = ctrlr
 
-	// TODO: remove when Init() takes controller as an argument.
-	opts = append(opts, syncv1.WithController(ctrlr))
-
 	// Initialize the base sync reconciler.
-	return s.Reconciler.Init(mgr, prototype, prototypeList, opts...)
+	return s.Reconciler.Init(mgr, ctrlr, prototype, prototypeList, opts...)
 }
 
 // resync lists all the prototype objects in k8s and performs a diff against

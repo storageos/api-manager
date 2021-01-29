@@ -61,7 +61,11 @@ resync runs periodically.  It re-applies the set of Kubernetes PVC labels to
 StorageOS volumes.
 
 PVC label resync is run every hour by default (configurable via the
-`--pvc-label-resync-interval` flag).
+`-pvc-label-resync-interval` flag).  It can be disabled by setting
+`-pvc-label-resync-interval` to `0s`.
+
+Resync is run on startup after a delay defined by the
+`-pvc-label-resync-delay` flag.
 
 [CSI Provisioner]: https://github.com/storageos/external-provisioner/tree/53f0949-patched
 [StorageOS Feature Labels]: https://docs.storageos.com/docs/reference/labels

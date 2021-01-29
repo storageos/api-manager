@@ -19,14 +19,9 @@ import (
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
-const (
-	pvcLabelSyncTestWorkers       = 1
-	defaultPVCLabelResyncInterval = time.Hour // Don't let resync run by default.
-)
-
 // SetupPVCLabelSyncTest will set up a testing environment.  It must be called
 // from each test.
-func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels map[string]string, resyncInterval time.Duration) *corev1.PersistentVolumeClaim {
+func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels map[string]string, gcEnabled bool) *corev1.PersistentVolumeClaim {
 	pvName := "pvc-" + randStringRunes(5)
 	pvc := &corev1.PersistentVolumeClaim{}
 
@@ -75,8 +70,13 @@ func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels m
 		mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
-		controller := pvclabel.NewReconciler(api, mgr.GetClient(), resyncInterval)
-		err = controller.SetupWithManager(mgr, pvcLabelSyncTestWorkers)
+		gcInterval := defaultSyncInterval
+		if gcEnabled {
+			gcInterval = time.Hour
+		}
+
+		controller := pvclabel.NewReconciler(api, mgr.GetClient(), defaultSyncDelay, gcInterval)
+		err = controller.SetupWithManager(mgr, defaultWorkers)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		go func() {
@@ -122,7 +122,7 @@ var _ = Describe("PVC Label controller", func() {
 	ctx := context.Background()
 
 	Context("When adding unreserved labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, defaultPVCLabelResyncInterval)
+		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
 			volKey := client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()}
 			By("By adding unreserved labels to k8s PVC")
@@ -143,7 +143,7 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding reserved labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, defaultPVCLabelResyncInterval)
+		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
 			By("By adding reserved labels to k8s PVC")
 			pvc.SetLabels(reservedLabels)
@@ -163,7 +163,7 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding mixed labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, defaultPVCLabelResyncInterval)
+		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
 			By("By adding mixed labels to k8s PVC")
 			pvc.SetLabels(mixedLabels)
@@ -183,7 +183,7 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding unrecognised reserved labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, defaultPVCLabelResyncInterval)
+		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should only sync recognised labels to StorageOS Volume", func() {
 			By("By adding unrecognised reserved labels to k8s PVC")
 			labels := map[string]string{}
@@ -208,7 +208,7 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding replicas label", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, defaultPVCLabelResyncInterval)
+		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
 			By("By adding replicas label to k8s PVC")
 			labels := map[string]string{
@@ -231,7 +231,7 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding and removing mixed labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, defaultPVCLabelResyncInterval)
+		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
 			By("By adding labels to k8s PVC")
 			pvc.SetLabels(mixedLabels)
@@ -266,7 +266,7 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding replicas label and the StorageOS API returns an error", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, defaultPVCLabelResyncInterval)
+		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should not sync labels to StorageOS Volume", func() {
 			By("Setting API to return error")
 			api.EnsureVolumeLabelsErr = errors.New("fake error")
@@ -292,7 +292,7 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding labels on a k8s PVC not provisioned by StorageOS", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, false, nil, defaultPVCLabelResyncInterval)
+		pvc := SetupPVCLabelSyncTest(ctx, false, nil, false)
 		It("Should not sync labels to StorageOS Volume", func() {
 			By("By adding labels to k8s PVC")
 			pvc.SetLabels(unreservedLabels)
@@ -312,7 +312,7 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When starting after a k8s PVC with labels has been created", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, mixedLabels, 1*time.Second)
+		pvc := SetupPVCLabelSyncTest(ctx, true, mixedLabels, true)
 		It("The resync should update the StorageOS Volume", func() {
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
