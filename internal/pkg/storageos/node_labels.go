@@ -82,15 +82,31 @@ func (c *Client) EnsureUnreservedNodeLabels(ctx context.Context, name string, la
 		return observeErr(err)
 	}
 
-	var unreservedLabels = make(map[string]string)
-	for k, v := range node.Labels {
+	// Copy desired labels.  Ignore any reserved labels.
+	var applyLabels = make(map[string]string)
+	for k, v := range labels {
 		if !IsReservedLabel(k) {
-			unreservedLabels[k] = v
+			applyLabels[k] = v
 		}
 	}
 
-	if reflect.DeepEqual(labels, unreservedLabels) {
-		return nil
+	// Re-apply reserved labels (must have the same reserved labels & values as
+	// current node or the update will fail validation).
+	for k, v := range node.Labels {
+		if IsReservedLabel(k) {
+			applyLabels[k] = v
+		}
+	}
+
+	// Skip update if both current and desired are empty or nil.  DeepEqual will
+	// not match empty with nil, but len treats them the same.
+	if len(node.Labels) == 0 && len(applyLabels) == 0 {
+		return observeErr(nil)
+	}
+
+	// Skip update if unchanged.  Empty labels are valid and should be applied.
+	if reflect.DeepEqual(node.Labels, applyLabels) {
+		return observeErr(nil)
 	}
 
 	if _, resp, err := c.api.UpdateNode(ctx, node.Id, api.UpdateNodeData{Labels: labels, Version: node.Version}); err != nil {
