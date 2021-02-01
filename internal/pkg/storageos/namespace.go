@@ -68,7 +68,7 @@ func (c *Client) DeleteNamespace(ctx context.Context, key client.ObjectKey) erro
 
 	ctx = c.AddToken(ctx)
 
-	ns, err := c.getNamespaceByName(ctx, key)
+	ns, err := c.getNamespace(ctx, key)
 	if err != nil {
 		return observeErr(err)
 	}
@@ -89,10 +89,9 @@ func (c *Client) DeleteNamespace(ctx context.Context, key client.ObjectKey) erro
 	return nil
 }
 
-// getNamespaceByName returns the StorageOS namespace object matching the name,
+// getNamespace returns the StorageOS namespace object matching the key,
 // if any.
-// TODO: Merge with getNamespace() and accept a key.
-func (c *Client) getNamespaceByName(ctx context.Context, key client.ObjectKey) (*api.Namespace, error) {
+func (c *Client) getNamespace(ctx context.Context, key client.ObjectKey) (*api.Namespace, error) {
 	namespaces, resp, err := c.api.ListNamespaces(ctx)
 	if err != nil {
 		return nil, api.MapAPIError(err, resp)

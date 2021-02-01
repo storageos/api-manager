@@ -107,7 +107,7 @@ func (c *MockClient) AddNamespace(key client.ObjectKey) error {
 	return nil
 }
 
-// NamespaceExists returns true if the naemspace exists.
+// NamespaceExists returns true if the namespace exists.
 func (c *MockClient) NamespaceExists(key client.ObjectKey) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -132,7 +132,7 @@ func (c *MockClient) DeleteNamespace(ctx context.Context, key client.ObjectKey) 
 	return nil
 }
 
-// NodeObjects returns a map of nodes objects, keyed on object key.
+// NodeObjects returns a map of nodes objects, indexed on object key.
 func (c *MockClient) NodeObjects(ctx context.Context) (map[client.ObjectKey]Object, error) {
 	if c.NodeObjectsErr != nil {
 		return nil, c.NodeObjectsErr
@@ -247,7 +247,7 @@ func (c *MockClient) GetVolume(key client.ObjectKey) (Object, error) {
 	return obj, nil
 }
 
-// VolumeObjects returns a map of volume objects, keyed on NamespacedName.
+// VolumeObjects returns a map of volume objects, indexed on object key.
 func (c *MockClient) VolumeObjects(ctx context.Context) (map[client.ObjectKey]Object, error) {
 	if c.ListNodesErr != nil {
 		return nil, c.ListNodesErr
