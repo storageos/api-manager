@@ -50,24 +50,24 @@ func (c *Client) ListSharedVolumes(ctx context.Context) (SharedVolumeList, error
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
 	ctx = c.AddToken(ctx)
 
-	namespaces, _, err := c.api.ListNamespaces(ctx)
+	namespaces, resp, err := c.api.ListNamespaces(ctx)
 	if err != nil {
-		return nil, observeErr(err)
+		return nil, observeErr(api.MapAPIError(err, resp))
 	}
 
 	var errors *multierror.Error
 	var sharedVolumes SharedVolumeList
 
 	for _, ns := range namespaces {
-		volumes, _, err := c.api.ListVolumes(ctx, ns.Id)
+		volumes, resp, err := c.api.ListVolumes(ctx, ns.Id)
 		if err != nil {
-			errors = multierror.Append(errors, observeErr(err))
+			errors = multierror.Append(errors, observeErr(api.MapAPIError(err, resp)))
 		}
 
 		for _, vol := range volumes {
@@ -128,7 +128,7 @@ func (c *Client) SetExternalEndpoint(ctx context.Context, id string, namespace s
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -145,8 +145,8 @@ func (c *Client) SetExternalEndpoint(ctx context.Context, id string, namespace s
 		return nil
 	}
 
-	if _, err = c.api.UpdateNFSVolumeMountEndpoint(ctx, curVol.NamespaceID, curVol.Id, api.NfsVolumeMountEndpoint{MountEndpoint: endpoint, Version: curVol.Version}, nil); err != nil {
-		return observeErr(err)
+	if resp, err := c.api.UpdateNFSVolumeMountEndpoint(ctx, curVol.NamespaceID, curVol.Id, api.NfsVolumeMountEndpoint{MountEndpoint: endpoint, Version: curVol.Version}, nil); err != nil {
+		return observeErr(api.MapAPIError(err, resp))
 	}
 	return observeErr(nil)
 }
@@ -158,15 +158,15 @@ func (c *Client) getVolume(ctx context.Context, id string, namespace string) (*a
 	if err != nil {
 		return nil, err
 	}
-	vol, _, err := c.api.GetVolume(ctx, ns.Id, id)
-	return &vol, err
+	vol, resp, err := c.api.GetVolume(ctx, ns.Id, id)
+	return &vol, api.MapAPIError(err, resp)
 }
 
 // TODO: Merge with getNamespaceByName() and accept a key.
 func (c *Client) getNamespace(ctx context.Context, namespace string) (*api.Namespace, error) {
-	namespaces, _, err := c.api.ListNamespaces(ctx)
+	namespaces, resp, err := c.api.ListNamespaces(ctx)
 	if err != nil {
-		return nil, err
+		return nil, api.MapAPIError(err, resp)
 	}
 	for _, ns := range namespaces {
 		if ns.Name == namespace {

@@ -6,7 +6,6 @@ import (
 
 	msyncv1 "github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,7 +40,7 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 	defer cancel()
 
 	if err := c.api.EnsureNodeLabels(ctx, obj.GetName(), obj.GetLabels()); err != nil {
-		return errors.Wrap(err, "requeuing operation")
+		return err
 	}
 	c.log.Info("node labels applied to storageos", "name", obj.GetName())
 	return nil

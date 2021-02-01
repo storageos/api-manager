@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -181,7 +180,7 @@ func Authenticate(client *api.APIClient, username, password string) (context.Con
 		Password: password,
 	})
 	if err != nil {
-		return nil, err
+		return nil, api.MapAPIError(err, resp)
 	}
 	defer resp.Body.Close()
 
@@ -210,7 +209,7 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 			if err != nil {
 				log.Info("failed to refresh storageos api credentials", "error", err)
 				if c.traced {
-					resultCounter.Increment("refresh_token", GetAPIErrorRootCause(err))
+					resultCounter.Increment("refresh_token", api.MapAPIError(err, resp))
 				}
 				// Trigger api client reset on refresh failures.  This allows
 				// the client to recover if the token was not able to be
@@ -242,7 +241,7 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 			if err != nil {
 				log.Info("failed to recreate storageos api client", "error", err)
 				if c.traced {
-					resultCounter.Increment("reset_api", GetAPIErrorRootCause(err))
+					resultCounter.Increment("reset_api", err)
 				}
 				continue
 			}
@@ -285,50 +284,4 @@ func ReadCredsFromMountedSecret(path string) (string, string, error) {
 		return "", "", err
 	}
 	return username, password, nil
-}
-
-// GetAPIErrorResponse returns the actual API response error incl. the response
-// Body.
-func GetAPIErrorResponse(oerr error) error {
-	if n, ok := oerr.(api.GenericOpenAPIError); ok {
-		return fmt.Errorf("%s: %s", strings.TrimSuffix(n.Error(), "\n"), n.Body())
-	}
-	return oerr
-}
-
-// GetAPIErrorRootCause attempts to unwrap the error to isolate the root cause,
-// without decoration from the chain of calling functions.
-//
-// The list of error types evaluated is somewhat arbitrary: we want to capture
-// things like:
-//
-// - `connect: connection refused`
-// - `401 Unauthorized`
-//
-// But not:
-//
-//  - `Get http://storageos:5705/v2/namespaces: net/http: request canceled while
-//     waiting for connection (Client.Timeout exceeded while awaiting headers)`
-//
-// Some errors could be unwrapped even further, but after a certain level the
-// detail no longer makes sense.  This is purely subjective.
-//
-// Callers should not rely on specific errors being returned as they are subject
-// to fine-tuning.
-func GetAPIErrorRootCause(oerr error) error {
-	if uerr, ok := oerr.(*url.Error); ok {
-		uerrp := uerr.Unwrap()
-		if uerrp == nil {
-			return uerr
-		}
-		if nerr, ok := uerrp.(*net.OpError); ok {
-			nerrp := nerr.Unwrap()
-			if nerrp == nil {
-				return nerr
-			}
-			return nerrp
-		}
-		return uerrp
-	}
-	return oerr
 }

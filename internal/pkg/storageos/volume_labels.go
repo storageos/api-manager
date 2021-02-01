@@ -23,8 +23,8 @@ import (
 func (c *Client) EnsureVolumeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error {
 	var unreservedLabels = make(map[string]string)
 	var replicas uint64
-	var errs *multierror.Error
 	var err error
+	var errs = &multierror.Error{ErrorFormat: ListErrors}
 
 	for k, v := range labels {
 		switch {
@@ -70,7 +70,7 @@ func (c *Client) EnsureUnreservedVolumeLabels(ctx context.Context, key client.Ob
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -112,8 +112,8 @@ func (c *Client) EnsureUnreservedVolumeLabels(ctx context.Context, key client.Ob
 		return observeErr(nil)
 	}
 
-	if _, _, err = c.api.UpdateVolume(ctx, vol.NamespaceID, vol.Id, api.UpdateVolumeData{Labels: applyLabels, Version: vol.Version}, nil); err != nil {
-		return observeErr(err)
+	if _, resp, err := c.api.UpdateVolume(ctx, vol.NamespaceID, vol.Id, api.UpdateVolumeData{Labels: applyLabels, Version: vol.Version}, nil); err != nil {
+		return observeErr(api.MapAPIError(err, resp))
 	}
 	return observeErr(nil)
 }
@@ -127,7 +127,7 @@ func (c *Client) EnsureReplicas(ctx context.Context, key client.ObjectKey, desir
 		metrics.Latency.Observe(funcName, time.Since(start))
 	}()
 	observeErr := func(e error) error {
-		metrics.Errors.Increment(funcName, GetAPIErrorRootCause(e))
+		metrics.Errors.Increment(funcName, e)
 		return e
 	}
 
@@ -157,8 +157,8 @@ func (c *Client) EnsureReplicas(ctx context.Context, key client.ObjectKey, desir
 	}
 
 	// Apply update.
-	if _, _, err = c.api.SetReplicas(ctx, vol.NamespaceID, vol.Id, api.SetReplicasRequest{Replicas: desired, Version: vol.Version}, nil); err != nil {
-		return observeErr(err)
+	if _, resp, err := c.api.SetReplicas(ctx, vol.NamespaceID, vol.Id, api.SetReplicasRequest{Replicas: desired, Version: vol.Version}, nil); err != nil {
+		return observeErr(api.MapAPIError(err, resp))
 	}
 	return observeErr(nil)
 }

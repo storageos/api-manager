@@ -5,7 +5,6 @@ import (
 
 	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,7 +39,7 @@ func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 
 	err := c.api.DeleteNode(ctx, obj.GetName())
 	if err != nil && err != storageos.ErrNodeNotFound {
-		return errors.Wrap(err, "requeuing operation")
+		return err
 	}
 	c.log.Info("node decommissioned in storageos", "name", obj.GetName())
 	return nil
