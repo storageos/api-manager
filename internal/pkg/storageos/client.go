@@ -197,7 +197,7 @@ func Authenticate(client *api.APIClient, username, password string) (context.Con
 // channel.  This function is blocking and is intended to be run in a goroutine.
 // Errors are currently logged at info level since they will be retried and
 // should be recoverable.
-func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset <-chan struct{}, interval time.Duration, resultCounter metrics.ResultMetric, log logr.Logger) error {
+func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset chan struct{}, interval time.Duration, resultCounter metrics.ResultMetric, log logr.Logger) error {
 	if c.api == nil || c.transport == nil {
 		return ErrNotInitialized
 	}
@@ -212,6 +212,10 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 				if c.traced {
 					resultCounter.Increment("refresh_token", GetAPIErrorRootCause(err))
 				}
+				// Trigger api client reset on refresh failures.  This allows
+				// the client to recover if the token was not able to be
+				// refreshed before it expired.
+				reset <- struct{}{}
 				continue
 			}
 			defer resp.Body.Close()
