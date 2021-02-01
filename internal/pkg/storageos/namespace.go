@@ -8,6 +8,7 @@ import (
 
 	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	api "github.com/storageos/go-api/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -23,7 +24,7 @@ var (
 //NamespaceDeleter provides access to removing namespaces from StorageOS.
 //go:generate mockgen -destination=mocks/mock_namespace_deleter.go -package=mocks . NamespaceDeleter
 type NamespaceDeleter interface {
-	DeleteNamespace(ctx context.Context, name string) error
+	DeleteNamespace(ctx context.Context, key client.ObjectKey) error
 	ListNamespaces(ctx context.Context) ([]Object, error)
 }
 
@@ -54,7 +55,7 @@ func (c *Client) ListNamespaces(ctx context.Context) ([]Object, error) {
 
 // DeleteNamespace removes a namespace from the StorageOS cluster.  Delete will fail if
 // pre-requisites are not met (i.e. namespace has volumes).
-func (c *Client) DeleteNamespace(ctx context.Context, name string) error {
+func (c *Client) DeleteNamespace(ctx context.Context, key client.ObjectKey) error {
 	funcName := "delete_namespace"
 	start := time.Now()
 	defer func() {
@@ -67,7 +68,7 @@ func (c *Client) DeleteNamespace(ctx context.Context, name string) error {
 
 	ctx = c.AddToken(ctx)
 
-	ns, err := c.getNamespaceByName(ctx, name)
+	ns, err := c.getNamespaceByName(ctx, key)
 	if err != nil {
 		return observeErr(err)
 	}
@@ -91,13 +92,13 @@ func (c *Client) DeleteNamespace(ctx context.Context, name string) error {
 // getNamespaceByName returns the StorageOS namespace object matching the name,
 // if any.
 // TODO: Merge with getNamespace() and accept a key.
-func (c *Client) getNamespaceByName(ctx context.Context, name string) (*api.Namespace, error) {
+func (c *Client) getNamespaceByName(ctx context.Context, key client.ObjectKey) (*api.Namespace, error) {
 	namespaces, resp, err := c.api.ListNamespaces(ctx)
 	if err != nil {
 		return nil, api.MapAPIError(err, resp)
 	}
 	for _, ns := range namespaces {
-		if ns.Name == name {
+		if ns.Name == key.Name {
 			return &ns, nil
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	storageos "github.com/storageos/api-manager/internal/pkg/storageos"
+	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
 )
 
@@ -35,7 +36,7 @@ func (m *MockNodeLabeller) EXPECT() *MockNodeLabellerMockRecorder {
 }
 
 // EnsureNodeLabels mocks base method
-func (m *MockNodeLabeller) EnsureNodeLabels(arg0 context.Context, arg1 string, arg2 map[string]string) error {
+func (m *MockNodeLabeller) EnsureNodeLabels(arg0 context.Context, arg1 types.NamespacedName, arg2 map[string]string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnsureNodeLabels", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -49,10 +50,10 @@ func (mr *MockNodeLabellerMockRecorder) EnsureNodeLabels(arg0, arg1, arg2 interf
 }
 
 // NodeObjects mocks base method
-func (m *MockNodeLabeller) NodeObjects(arg0 context.Context) (map[string]storageos.Object, error) {
+func (m *MockNodeLabeller) NodeObjects(arg0 context.Context) (map[types.NamespacedName]storageos.Object, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NodeObjects", arg0)
-	ret0, _ := ret[0].(map[string]storageos.Object)
+	ret0, _ := ret[0].(map[types.NamespacedName]storageos.Object)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

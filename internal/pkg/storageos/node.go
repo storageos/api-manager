@@ -8,6 +8,7 @@ import (
 
 	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	api "github.com/storageos/go-api/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -25,13 +26,13 @@ var (
 //NodeDeleter provides access to removing nodes from StorageOS.
 //go:generate mockgen -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
 type NodeDeleter interface {
-	DeleteNode(ctx context.Context, name string) error
+	DeleteNode(ctx context.Context, key client.ObjectKey) error
 	ListNodes(ctx context.Context) ([]Object, error)
 }
 
-// NodeObjects returns a map of node objects, keyed on node name for efficient
+// NodeObjects returns a map of node objects, indexed on ObjectKey for efficient
 // lookups.
-func (c *Client) NodeObjects(ctx context.Context) (map[string]Object, error) {
+func (c *Client) NodeObjects(ctx context.Context) (map[client.ObjectKey]Object, error) {
 	funcName := "node_objects"
 	start := time.Now()
 	defer func() {
@@ -48,9 +49,9 @@ func (c *Client) NodeObjects(ctx context.Context) (map[string]Object, error) {
 	if err != nil {
 		return nil, observeErr(api.MapAPIError(err, resp))
 	}
-	objects := make(map[string]Object)
+	objects := make(map[client.ObjectKey]Object)
 	for _, node := range nodes {
-		objects[node.GetName()] = node
+		objects[client.ObjectKey{Name: node.GetName()}] = node
 	}
 
 	return objects, nil
@@ -87,7 +88,7 @@ func (c *Client) ListNodes(ctx context.Context) ([]Object, error) {
 // 		(1) The node appears offline
 // 		(2) No node lock is held
 //      (3) No master deployments live on the node (i.e. node must be detected as no active volumes).
-func (c *Client) DeleteNode(ctx context.Context, name string) error {
+func (c *Client) DeleteNode(ctx context.Context, key client.ObjectKey) error {
 	funcName := "delete_node"
 	start := time.Now()
 	defer func() {
@@ -100,7 +101,7 @@ func (c *Client) DeleteNode(ctx context.Context, name string) error {
 
 	ctx = c.AddToken(ctx)
 
-	node, err := c.getNodeByName(ctx, name)
+	node, err := c.getNodeByKey(ctx, key)
 	if err != nil {
 		return observeErr(err)
 	}
@@ -123,14 +124,14 @@ func (c *Client) DeleteNode(ctx context.Context, name string) error {
 	return nil
 }
 
-// getNodeByName returns the StorageOS node object matching the name, if any.
-func (c *Client) getNodeByName(ctx context.Context, name string) (*api.Node, error) {
+// getNodeByKey returns the StorageOS node object matching the name in the key, if any.
+func (c *Client) getNodeByKey(ctx context.Context, key client.ObjectKey) (*api.Node, error) {
 	nodes, resp, err := c.api.ListNodes(ctx)
 	if err != nil {
 		return nil, api.MapAPIError(err, resp)
 	}
 	for _, node := range nodes {
-		if node.Name == name {
+		if node.Name == key.Name {
 			return &node, nil
 		}
 	}
