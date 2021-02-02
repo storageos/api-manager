@@ -412,11 +412,11 @@ func TestClient_EnsureUnreservedNodeLabels(t *testing.T) {
 
 			nodeName := "testnode"
 
-			// key := client.ObjectKey{Name: nodeName}
+			key := client.ObjectKey{Name: nodeName}
 			if tt.prepare != nil {
-				tt.prepare(nodeName, mockCP)
+				tt.prepare(key.Name, mockCP)
 			}
-			if err := c.EnsureUnreservedNodeLabels(context.Background(), nodeName, tt.labels); err != nil {
+			if err := c.EnsureUnreservedNodeLabels(context.Background(), key, tt.labels); err != nil {
 				t.Errorf("Client.EnsureUnreservedNodeLabels() error = %v, wantErr %v", err, false)
 			}
 		})
