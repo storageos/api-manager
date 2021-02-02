@@ -470,6 +470,8 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 				m.EXPECT().UpdateVolume(gomock.Any(), nsId, volId, updateData, nil).Return(api.Volume{}, nil, nil).Times(1)
 			},
 		},
+		// Restricted label changes are handled by other Ensure functions.  Just
+		// check no updates are made and no errors when changes are passed.
 		{
 			name: "add restricted label - nil existing labels",
 			labels: map[string]string{
