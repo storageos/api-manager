@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/darkowlzz/operator-toolkit/telemetry/export"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -119,11 +120,18 @@ func main() {
 	}
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&loggerOpts), zap.StacktraceLevel(zapcore.PanicLevel), encoderOpts))
 
+	// Setup telemetry.
+	telemetryShutdown, err := export.InstallJaegerExporter("api-manager")
+	if err != nil {
+		setupLog.Error(err, "unable to setup telemetry exporter")
+		os.Exit(1)
+	}
+	defer telemetryShutdown()
+
 	// Block startup until there is a working StorageOS API connection.  Unless
 	// we loop here, we'll get a number of failures on cold cluster start as it
 	// takes longer for the api to be ready than the api-manager to start.
 	var api *storageos.Client
-	var err error
 	for {
 		username, password, err := storageos.ReadCredsFromMountedSecret(apiSecretPath)
 		if err != nil {
@@ -141,7 +149,7 @@ func main() {
 		apimetrics.Errors.Increment("setup", err)
 		time.Sleep(apiRetryInterval)
 	}
-	setupLog.V(1).Info("connected to the storageos api")
+	setupLog.Info("connected to the storageos api", "api-endpoint", apiEndpoint)
 
 	// Only attempt to grab leader lock once we have an API connection.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -203,6 +211,7 @@ func main() {
 	// Wait for this instance to be elected leader.
 	select {
 	case <-mgr.Elected():
+		setupLog.Info("won leadership election, starting controllers")
 	case err := <-errCh:
 		setupLog.Info("exiting", "reason", err)
 		shutdown()

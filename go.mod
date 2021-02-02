@@ -15,6 +15,7 @@ require (
 	github.com/prometheus/client_golang v1.7.1
 	github.com/storageos/go-api/v2 v2.3.1-0.20210129113721-89706365d21f
 	github.com/stretchr/testify v1.6.1
+	go.opentelemetry.io/otel v0.15.0
 	go.uber.org/zap v1.15.0
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
