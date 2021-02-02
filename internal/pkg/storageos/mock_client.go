@@ -48,13 +48,13 @@ func (m MockObject) GetLabels() map[string]string {
 // MockClient provides a test interface to the StorageOS api.
 type MockClient struct {
 	sharedvols               map[string]*SharedVolume
-	namespaces               map[string]Object
-	nodes                    map[string]Object
+	namespaces               map[client.ObjectKey]Object
+	nodes                    map[client.ObjectKey]Object
 	volumes                  map[client.ObjectKey]Object
 	nodeLabels               map[string]string
 	mu                       sync.RWMutex
-	DeleteNamespaceCallCount map[string]int
-	DeleteNodeCallCount      map[string]int
+	DeleteNamespaceCallCount map[client.ObjectKey]int
+	DeleteNodeCallCount      map[client.ObjectKey]int
 	ListNamespacesErr        error
 	DeleteNamespaceErr       error
 	GetNodeErr               error
@@ -75,12 +75,12 @@ type MockClient struct {
 func NewMockClient() *MockClient {
 	return &MockClient{
 		sharedvols:               make(map[string]*SharedVolume),
-		namespaces:               make(map[string]Object),
-		nodes:                    make(map[string]Object),
+		namespaces:               make(map[client.ObjectKey]Object),
+		nodes:                    make(map[client.ObjectKey]Object),
 		volumes:                  make(map[client.ObjectKey]Object),
 		nodeLabels:               make(map[string]string),
-		DeleteNamespaceCallCount: make(map[string]int),
-		DeleteNodeCallCount:      make(map[string]int),
+		DeleteNamespaceCallCount: make(map[client.ObjectKey]int),
+		DeleteNodeCallCount:      make(map[client.ObjectKey]int),
 		mu:                       sync.RWMutex{},
 	}
 }
@@ -100,40 +100,40 @@ func (c *MockClient) ListNamespaces(ctx context.Context) ([]Object, error) {
 }
 
 // AddNamespace adds a namespace to the StorageOS cluster.
-func (c *MockClient) AddNamespace(name string) error {
+func (c *MockClient) AddNamespace(key client.ObjectKey) error {
 	c.mu.Lock()
-	c.namespaces[name] = MockObject{Name: name}
+	c.namespaces[key] = MockObject{Name: key.Name}
 	c.mu.Unlock()
 	return nil
 }
 
-// NamespaceExists returns true if the naemspace exists.
-func (c *MockClient) NamespaceExists(name string) bool {
+// NamespaceExists returns true if the namespace exists.
+func (c *MockClient) NamespaceExists(key client.ObjectKey) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if _, ok := c.namespaces[name]; ok {
+	if _, ok := c.namespaces[key]; ok {
 		return true
 	}
 	return false
 }
 
 // DeleteNamespace removes a namespace from the StorageOS cluster.
-func (c *MockClient) DeleteNamespace(ctx context.Context, name string) error {
-	c.DeleteNamespaceCallCount[name]++
+func (c *MockClient) DeleteNamespace(ctx context.Context, key client.ObjectKey) error {
+	c.DeleteNamespaceCallCount[key]++
 	if c.DeleteNamespaceErr != nil {
 		return c.DeleteNamespaceErr
 	}
-	if !c.NamespaceExists(name) {
+	if !c.NamespaceExists(key) {
 		return ErrNamespaceNotFound
 	}
 	c.mu.Lock()
-	delete(c.namespaces, name)
+	delete(c.namespaces, key)
 	c.mu.Unlock()
 	return nil
 }
 
-// NodeObjects returns a map of nodes objects, keyed on node name.
-func (c *MockClient) NodeObjects(ctx context.Context) (map[string]Object, error) {
+// NodeObjects returns a map of nodes objects, indexed on object key.
+func (c *MockClient) NodeObjects(ctx context.Context) (map[client.ObjectKey]Object, error) {
 	if c.NodeObjectsErr != nil {
 		return nil, c.NodeObjectsErr
 	}
@@ -157,40 +157,40 @@ func (c *MockClient) ListNodes(ctx context.Context) ([]Object, error) {
 }
 
 // AddNode adds a node to the StorageOS cluster.
-func (c *MockClient) AddNode(name string) error {
+func (c *MockClient) AddNode(obj Object) error {
 	c.mu.Lock()
-	c.nodes[name] = MockObject{Name: name}
+	c.nodes[ObjectKeyFromObject(obj)] = obj
 	c.mu.Unlock()
 	return nil
 }
 
 // NodeExists returns true if the node exists.
-func (c *MockClient) NodeExists(name string) bool {
+func (c *MockClient) NodeExists(key client.ObjectKey) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if _, ok := c.nodes[name]; ok {
+	if _, ok := c.nodes[key]; ok {
 		return true
 	}
 	return false
 }
 
 // DeleteNode removes a node from the StorageOS cluster.
-func (c *MockClient) DeleteNode(ctx context.Context, name string) error {
-	c.DeleteNodeCallCount[name]++
+func (c *MockClient) DeleteNode(ctx context.Context, key client.ObjectKey) error {
+	c.DeleteNodeCallCount[key]++
 	if c.DeleteNodeErr != nil {
 		return c.DeleteNodeErr
 	}
-	if !c.NodeExists(name) {
+	if !c.NodeExists(key) {
 		return ErrNodeNotFound
 	}
 	c.mu.Lock()
-	delete(c.nodes, name)
+	delete(c.nodes, key)
 	c.mu.Unlock()
 	return nil
 }
 
 // EnsureNodeLabels applies a set of labels to the StorageOS node.
-func (c *MockClient) EnsureNodeLabels(ctx context.Context, name string, labels map[string]string) error {
+func (c *MockClient) EnsureNodeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error {
 	if c.EnsureNodeLabelsErr != nil {
 		return c.EnsureNodeLabelsErr
 	}
@@ -216,7 +216,7 @@ func (c *MockClient) EnsureNodeLabels(ctx context.Context, name string, labels m
 }
 
 // GetNodeLabels retrieves the set of labels.
-func (c *MockClient) GetNodeLabels(name string) (map[string]string, error) {
+func (c *MockClient) GetNodeLabels(key client.ObjectKey) (map[string]string, error) {
 	if c.GetNodeLabelsErr != nil {
 		return nil, c.GetNodeLabelsErr
 	}
@@ -247,7 +247,7 @@ func (c *MockClient) GetVolume(key client.ObjectKey) (Object, error) {
 	return obj, nil
 }
 
-// VolumeObjects returns a map of volume objects, keyed on NamespacedName.
+// VolumeObjects returns a map of volume objects, indexed on object key.
 func (c *MockClient) VolumeObjects(ctx context.Context) (map[client.ObjectKey]Object, error) {
 	if c.ListNodesErr != nil {
 		return nil, c.ListNodesErr
@@ -355,11 +355,11 @@ func (c *MockClient) Delete(id string, namespace string) {
 func (c *MockClient) Reset() {
 	c.mu.Lock()
 	c.sharedvols = make(map[string]*SharedVolume)
-	c.namespaces = make(map[string]Object)
-	c.nodes = make(map[string]Object)
+	c.namespaces = make(map[client.ObjectKey]Object)
+	c.nodes = make(map[client.ObjectKey]Object)
 	c.nodeLabels = make(map[string]string)
-	c.DeleteNamespaceCallCount = make(map[string]int)
-	c.DeleteNodeCallCount = make(map[string]int)
+	c.DeleteNamespaceCallCount = make(map[client.ObjectKey]int)
+	c.DeleteNodeCallCount = make(map[client.ObjectKey]int)
 	c.ListNamespacesErr = nil
 	c.DeleteNamespaceErr = nil
 	c.ListNodesErr = nil

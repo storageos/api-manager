@@ -16,7 +16,7 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 	tests := []struct {
 		name    string
 		labels  map[string]string
-		prepare func(name string, namespace string, m *mocks.MockControlPlane)
+		prepare func(key client.ObjectKey, m *mocks.MockControlPlane)
 		wantErr bool
 	}{
 		{
@@ -24,17 +24,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				"foo": "bar",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 				updateData := api.UpdateVolumeData{
 					Labels: map[string]string{
@@ -50,17 +50,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 		{
 			name:   "remove unrestricted label",
 			labels: map[string]string{},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						"foo": "bar",
 					},
@@ -79,17 +79,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelReplicas: "2",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 				replicasData := api.SetReplicasRequest{
 					Replicas: 2,
@@ -97,7 +97,7 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 				volAfterReservedUpdate := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						storageos.ReservedLabelReplicas: "2",
 					},
@@ -114,17 +114,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelReplicas: "3",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						storageos.ReservedLabelReplicas: "2",
 					},
@@ -135,7 +135,7 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 				volAfterReservedUpdate := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						storageos.ReservedLabelReplicas: "3",
 					},
@@ -150,17 +150,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 		{
 			name:   "remove existing replicas label",
 			labels: map[string]string{},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						storageos.ReservedLabelReplicas: "2",
 					},
@@ -171,7 +171,7 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 				volAfterReservedUpdate := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						storageos.ReservedLabelReplicas: "0",
 					},
@@ -188,17 +188,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelReplicas: "not-an-integer",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 
 				m.EXPECT().ListNamespaces(gomock.Any()).Return([]api.Namespace{ns}, nil, nil).Times(2)
@@ -213,17 +213,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 				"boo":                           "baz",
 				storageos.ReservedLabelReplicas: "2",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 				replicasData := api.SetReplicasRequest{
 					Replicas: 2,
@@ -231,7 +231,7 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 				volAfterReservedUpdate := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						storageos.ReservedLabelReplicas: "2",
 					},
@@ -258,17 +258,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 				"boo":                              "baz",
 				storageos.ReservedLabelComputeOnly: "2", // compute-only not allowed on volumes
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 				updateData := api.UpdateVolumeData{
 					Labels: map[string]string{
@@ -288,17 +288,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelComputeOnly: "true",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 
 				m.EXPECT().ListNamespaces(gomock.Any()).Return([]api.Namespace{ns}, nil, nil).Times(2)
@@ -311,17 +311,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelNoCache: "true",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 
 				m.EXPECT().ListNamespaces(gomock.Any()).Return([]api.Namespace{ns}, nil, nil).Times(2)
@@ -334,17 +334,17 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelNoCompress: "true",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 
 				m.EXPECT().ListNamespaces(gomock.Any()).Return([]api.Namespace{ns}, nil, nil).Times(2)
@@ -367,7 +367,7 @@ func TestClient_EnsureVolumeLabels(t *testing.T) {
 
 			key := client.ObjectKey{Name: pvcName, Namespace: pvcNamespace}
 			if tt.prepare != nil {
-				tt.prepare(pvcName, pvcNamespace, mockCP)
+				tt.prepare(key, mockCP)
 			}
 
 			if err := c.EnsureVolumeLabels(context.Background(), key, tt.labels); (err != nil) != tt.wantErr {
@@ -381,7 +381,7 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 	tests := []struct {
 		name    string
 		labels  map[string]string
-		prepare func(name string, namespace string, m *mocks.MockControlPlane)
+		prepare func(key client.ObjectKey, m *mocks.MockControlPlane)
 		wantErr bool
 	}{
 		{
@@ -389,17 +389,17 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				"foo": "bar",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 				updateData := api.UpdateVolumeData{
 					Labels: map[string]string{
@@ -417,17 +417,17 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				"foo": "baz",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						"foo": "bar",
 					},
@@ -446,17 +446,17 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 		{
 			name:   "remove unrestricted label",
 			labels: map[string]string{},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						"foo": "bar",
 					},
@@ -477,17 +477,17 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelReplicas: "1",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 				}
 
 				m.EXPECT().ListNamespaces(gomock.Any()).Return([]api.Namespace{ns}, nil, nil).Times(1)
@@ -499,17 +499,17 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelReplicas: "1",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels:      map[string]string{},
 				}
 
@@ -522,17 +522,17 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelReplicas: "2",
 			},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						storageos.ReservedLabelReplicas: "1",
 					},
@@ -545,17 +545,17 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 		{
 			name:   "remove unrestricted label",
 			labels: map[string]string{},
-			prepare: func(name string, namespace string, m *mocks.MockControlPlane) {
+			prepare: func(key client.ObjectKey, m *mocks.MockControlPlane) {
 				nsId := uuid.New().String()
 				volId := uuid.New().String()
 				ns := api.Namespace{
 					Id:   nsId,
-					Name: namespace,
+					Name: key.Namespace,
 				}
 				vol := api.Volume{
 					Id:          volId,
 					NamespaceID: nsId,
-					Name:        name,
+					Name:        key.Name,
 					Labels: map[string]string{
 						storageos.ReservedLabelReplicas: "1",
 					},
@@ -580,7 +580,7 @@ func TestClient_EnsureUnreservedVolumeLabels(t *testing.T) {
 
 			key := client.ObjectKey{Name: pvcName, Namespace: pvcNamespace}
 			if tt.prepare != nil {
-				tt.prepare(pvcName, pvcNamespace, mockCP)
+				tt.prepare(key, mockCP)
 			}
 			if err := c.EnsureUnreservedVolumeLabels(context.Background(), key, tt.labels); (err != nil) != tt.wantErr {
 				t.Errorf("Client.EnsureUnreservedVolumeLabels() error = %v, wantErr %v", err, tt.wantErr)

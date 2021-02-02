@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	"github.com/storageos/api-manager/internal/pkg/storageos/mocks"
@@ -249,12 +250,12 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 
 			c := storageos.NewTestAPIClient(mockCP)
 
-			nodeName := "nodeA"
+			key := client.ObjectKey{Name: "nodeA"}
 			if tt.prepare != nil {
-				tt.prepare(nodeName, mockCP)
+				tt.prepare(key.Name, mockCP)
 			}
 
-			if err := c.EnsureNodeLabels(context.Background(), nodeName, tt.labels); (err != nil) != tt.wantErr {
+			if err := c.EnsureNodeLabels(context.Background(), key, tt.labels); (err != nil) != tt.wantErr {
 				t.Errorf("Client.EnsureNodeLabels() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

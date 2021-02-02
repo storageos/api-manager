@@ -8,6 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	storageos "github.com/storageos/api-manager/internal/pkg/storageos"
+	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
 )
 
@@ -35,7 +36,7 @@ func (m *MockNamespaceDeleter) EXPECT() *MockNamespaceDeleterMockRecorder {
 }
 
 // DeleteNamespace mocks base method
-func (m *MockNamespaceDeleter) DeleteNamespace(arg0 context.Context, arg1 string) error {
+func (m *MockNamespaceDeleter) DeleteNamespace(arg0 context.Context, arg1 types.NamespacedName) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteNamespace", arg0, arg1)
 	ret0, _ := ret[0].(error)

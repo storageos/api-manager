@@ -19,8 +19,8 @@ import (
 // NodeLabeller provides access to update node labels.
 //go:generate mockgen -destination=mocks/mock_node_labeller.go -package=mocks . NodeLabeller
 type NodeLabeller interface {
-	EnsureNodeLabels(ctx context.Context, name string, labels map[string]string) error
-	NodeObjects(ctx context.Context) (map[string]storageos.Object, error)
+	EnsureNodeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error
+	NodeObjects(ctx context.Context) (map[client.ObjectKey]storageos.Object, error)
 }
 
 // Reconciler reconciles a Node object by applying labels from the Kubernetes

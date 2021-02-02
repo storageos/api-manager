@@ -80,7 +80,7 @@ func (c *Client) EnsureUnreservedVolumeLabels(ctx context.Context, key client.Ob
 
 	ctx = c.AddToken(ctx)
 
-	vol, err := c.getVolumeByKey(ctx, key)
+	vol, err := c.getVolume(ctx, key)
 	if err != nil {
 		return observeErr(err)
 	}
@@ -133,7 +133,7 @@ func (c *Client) EnsureReplicas(ctx context.Context, key client.ObjectKey, desir
 
 	ctx = c.AddToken(ctx)
 
-	vol, err := c.getVolumeByKey(ctx, key)
+	vol, err := c.getVolume(ctx, key)
 	if err != nil {
 		return observeErr(err)
 	}

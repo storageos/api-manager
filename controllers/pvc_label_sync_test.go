@@ -21,20 +21,34 @@ import (
 
 // SetupPVCLabelSyncTest will set up a testing environment.  It must be called
 // from each test.
-func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels map[string]string, gcEnabled bool) *corev1.PersistentVolumeClaim {
-	pvName := "pvc-" + randStringRunes(5)
-	pvc := &corev1.PersistentVolumeClaim{}
-
+func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels map[string]string, gcEnabled bool) client.ObjectKey {
+	var ns *corev1.Namespace
+	var pvc *corev1.PersistentVolumeClaim
 	var cancel func()
+
+	rand := randStringRunes(5)
+	var key = client.ObjectKey{
+		Name:      "pvc-" + rand,
+		Namespace: "ns-" + rand,
+	}
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(ctx)
 
-		volumeMode := v1.PersistentVolumeFilesystem
-		*pvc = corev1.PersistentVolumeClaim{
+		ns = &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testpvc-" + randStringRunes(5),
-				Namespace: "default",
+				Name: key.Namespace,
+			},
+		}
+		err := k8sClient.Create(ctx, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
+
+		pvName := "pvc-" + randStringRunes(5)
+		volumeMode := v1.PersistentVolumeFilesystem
+		pvc = &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
 				Labels:    createLabels,
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
@@ -48,14 +62,13 @@ func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels m
 				VolumeName: pvName,
 			},
 		}
-
 		if isStorageOS {
 			pvc.Annotations = map[string]string{
 				annotation.ProvisionerAnnotationKey: annotation.DriverName,
 			}
 		}
 
-		err := k8sClient.Create(ctx, pvc)
+		err = k8sClient.Create(ctx, pvc)
 		Expect(err).NotTo(HaveOccurred(), "failed to create test pvc")
 
 		api = storageos.NewMockClient()
@@ -91,10 +104,12 @@ func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels m
 	AfterEach(func() {
 		err := k8sClient.Delete(ctx, pvc)
 		Expect(err).NotTo(HaveOccurred(), "failed to delete test pvc")
+		err = k8sClient.Delete(ctx, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 		cancel()
 	})
 
-	return pvc
+	return key
 }
 
 var _ = Describe("PVC Label controller", func() {
@@ -122,13 +137,17 @@ var _ = Describe("PVC Label controller", func() {
 	ctx := context.Background()
 
 	Context("When adding unreserved labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
+		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			volKey := client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()}
 			By("By adding unreserved labels to k8s PVC")
 			pvc.SetLabels(unreservedLabels)
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels to match")
@@ -143,12 +162,16 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding reserved labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
+		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			By("By adding reserved labels to k8s PVC")
 			pvc.SetLabels(reservedLabels)
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels to match")
@@ -163,12 +186,16 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding mixed labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
+		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			By("By adding mixed labels to k8s PVC")
 			pvc.SetLabels(mixedLabels)
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels to match")
@@ -183,8 +210,12 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding unrecognised reserved labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
+		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should only sync recognised labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			By("By adding unrecognised reserved labels to k8s PVC")
 			labels := map[string]string{}
 			for k, v := range unreservedLabels {
@@ -193,7 +224,7 @@ var _ = Describe("PVC Label controller", func() {
 			labels[storageos.ReservedLabelPrefix+"unrecognised"] = "true"
 			pvc.SetLabels(labels)
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels to match other labels")
@@ -208,15 +239,19 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding replicas label", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
+		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			By("By adding replicas label to k8s PVC")
 			labels := map[string]string{
 				storageos.ReservedLabelReplicas: "1",
 			}
 			pvc.SetLabels(labels)
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels to match")
@@ -231,12 +266,16 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding and removing mixed labels", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
+		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			By("By adding labels to k8s PVC")
 			pvc.SetLabels(mixedLabels)
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels to match")
@@ -251,7 +290,7 @@ var _ = Describe("PVC Label controller", func() {
 			By("By removing labels from k8s PVC")
 			pvc.SetLabels(map[string]string{})
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels to match")
@@ -266,8 +305,12 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding replicas label and the StorageOS API returns an error", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, nil, false)
+		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should not sync labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			By("Setting API to return error")
 			api.EnsureVolumeLabelsErr = errors.New("fake error")
 
@@ -277,7 +320,7 @@ var _ = Describe("PVC Label controller", func() {
 			}
 			pvc.SetLabels(labels)
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels to be empty")
@@ -292,12 +335,16 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When adding labels on a k8s PVC not provisioned by StorageOS", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, false, nil, false)
+		key := SetupPVCLabelSyncTest(ctx, false, nil, false)
 		It("Should not sync labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			By("By adding labels to k8s PVC")
 			pvc.SetLabels(unreservedLabels)
 			Eventually(func() error {
-				return k8sClient.Update(ctx, pvc)
+				return k8sClient.Update(ctx, &pvc)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting StorageOS Volume labels not to match")
@@ -312,8 +359,12 @@ var _ = Describe("PVC Label controller", func() {
 	})
 
 	Context("When starting after a k8s PVC with labels has been created", func() {
-		pvc := SetupPVCLabelSyncTest(ctx, true, mixedLabels, true)
+		key := SetupPVCLabelSyncTest(ctx, true, mixedLabels, true)
 		It("The resync should update the StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
 				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})

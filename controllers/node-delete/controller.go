@@ -37,7 +37,7 @@ func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
-	err := c.api.DeleteNode(ctx, obj.GetName())
+	err := c.api.DeleteNode(ctx, client.ObjectKeyFromObject(obj))
 	if err != nil && err != storageos.ErrNodeNotFound {
 		return err
 	}

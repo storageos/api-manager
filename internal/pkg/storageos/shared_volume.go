@@ -6,11 +6,10 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	api "github.com/storageos/go-api/v2"
 
 	"github.com/storageos/api-manager/internal/pkg/endpoint"
 	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
-
-	api "github.com/storageos/go-api/v2"
 )
 
 var (
@@ -39,7 +38,7 @@ var (
 //go:generate mockgen -destination=mocks/mock_volume_sharer.go -package=mocks . VolumeSharer
 type VolumeSharer interface {
 	ListSharedVolumes(ctx context.Context) (SharedVolumeList, error)
-	SetExternalEndpoint(ctx context.Context, id string, namespace string, endpoint string) error
+	SetExternalEndpoint(ctx context.Context, volID string, namespace string, endpoint string) error
 }
 
 // ListSharedVolumes returns a list of active shared volumes.
@@ -121,7 +120,7 @@ func toSharedVolume(namespace string, vol api.Volume) (*SharedVolume, error) {
 
 // SetExternalEndpoint sets the external endpoint on a SharedVolume.  The
 // endpoint should be <host|ip>:<port>.
-func (c *Client) SetExternalEndpoint(ctx context.Context, id string, namespace string, endpoint string) error {
+func (c *Client) SetExternalEndpoint(ctx context.Context, volID string, namespace string, endpoint string) error {
 	funcName := "set_external_endpoint"
 	start := time.Now()
 	defer func() {
@@ -134,7 +133,7 @@ func (c *Client) SetExternalEndpoint(ctx context.Context, id string, namespace s
 
 	ctx = c.AddToken(ctx)
 
-	curVol, err := c.getVolume(ctx, id, namespace)
+	curVol, err := c.getVolumeByID(ctx, volID, namespace)
 	if err != nil {
 		return observeErr(err)
 	}
@@ -149,29 +148,4 @@ func (c *Client) SetExternalEndpoint(ctx context.Context, id string, namespace s
 		return observeErr(api.MapAPIError(err, resp))
 	}
 	return observeErr(nil)
-}
-
-// TODO: Merge with getVolumeByKey() and accept a key.
-func (c *Client) getVolume(ctx context.Context, id string, namespace string) (*api.Volume, error) {
-	ns, err := c.getNamespace(ctx, namespace)
-
-	if err != nil {
-		return nil, err
-	}
-	vol, resp, err := c.api.GetVolume(ctx, ns.Id, id)
-	return &vol, api.MapAPIError(err, resp)
-}
-
-// TODO: Merge with getNamespaceByName() and accept a key.
-func (c *Client) getNamespace(ctx context.Context, namespace string) (*api.Namespace, error) {
-	namespaces, resp, err := c.api.ListNamespaces(ctx)
-	if err != nil {
-		return nil, api.MapAPIError(err, resp)
-	}
-	for _, ns := range namespaces {
-		if ns.Name == namespace {
-			return &ns, nil
-		}
-	}
-	return nil, ErrNamespaceNotFound
 }

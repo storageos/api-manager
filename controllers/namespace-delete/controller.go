@@ -38,7 +38,7 @@ func (c Controller) Delete(ctx context.Context, obj client.Object) error {
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
-	err := c.api.DeleteNamespace(ctx, obj.GetName())
+	err := c.api.DeleteNamespace(ctx, client.ObjectKeyFromObject(obj))
 	if err != nil && err != storageos.ErrNamespaceNotFound {
 		return err
 	}

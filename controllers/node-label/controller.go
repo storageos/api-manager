@@ -39,7 +39,7 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
-	if err := c.api.EnsureNodeLabels(ctx, obj.GetName(), obj.GetLabels()); err != nil {
+	if err := c.api.EnsureNodeLabels(ctx, client.ObjectKeyFromObject(obj), obj.GetLabels()); err != nil {
 		return err
 	}
 	c.log.Info("node labels applied to storageos", "name", obj.GetName())
@@ -59,7 +59,7 @@ func (c Controller) Diff(ctx context.Context, objs []client.Object) ([]client.Ob
 		return nil, err
 	}
 	for _, obj := range objs {
-		node, ok := nodes[obj.GetName()]
+		node, ok := nodes[client.ObjectKeyFromObject(obj)]
 		if !ok || node == nil {
 			// Ignore nodes not already known to StorageOS.
 			continue

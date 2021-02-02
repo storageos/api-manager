@@ -8,8 +8,10 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	api "github.com/storageos/go-api/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 )
 
 // EnsureNodeLabels applies a set of labels to a StorageOS node.
@@ -19,7 +21,7 @@ import (
 // individual API endpoints to ensure that they are applied atomically.
 //
 // Unreserved labels are copied as a blob and are not evaluated.
-func (c *Client) EnsureNodeLabels(ctx context.Context, name string, labels map[string]string) error {
+func (c *Client) EnsureNodeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error {
 	var unreservedLabels = make(map[string]string)
 	var computeOnly = false
 	var err error
@@ -45,12 +47,12 @@ func (c *Client) EnsureNodeLabels(ctx context.Context, name string, labels map[s
 
 	// Apply reserved labels.  Labels that have been removed or have been
 	// changed to an invalid value will get their default re-applied.
-	if err := c.EnsureComputeOnly(ctx, name, computeOnly); err != nil && err != ErrNodeNotFound {
+	if err := c.EnsureComputeOnly(ctx, key, computeOnly); err != nil && err != ErrNodeNotFound {
 		errs = multierror.Append(errs, err)
 	}
 
 	// Apply unreserved labels as a blob, removing any that are no longer set.
-	if err := c.EnsureUnreservedNodeLabels(ctx, name, unreservedLabels); err != nil && err != ErrNodeNotFound {
+	if err := c.EnsureUnreservedNodeLabels(ctx, key, unreservedLabels); err != nil && err != ErrNodeNotFound {
 		errs = multierror.Append(errs, err)
 	}
 
@@ -60,7 +62,7 @@ func (c *Client) EnsureNodeLabels(ctx context.Context, name string, labels map[s
 // EnsureUnreservedNodeLabels applies a set of labels to the StorageOS node if different.
 // Existing labels will be overwritten.  The set of labels must not include
 // StorageOS reserved labels.
-func (c *Client) EnsureUnreservedNodeLabels(ctx context.Context, name string, labels map[string]string) error {
+func (c *Client) EnsureUnreservedNodeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error {
 	funcName := "ensure_unreserved_node_labels"
 	start := time.Now()
 	defer func() {
@@ -77,7 +79,7 @@ func (c *Client) EnsureUnreservedNodeLabels(ctx context.Context, name string, la
 
 	ctx = c.AddToken(ctx)
 
-	node, err := c.getNodeByName(ctx, name)
+	node, err := c.getNodeByKey(ctx, key)
 	if err != nil {
 		return observeErr(err)
 	}
@@ -117,7 +119,7 @@ func (c *Client) EnsureUnreservedNodeLabels(ctx context.Context, name string, la
 
 // EnsureComputeOnly ensures that the compute-only behaviour has been applied to
 // the StorageOS node.
-func (c *Client) EnsureComputeOnly(ctx context.Context, name string, enabled bool) error {
+func (c *Client) EnsureComputeOnly(ctx context.Context, key client.ObjectKey, enabled bool) error {
 	funcName := "ensure_compute_only"
 	start := time.Now()
 	defer func() {
@@ -130,7 +132,7 @@ func (c *Client) EnsureComputeOnly(ctx context.Context, name string, enabled boo
 
 	ctx = c.AddToken(ctx)
 
-	node, err := c.getNodeByName(ctx, name)
+	node, err := c.getNodeByKey(ctx, key)
 	if err != nil {
 		return observeErr(err)
 	}

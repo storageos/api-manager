@@ -15,8 +15,8 @@ var (
 	ErrVolumeNotFound = errors.New("volume not found")
 )
 
-// VolumeObjects returns a map of volume objects, keyed on volume name for efficient
-// lookups.
+// VolumeObjects returns a map of volume objects, indexed on object key for
+// efficient lookups.
 func (c *Client) VolumeObjects(ctx context.Context) (map[client.ObjectKey]Object, error) {
 	funcName := "volume_objects"
 	start := time.Now()
@@ -68,6 +68,7 @@ func (c *Client) ListVolumes(ctx context.Context) ([]Object, error) {
 	return objects, nil
 }
 
+// getVolumes returns all StorageOS volumes.
 func (c *Client) getVolumes(ctx context.Context) ([]api.Volume, error) {
 	var volumes []api.Volume
 	namespaces, err := c.ListNamespaces(ctx)
@@ -84,9 +85,9 @@ func (c *Client) getVolumes(ctx context.Context) ([]api.Volume, error) {
 	return volumes, nil
 }
 
-// TODO: Merge with getVolume().
-func (c *Client) getVolumeByKey(ctx context.Context, key client.ObjectKey) (*api.Volume, error) {
-	ns, err := c.getNamespace(ctx, key.Namespace)
+// getVolume returns the StorageOS volume object matching the key.
+func (c *Client) getVolume(ctx context.Context, key client.ObjectKey) (*api.Volume, error) {
+	ns, err := c.getNamespace(ctx, client.ObjectKey{Name: key.Namespace})
 	if err != nil {
 		return nil, err
 	}
@@ -101,4 +102,16 @@ func (c *Client) getVolumeByKey(ctx context.Context, key client.ObjectKey) (*api
 		}
 	}
 	return nil, ErrVolumeNotFound
+}
+
+// getVolumeByID returns a StorageOS volume using the Volume ID and Namespace
+// name.  This is an internal optimisation for when the internal Volume ID is
+// known.  Most callers should use getVolume() instead.
+func (c *Client) getVolumeByID(ctx context.Context, id string, namespace string) (*api.Volume, error) {
+	ns, err := c.getNamespace(ctx, client.ObjectKey{Name: namespace})
+	if err != nil {
+		return nil, err
+	}
+	vol, resp, err := c.api.GetVolume(ctx, ns.Id, id)
+	return &vol, api.MapAPIError(err, resp)
 }
