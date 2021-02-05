@@ -49,6 +49,7 @@ type Identifier interface {
 type Object interface {
 	Identifier
 	GetLabels() map[string]string
+	IsHealthy() bool
 }
 
 // Client provides access to the StorageOS API.
@@ -231,6 +232,7 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 			if c.traced {
 				resultCounter.Increment("refresh_token", nil)
 			}
+			log.V(5).Info("refreshed storageos api credentials")
 		case <-reset:
 			username, password, err := ReadCredsFromMountedSecret(secretPath)
 			if err != nil {
@@ -251,6 +253,7 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 			if c.traced {
 				resultCounter.Increment("reset_api", nil)
 			}
+			log.V(5).Info("reset storageos api credentials")
 		case <-ctx.Done():
 			// Clean shutdown.
 			return ctx.Err()

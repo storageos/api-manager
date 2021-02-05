@@ -1,4 +1,6 @@
-domain: storageos.com
 repo: github.com/storageos/api-manager
 resources:
+- group: storageos.com
+  kind: Node
+  version: v1
 version: "2"

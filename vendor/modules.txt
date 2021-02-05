@@ -10,8 +10,12 @@ github.com/apache/thrift/lib/go/thrift
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/darkowlzz/operator-toolkit v0.0.0-20210127153629-3694257a34c2
+# github.com/darkowlzz/operator-toolkit v0.0.0-20210211022653-0ec406110ae5
 github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1
+github.com/darkowlzz/operator-toolkit/controller/external/builder
+github.com/darkowlzz/operator-toolkit/controller/external/cache
+github.com/darkowlzz/operator-toolkit/controller/external/handler
+github.com/darkowlzz/operator-toolkit/controller/external/source
 github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1
 github.com/darkowlzz/operator-toolkit/controller/sync/v1
 github.com/darkowlzz/operator-toolkit/object
@@ -33,7 +37,7 @@ github.com/gogo/protobuf/sortkeys
 github.com/golang/groupcache/lru
 # github.com/golang/mock v1.4.4
 github.com/golang/mock/gomock
-# github.com/golang/protobuf v1.4.2
+# github.com/golang/protobuf v1.4.3
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -134,7 +138,7 @@ github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/storageos/go-api/v2 v2.3.1-0.20210129113721-89706365d21f
+# github.com/storageos/go-api/v2 v2.3.1-0.20210211170707-7520f2fe0974
 github.com/storageos/go-api/v2
 github.com/storageos/go-api/v2/api
 # github.com/stretchr/testify v1.6.1
@@ -202,7 +206,7 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
 # golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200822124328-c89045814202
+# golang.org/x/net v0.0.0-20210119194325-5f4716e94777
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -222,7 +226,7 @@ golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f
+# golang.org/x/sys v0.0.0-20201119102817-f84b799fce68
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -256,7 +260,7 @@ golang.org/x/xerrors/internal
 gomodules.xyz/jsonpatch/v2
 # google.golang.org/api v0.32.0
 google.golang.org/api/support/bundler
-# google.golang.org/appengine v1.6.6
+# google.golang.org/appengine v1.6.7
 google.golang.org/appengine
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/app_identity

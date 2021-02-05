@@ -85,7 +85,28 @@ func (c *Client) getVolumes(ctx context.Context) ([]api.Volume, error) {
 	return volumes, nil
 }
 
-// getVolume returns the StorageOS volume object matching the key.
+// GetVolume returns the StorageOS volume object matching the key.
+func (c *Client) GetVolume(ctx context.Context, key client.ObjectKey) (Object, error) {
+	funcName := "get_volume"
+	start := time.Now()
+	defer func() {
+		metrics.Latency.Observe(funcName, time.Since(start))
+	}()
+	observeErr := func(e error) error {
+		metrics.Errors.Increment(funcName, e)
+		return e
+	}
+
+	ctx = c.AddToken(ctx)
+
+	vol, err := c.getVolume(ctx, key)
+	if err != nil {
+		return nil, observeErr(err)
+	}
+	return vol, nil
+}
+
+// GetVolume returns the StorageOS volume object matching the key.
 func (c *Client) getVolume(ctx context.Context, key client.ObjectKey) (*api.Volume, error) {
 	ns, err := c.getNamespace(ctx, client.ObjectKey{Name: key.Namespace})
 	if err != nil {

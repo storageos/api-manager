@@ -67,12 +67,17 @@ func (c Controller) List(ctx context.Context) ([]types.NamespacedName, error) {
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
-	objects, err := c.api.ListNodes(ctx)
+	nodes, err := c.api.ListNodes(ctx)
 	if err != nil {
 		span.RecordError(err)
 		return nil, err
 	}
-	span.SetAttributes(label.Int("count", len(objects)))
+	span.SetAttributes(label.Int("count", len(nodes)))
 	span.SetStatus(codes.Ok, "listed nodes")
-	return storageos.ObjectKeys(objects), nil
+
+	keys := []types.NamespacedName{}
+	for _, n := range nodes {
+		keys = append(keys, types.NamespacedName{Name: n.Name})
+	}
+	return keys, nil
 }
