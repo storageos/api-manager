@@ -6,9 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	api "github.com/storageos/go-api/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	storageosv1 "github.com/storageos/api-manager/api/v1"
+	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 )
 
 var (
@@ -51,7 +55,7 @@ func (c *Client) NodeObjects(ctx context.Context) (map[client.ObjectKey]Object, 
 }
 
 // ListNodes returns a list of all StorageOS node objects.
-func (c *Client) ListNodes(ctx context.Context) ([]Object, error) {
+func (c *Client) ListNodes(ctx context.Context) ([]client.Object, error) {
 	funcName := "list_nodes"
 	start := time.Now()
 	defer func() {
@@ -68,12 +72,51 @@ func (c *Client) ListNodes(ctx context.Context) ([]Object, error) {
 	if err != nil {
 		return nil, observeErr(api.MapAPIError(err, resp))
 	}
-	objects := []Object{}
+	objects := []client.Object{}
 	for _, node := range nodes {
-		objects = append(objects, node)
+		objects = append(objects, nodeToCR(node))
 	}
 
 	return objects, nil
+}
+
+func nodeToCR(n api.Node) *storageosv1.Node {
+	var health storageosv1.NodeHealth
+	switch n.Health {
+	case api.NODEHEALTH_ONLINE:
+		health = storageosv1.NodeHealthOnline
+	case api.NODEHEALTH_OFFLINE:
+		health = storageosv1.NodeHealthOffline
+	default:
+		health = storageosv1.NodeHealthUnknown
+	}
+	return &storageosv1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: storageosv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              n.Name,
+			UID:               types.UID(n.Id),
+			ResourceVersion:   n.Version,
+			CreationTimestamp: metav1.Time{Time: n.CreatedAt},
+			Labels:            n.Labels,
+		},
+		Spec: storageosv1.NodeSpec{
+			IoEndpoint:         n.IoEndpoint,
+			SupervisorEndpoint: n.SupervisorEndpoint,
+			GossipEndpoint:     n.GossipEndpoint,
+			ClusteringEndpoint: n.ClusteringEndpoint,
+		},
+		Status: storageosv1.NodeStatus{
+			Health: health,
+			Capacity: storageosv1.CapacityStats{
+				Total:     n.Capacity.Total,
+				Free:      n.Capacity.Free,
+				Available: n.Capacity.Available,
+			},
+		},
+	}
 }
 
 // DeleteNode removes a node from the StorageOS cluster.  Delete will fail if

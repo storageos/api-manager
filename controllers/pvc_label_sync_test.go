@@ -152,7 +152,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(volKey)
+				vol, err := api.GetVolume(ctx, volKey)
 				if err != nil {
 					return nil
 				}
@@ -176,7 +176,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}
@@ -200,7 +200,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}
@@ -229,7 +229,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to match other labels")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}
@@ -256,7 +256,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}
@@ -280,7 +280,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}
@@ -295,7 +295,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}
@@ -325,7 +325,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to be empty")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}
@@ -349,7 +349,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels not to match")
 			Consistently(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}
@@ -367,7 +367,7 @@ var _ = Describe("PVC Label controller", func() {
 
 			By("Expecting StorageOS Volume labels to match")
 			Eventually(func() map[string]string {
-				vol, err := api.GetVolume(client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
 				if err != nil {
 					return nil
 				}

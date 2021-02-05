@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-func TestReconcile(t *testing.T) {
+func TestSharedVolumeReconcile(t *testing.T) {
 	apiPoll := 100 * time.Millisecond
 	k8sPoll := 200 * time.Millisecond
 	k8sWait := 1 * time.Second

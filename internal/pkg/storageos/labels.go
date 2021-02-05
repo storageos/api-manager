@@ -27,6 +27,11 @@ const (
 	// volume. It can only be set when the volume is created.
 	ReservedLabelNoCompress = ReservedLabelPrefix + "nocompress"
 
+	// ReservedLabelFencing can be set on Pods to indicate that the Pod should
+	// be deleted if it is running on a node that StorageOS believes no longer
+	// has access to its storage.
+	ReservedLabelFencing = ReservedLabelPrefix + "fenced"
+
 	// ReservedLabelK8sPVCNamespace is set by the csi-provisioner at create
 	// time.  It's treated as a reserved label by StorageOS and can't be modified.
 	ReservedLabelK8sPVCNamespace = "csi.storage.k8s.io/pvc/namespace"

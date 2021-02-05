@@ -1,17 +1,25 @@
 /*
+MIT License
 
+Copyright (c) 2021 StorageOS
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    http://www.apache.org/licenses/LICENSE-2.0
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 */
 
 package main
@@ -36,6 +44,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	storageosv1 "github.com/storageos/api-manager/api/v1"
+	"github.com/storageos/api-manager/controllers/fencer"
 	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
 	nodelabel "github.com/storageos/api-manager/controllers/node-label"
@@ -65,7 +75,7 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-
+	_ = storageosv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -86,10 +96,12 @@ func main() {
 	var webhookCertRefreshInterval time.Duration
 	var apiSecretPath string
 	var apiEndpoint string
-	var apiPollInterval time.Duration
+	var volumePollInterval time.Duration
+	var nodePollInterval time.Duration
+	var volumeExpiryInterval time.Duration
+	var nodeExpiryInterval time.Duration
 	var apiRefreshInterval time.Duration
 	var apiRetryInterval time.Duration
-	var cacheExpiryInterval time.Duration
 	var k8sCreatePollInterval time.Duration
 	var k8sCreateWaitDuration time.Duration
 	var gcNamespaceDeleteInterval time.Duration
@@ -103,6 +115,9 @@ func main() {
 	var nsDeleteWorkers int
 	var nodeDeleteWorkers int
 	var nodeLabelSyncWorkers int
+	var nodeFencerWorkers int
+	var nodeFencerRetryInterval time.Duration
+	var nodeFencerTimeout time.Duration
 	var pvcLabelSyncWorkers int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -121,10 +136,12 @@ func main() {
 	flag.DurationVar(&webhookCertRefreshInterval, "webhook-cert-refresh-interval", 30*time.Minute, "Frequency of webhook certificate refresh.")
 	flag.StringVar(&apiSecretPath, "api-secret-path", "/etc/storageos/secrets/api", "Path where the StorageOS api secret is mounted.  The secret must have \"username\" and \"password\" set.")
 	flag.StringVar(&apiEndpoint, "api-endpoint", "storageos", "The StorageOS api endpoint address.")
-	flag.DurationVar(&apiPollInterval, "api-poll-interval", 5*time.Second, "Frequency of StorageOS api polling.")
+	flag.DurationVar(&volumePollInterval, "volume-poll-interval", 5*time.Second, "Frequency of StorageOS volume polling.")
+	flag.DurationVar(&nodePollInterval, "node-poll-interval", 5*time.Second, "Frequency of StorageOS node polling.")
+	flag.DurationVar(&volumeExpiryInterval, "volume-expiry-interval", time.Minute, "Frequency of cached StorageOS volume re-validation.")
+	flag.DurationVar(&nodeExpiryInterval, "node-expiry-interval", 1*time.Hour, "Frequency of cached StorageOS node re-validation.")
 	flag.DurationVar(&apiRefreshInterval, "api-refresh-interval", time.Minute, "Frequency of StorageOS api authentication token refresh.")
 	flag.DurationVar(&apiRetryInterval, "api-retry-interval", 5*time.Second, "Frequency of StorageOS api retries on failure.")
-	flag.DurationVar(&cacheExpiryInterval, "cache-expiry-interval", time.Minute, "Frequency of cached volume re-validation.")
 	flag.DurationVar(&k8sCreatePollInterval, "k8s-create-poll-interval", 1*time.Second, "Frequency of Kubernetes api polling for new objects to appear once created.")
 	flag.DurationVar(&k8sCreateWaitDuration, "k8s-create-wait-duration", 20*time.Second, "Maximum time to wait for new Kubernetes objects to appear.")
 	flag.DurationVar(&gcNamespaceDeleteInterval, "namespace-delete-gc-interval", 1*time.Hour, "Frequency of namespace garbage collection.")
@@ -135,6 +152,9 @@ func main() {
 	flag.DurationVar(&gcNodeDeleteDelay, "node-delete-gc-delay", 30*time.Second, "Startup delay of initial node garbage collection.")
 	flag.DurationVar(&resyncNodeLabelDelay, "node-label-resync-delay", 10*time.Second, "Startup delay of initial node label resync.")
 	flag.DurationVar(&resyncPVCLabelDelay, "pvc-label-resync-delay", 5*time.Second, "Startup delay of initial PVC label resync.")
+	flag.IntVar(&nodeFencerWorkers, "node-fencer-workers", 5, "Maximum concurrent node fencing operations.")
+	flag.DurationVar(&nodeFencerRetryInterval, "node-fencer-retry-interval", 5*time.Second, "Frequency of fencing retries on failure.")
+	flag.DurationVar(&nodeFencerTimeout, "node-fencer-timeout", 25*time.Second, "Maximum time to wait for fencing to complete.")
 	flag.IntVar(&nodeDeleteWorkers, "node-delete-workers", 5, "Maximum concurrent node delete operations.")
 	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
 	flag.IntVar(&nodeLabelSyncWorkers, "node-label-sync-workers", 5, "Maximum concurrent node label sync operations.")
@@ -155,8 +175,7 @@ func main() {
 	// Setup telemetry.
 	telemetryShutdown, err := export.InstallJaegerExporter("api-manager")
 	if err != nil {
-		setupLog.Error(err, "unable to setup telemetry exporter")
-		os.Exit(1)
+		fatal(err, "unable to setup telemetry exporter")
 	}
 	defer telemetryShutdown()
 
@@ -192,8 +211,7 @@ func main() {
 		LeaderElectionID:   "storageos-api-manager-lease",
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		fatal(err, "unable to start manager")
 	}
 
 	// Create an uncached client to be used in the certificate manager.
@@ -269,30 +287,29 @@ func main() {
 
 	// Register controllers with controller manager.
 	setupLog.Info("starting shared volume controller ")
-	if err := sharedvolume.NewReconciler(api, apiReset, mgr.GetClient(), apiPollInterval, cacheExpiryInterval, k8sCreatePollInterval, k8sCreateWaitDuration, mgr.GetEventRecorderFor(EventSourceName)).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "failed to register shared volume reconciler")
-		os.Exit(1)
+	if err := sharedvolume.NewReconciler(api, apiReset, mgr.GetClient(), volumePollInterval, volumeExpiryInterval, k8sCreatePollInterval, k8sCreateWaitDuration, mgr.GetEventRecorderFor(EventSourceName)).SetupWithManager(mgr); err != nil {
+		fatal(err, "failed to register shared volume reconciler")
 	}
 
-	setupLog.Info("starting PVC label sync controller ")
+	setupLog.Info("starting pvc label sync controller ")
 	if err := pvclabel.NewReconciler(api, mgr.GetClient(), resyncPVCLabelDelay, resyncPVCLabelInterval).SetupWithManager(mgr, pvcLabelSyncWorkers); err != nil {
-		setupLog.Error(err, "failed to register pvc label reconciler")
-		os.Exit(1)
+		fatal(err, "failed to register pvc label reconciler")
 	}
 	setupLog.Info("starting node label sync controller ")
 	if err := nodelabel.NewReconciler(api, mgr.GetClient(), resyncNodeLabelDelay, resyncNodeLabelInterval).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
-		setupLog.Error(err, "failed to register node label reconciler")
-		os.Exit(1)
+		fatal(err, "failed to register node label reconciler")
 	}
-	setupLog.Info("starting node delete controller ")
+	setupLog.Info("starting node delete controller")
 	if err := nodedelete.NewReconciler(api, mgr.GetClient(), gcNodeDeleteDelay, gcNodeDeleteInterval).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
-		setupLog.Error(err, "failed to register node delete reconciler")
-		os.Exit(1)
+		fatal(err, "failed to register node delete reconciler")
 	}
-	setupLog.Info("starting namespace delete controller ")
+	setupLog.Info("starting namespace delete controller")
 	if err := nsdelete.NewReconciler(api, mgr.GetClient(), gcNamespaceDeleteDelay, gcNamespaceDeleteInterval).SetupWithManager(mgr, nsDeleteWorkers); err != nil {
-		setupLog.Error(err, "failed to register namespace delete reconciler")
-		os.Exit(1)
+		fatal(err, "failed to register namespace delete reconciler")
+	}
+	setupLog.Info("starting node fencing controller")
+	if err := fencer.NewReconciler(api, apiReset, mgr.GetClient(), nodePollInterval, nodeExpiryInterval).SetupWithManager(ctx, mgr, nodeFencerWorkers, nodeFencerRetryInterval, nodeFencerTimeout); err != nil {
+		fatal(err, "failed to register node fencing reconciler")
 	}
 
 	// Register webhook controllers.
@@ -312,8 +329,12 @@ func main() {
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "failed to start manager")
-		os.Exit(1)
+		fatal(err, "failed to start manager")
 	}
 	setupLog.Info("shutdown complete")
+}
+
+func fatal(err error, msg string) {
+	setupLog.Error(err, msg)
+	os.Exit(1)
 }

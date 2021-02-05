@@ -12,15 +12,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 //NodeDeleter provides access to removing nodes from StorageOS.
 //go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
 type NodeDeleter interface {
 	DeleteNode(ctx context.Context, key client.ObjectKey) error
-	ListNodes(ctx context.Context) ([]storageos.Object, error)
+	ListNodes(ctx context.Context) ([]client.Object, error)
 }
 
 // Reconciler reconciles a Node object by deleting the StorageOS node object

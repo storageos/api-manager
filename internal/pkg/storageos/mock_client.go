@@ -10,7 +10,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	storageosv1 "github.com/storageos/api-manager/api/v1"
 )
 
 func init() {
@@ -23,6 +26,7 @@ type MockObject struct {
 	Name      string
 	Namespace string
 	Labels    map[string]string
+	Healthy   bool
 }
 
 // GetID returns the object ID.
@@ -43,6 +47,11 @@ func (m MockObject) GetNamespace() string {
 // GetLabels returns the object labels.
 func (m MockObject) GetLabels() map[string]string {
 	return m.Labels
+}
+
+// IsHealthy returns true if the object is healthy.
+func (m MockObject) IsHealthy() bool {
+	return m.Healthy
 }
 
 // MockClient provides a test interface to the StorageOS api.
@@ -143,15 +152,24 @@ func (c *MockClient) NodeObjects(ctx context.Context) (map[client.ObjectKey]Obje
 }
 
 // ListNodes returns a list of StorageOS node objects.
-func (c *MockClient) ListNodes(ctx context.Context) ([]Object, error) {
+func (c *MockClient) ListNodes(ctx context.Context) ([]client.Object, error) {
 	if c.ListNodesErr != nil {
 		return nil, c.ListNodesErr
 	}
-	ret := []Object{}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
+	ret := []client.Object{}
 	for _, node := range c.nodes {
-		ret = append(ret, node)
+		health := storageosv1.NodeHealthOnline
+		if !node.IsHealthy() {
+			health = storageosv1.NodeHealthOffline
+		}
+		ret = append(ret, &storageosv1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: node.GetName()},
+			Status: storageosv1.NodeStatus{
+				Health: health,
+			},
+		})
 	}
 	return ret, nil
 }
@@ -233,8 +251,44 @@ func (c *MockClient) AddVolume(obj Object) error {
 	return nil
 }
 
+// UpdateNodeHealth sets the node health.
+func (c *MockClient) UpdateNodeHealth(key client.ObjectKey, healthy bool) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	n, ok := c.nodes[key]
+	if !ok {
+		return false
+	}
+	c.nodes[key] = MockObject{
+		ID:        n.GetID(),
+		Name:      n.GetName(),
+		Namespace: n.GetNamespace(),
+		Labels:    n.GetLabels(),
+		Healthy:   healthy,
+	}
+	return true
+}
+
+// UpdateVolumeHealth sets the volume health.
+func (c *MockClient) UpdateVolumeHealth(key client.ObjectKey, healthy bool) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	n, ok := c.volumes[key]
+	if !ok {
+		return false
+	}
+	c.volumes[key] = MockObject{
+		ID:        n.GetID(),
+		Name:      n.GetName(),
+		Namespace: n.GetNamespace(),
+		Labels:    n.GetLabels(),
+		Healthy:   healthy,
+	}
+	return true
+}
+
 // GetVolume retrieves a volume object.
-func (c *MockClient) GetVolume(key client.ObjectKey) (Object, error) {
+func (c *MockClient) GetVolume(ctx context.Context, key client.ObjectKey) (Object, error) {
 	if c.GetVolumeErr != nil {
 		return nil, c.GetVolumeErr
 	}
