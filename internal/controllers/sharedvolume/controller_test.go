@@ -310,12 +310,16 @@ func TestReconcile(t *testing.T) {
 			recorder := record.NewFakeRecorder(10)
 
 			r := &Reconciler{
-				Client:   k8s,
-				log:      ctrl.Log.WithName("unittest"),
-				api:      api,
-				apiReset: make(chan<- struct{}),
-				volumes:  cache.New(defaultCacheExpiryInterval, defaultCacheCleanupInterval),
-				recorder: recorder,
+				Client:                k8s,
+				log:                   ctrl.Log.WithName("unittest"),
+				api:                   api,
+				apiReset:              make(chan<- struct{}),
+				apiPollInterval:       apiPoll,
+				cacheExpiryInterval:   tt.cacheExpiry,
+				k8sCreatePollInterval: k8sPoll,
+				k8sCreateWaitDuration: k8sWait,
+				volumes:               cache.New(defaultCacheExpiryInterval, defaultCacheCleanupInterval),
+				recorder:              recorder,
 			}
 			ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -334,7 +338,7 @@ func TestReconcile(t *testing.T) {
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 			go func() {
-				if err := r.Reconcile(ctx, apiPoll, tt.cacheExpiry, k8sPoll, k8sWait); (err != nil) != tt.wantErr {
+				if err := r.Start(ctx); (err != nil) != tt.wantErr {
 					if err != context.DeadlineExceeded {
 						t.Logf("SharedVolume.Reconcile() error = %v, wantErr %v", err, tt.wantErr)
 					}
