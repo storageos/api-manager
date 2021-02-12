@@ -38,7 +38,7 @@ func SetupNamespaceDeleteTest(ctx context.Context, createK8sNamespace bool, gcEn
 		err := api.AddNamespace(key)
 		Expect(err).NotTo(HaveOccurred(), "failed to create test namespace in storageos")
 
-		mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{MetricsBindAddress: "0"})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 		gcInterval := defaultSyncInterval

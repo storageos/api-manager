@@ -195,7 +195,8 @@ func Authenticate(client *api.APIClient, username, password string) (context.Con
 // Refresh the api token on a given interval, or reset is received on the reset
 // channel.  This function is blocking and is intended to be run in a goroutine.
 // Errors are currently logged at info level since they will be retried and
-// should be recoverable.
+// should be recoverable.  Only a cancelled context will cause this to stop.  Be
+// aware that any errors returned will trigger a process shutdown.
 func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset chan struct{}, interval time.Duration, resultCounter metrics.ResultMetric, log logr.Logger) error {
 	if c.api == nil || c.transport == nil {
 		return ErrNotInitialized

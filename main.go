@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/darkowlzz/operator-toolkit/telemetry/export"
@@ -169,90 +168,50 @@ func main() {
 	// Events sent on apiReset channel will trigger the api client to re-initialise.
 	apiReset := make(chan struct{})
 
-	// Events sent on errCh will trigger a graceful shutdown.  Another instance
-	// will take over while the pod restarts.
-	errCh := make(chan error, 3)
-
 	// Parent context will be closed on interrupt or sigterm.
 	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
-
-	var wg sync.WaitGroup
-
-	shutdown := func() {
-		// Stop other goroutines.
-		cancel()
-		// Wait for the other goroutines to finish.
-		wg.Wait()
-		setupLog.Info("shutdown complete")
-		os.Exit(0)
-	}
+	defer cancel()
 
 	// Goroutine to handle api credential refreshes and client reconnects
 	// whenever events are received on the apiReset channel.
-	wg.Add(1)
 	go func() {
 		err := api.Refresh(ctx, apiSecretPath, apiEndpoint, apiReset, apiRefreshInterval, apimetrics.Errors, setupLog)
-		errCh <- fmt.Errorf("api token refresh error: %w", err)
-		wg.Done()
+		setupLog.Info("api token refresh stopped", "reason", err)
+		os.Exit(1)
 	}()
 
-	// Goroutine to run the kubebuilder manager.
-	wg.Add(1)
-	go func() {
-		err := mgr.Start(ctx)
-		if err != nil {
-			errCh <- fmt.Errorf("manager error: %w", err)
-		} else {
-			errCh <- fmt.Errorf("manager stopped")
-		}
-		wg.Done()
-	}()
-
-	// Wait for this instance to be elected leader.
-	select {
-	case <-mgr.Elected():
-		setupLog.Info("won leadership election, starting controllers")
-	case err := <-errCh:
-		setupLog.Info("exiting", "reason", err)
-		shutdown()
+	// Register controllers with controller manager.
+	setupLog.Info("starting shared volume controller ")
+	if err := sharedvolume.NewReconciler(api, apiReset, mgr.GetClient(), apiPollInterval, cacheExpiryInterval, k8sCreatePollInterval, k8sCreateWaitDuration, mgr.GetEventRecorderFor(EventSourceName)).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "failed to register shared volume reconciler")
+		os.Exit(1)
 	}
 
-	// Goroutine to poll StorageOS api for shared volumes and create/update
-	// Kubernetes services as needed.
-	wg.Add(1)
-	go func() {
-		setupLog.Info("starting shared volume controller ")
-		err := sharedvolume.NewReconciler(api, apiReset, mgr.GetClient(), mgr.GetEventRecorderFor(EventSourceName)).Reconcile(ctx, apiPollInterval, cacheExpiryInterval, k8sCreatePollInterval, k8sCreateWaitDuration)
-		errCh <- fmt.Errorf("shared volume reconciler error: %w", err)
-		wg.Done()
-	}()
-
-	// Additional controllers go here.
 	setupLog.Info("starting PVC label sync controller ")
 	if err := pvclabel.NewReconciler(api, mgr.GetClient(), resyncPVCLabelDelay, resyncPVCLabelInterval).SetupWithManager(mgr, pvcLabelSyncWorkers); err != nil {
-		errCh <- fmt.Errorf("pvc label reconciler error: %w", err)
+		setupLog.Error(err, "failed to register pvc label reconciler")
+		os.Exit(1)
 	}
 	setupLog.Info("starting node label sync controller ")
 	if err := nodelabel.NewReconciler(api, mgr.GetClient(), resyncNodeLabelDelay, resyncNodeLabelInterval).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
-		errCh <- fmt.Errorf("node label reconciler error: %w", err)
+		setupLog.Error(err, "failed to register node label reconciler")
+		os.Exit(1)
 	}
 	setupLog.Info("starting node delete controller ")
 	if err := nodedelete.NewReconciler(api, mgr.GetClient(), gcNodeDeleteDelay, gcNodeDeleteInterval).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
-		errCh <- fmt.Errorf("node delete reconciler error: %w", err)
+		setupLog.Error(err, "failed to register node delete reconciler")
+		os.Exit(1)
 	}
 	setupLog.Info("starting namespace delete controller ")
 	if err := nsdelete.NewReconciler(api, mgr.GetClient(), gcNamespaceDeleteDelay, gcNamespaceDeleteInterval).SetupWithManager(mgr, nsDeleteWorkers); err != nil {
-		errCh <- fmt.Errorf("namespace delete reconciler error: %w", err)
+		setupLog.Error(err, "failed to register namespace delete reconciler")
+		os.Exit(1)
 	}
 
-	// Wait until a goroutine sends an error or a shutdown signal received, then
-	// cancel the others.
-	select {
-	case err = <-errCh:
-		setupLog.Info("exiting", "reason", err)
-	case <-ctx.Done():
-		setupLog.Info("shutdown requested")
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctx); err != nil {
+		setupLog.Error(err, "failed to start manager")
+		os.Exit(1)
 	}
-
-	shutdown()
+	setupLog.Info("shutdown complete")
 }

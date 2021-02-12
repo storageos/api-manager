@@ -50,7 +50,7 @@ func SetupNodeLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels 
 		err = api.AddNode(storageos.MockObject{Name: key.Name})
 		Expect(err).NotTo(HaveOccurred(), "failed to create test node in storageos")
 
-		mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{MetricsBindAddress: "0"})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 		gcInterval := defaultSyncInterval

@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
@@ -45,6 +46,8 @@ var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 var api *storageos.MockClient
+var ctx context.Context
+var cancel func()
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -55,6 +58,8 @@ func TestControllers(t *testing.T) {
 }
 
 var _ = BeforeSuite(func(done Done) {
+	ctx, cancel = context.WithCancel(context.Background())
+
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
@@ -77,11 +82,16 @@ var _ = BeforeSuite(func(done Done) {
 		return &storageos.MockClient{}
 	}()
 
-	// Goroutine to poll StorageOS api for shared volumes and create/update
-	// Kubernetes services as needed.
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{MetricsBindAddress: "0"})
+	Expect(err).NotTo(HaveOccurred(), "failed to create manager")
+
+	controller := sharedvolume.NewReconciler(api, make(chan struct{}), k8sClient, time.Second, 100*time.Millisecond, 30*time.Second, 2*time.Second, recorder)
+	err = controller.SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+
 	go func() {
-		err := sharedvolume.NewReconciler(api, make(chan struct{}), k8sClient, recorder).Reconcile(context.Background(), time.Second, 100*time.Millisecond, 30*time.Second, 2*time.Second)
-		Expect(err).ToNot(HaveOccurred())
+		err := mgr.Start(ctx)
+		Expect(err).NotTo(HaveOccurred(), "failed to start manager")
 	}()
 
 	close(done)
@@ -89,6 +99,7 @@ var _ = BeforeSuite(func(done Done) {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	cancel()
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })

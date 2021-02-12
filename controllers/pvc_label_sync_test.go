@@ -80,7 +80,7 @@ func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels m
 		err = api.AddVolume(vol)
 		Expect(err).NotTo(HaveOccurred(), "failed to create test volume in storageos")
 
-		mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{MetricsBindAddress: "0"})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 		gcInterval := defaultSyncInterval

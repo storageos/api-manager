@@ -45,26 +45,51 @@ var (
 // services that it requires to operate.
 type Reconciler struct {
 	client.Client
-	log      logr.Logger
-	api      storageos.VolumeSharer
-	apiReset chan<- struct{}
-	volumes  *cache.Cache
-	recorder record.EventRecorder
+	log                   logr.Logger
+	api                   storageos.VolumeSharer
+	apiReset              chan<- struct{}
+	apiPollInterval       time.Duration
+	cacheExpiryInterval   time.Duration
+	k8sCreatePollInterval time.Duration
+	k8sCreateWaitDuration time.Duration
+	volumes               *cache.Cache
+	recorder              record.EventRecorder
 }
 
 // NewReconciler returns a new SharedVolumeAPIReconciler.
-func NewReconciler(api storageos.VolumeSharer, apiReset chan<- struct{}, k8s client.Client, recorder record.EventRecorder) *Reconciler {
+func NewReconciler(
+	api storageos.VolumeSharer,
+	apiReset chan<- struct{},
+	k8s client.Client,
+	apiPollInterval time.Duration,
+	cacheExpiryInterval time.Duration,
+	k8sCreatePollInterval time.Duration,
+	k8sCreateWaitDuration time.Duration,
+	recorder record.EventRecorder) *Reconciler {
 	// Register prometheus metrics.
 	RegisterMetrics()
 
 	return &Reconciler{
-		Client:   k8s,
-		log:      ctrl.Log.WithName("controllers").WithName("SharedVolume"),
-		api:      api,
-		apiReset: apiReset,
-		volumes:  cache.New(defaultCacheExpiryInterval, defaultCacheCleanupInterval),
-		recorder: recorder,
+		Client:                k8s,
+		log:                   ctrl.Log.WithName("controllers").WithName("SharedVolume"),
+		api:                   api,
+		apiReset:              apiReset,
+		apiPollInterval:       apiPollInterval,
+		cacheExpiryInterval:   cacheExpiryInterval,
+		k8sCreatePollInterval: k8sCreatePollInterval,
+		k8sCreateWaitDuration: k8sCreateWaitDuration,
+		volumes:               cache.New(defaultCacheExpiryInterval, defaultCacheCleanupInterval),
+		recorder:              recorder,
 	}
+}
+
+// SetupWithManager registers with the controller manager.
+//
+// Since this is an external controller, we don't need to register the
+// controller, just add it as a Runnable so that the manager can control startup
+// and shutdown.
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return mgr.Add(r)
 }
 
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -72,10 +97,15 @@ func NewReconciler(api storageos.VolumeSharer, apiReset chan<- struct{}, k8s cli
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=endpoints/status,verbs=get;update;patch
 
-// Reconcile polls the StorageOS api and ensures that the K8s objects that are
-// required for shared volumes are present.  It does not handle deleting objects
-// that are no longer required, this is done via OwnerReferences.
-func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiryInterval, k8sCreatePollInterval, k8sCreateWaitDuration time.Duration) error {
+// Start runs the main reconcile loop until the context is cancelled or there is
+// a fatal error.  It implements the controller-runtime Runnable interface so
+// that it can be controlled by controller manager.
+//
+// It polls the StorageOS api every apiPollInterval and ensures that the K8s
+// objects that are required for shared volumes are present.  It does not handle
+// deleting objects that are no longer required, this is done via
+// OwnerReferences.
+func (r *Reconciler) Start(ctx context.Context) error {
 	for {
 		tr := otel.Tracer("shared-volume")
 		ctx, span := tr.Start(ctx, "shared volume reconciler")
@@ -142,7 +172,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 				Name:       pvc.Name,
 				UID:        pvc.UID,
 			}
-			externalEndpoint, err := r.ensureService(ctx, vol, ownerRef, k8sCreatePollInterval, k8sCreateWaitDuration)
+			externalEndpoint, err := r.ensureService(ctx, vol, ownerRef, r.k8sCreatePollInterval, r.k8sCreateWaitDuration)
 			if err != nil {
 				observeErr(err, "shared volume create/update failed")
 				span.End()
@@ -162,7 +192,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 
 			// Create/update/verify succeeded, update cache including resetting
 			// expiry.
-			r.volumes.Set(vol.ID, vol, cacheExpiryInterval)
+			r.volumes.Set(vol.ID, vol, r.cacheExpiryInterval)
 
 			span.SetStatus(codes.Ok, "shared volume reconciled")
 			span.End()
@@ -175,9 +205,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, apiPollInterval, cacheExpiry
 
 		// Wait before polling again or exit if the context has been cancelled.
 		select {
-		case <-time.After(apiPollInterval):
+		case <-time.After(r.apiPollInterval):
 		case <-ctx.Done():
-			return ctx.Err()
+			// Graceful shutdown, don't return error.
+			return nil
 		}
 	}
 }
