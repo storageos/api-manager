@@ -67,15 +67,12 @@ func (r *Reconciler) fenceNode(ctx context.Context, obj client.Object) error {
 
 		// Ignore pods that don't have the fenced label set.
 		fenced := false
-		for k, v := range pod.GetLabels() {
-			if k == storageos.ReservedLabelFencing {
-				enabled, err := strconv.ParseBool(v)
-				if err != nil {
-					log.Error(err, "failed to parse enabled value for storageos.com/fenced label, expected true/false")
-				}
-				fenced = enabled
-				break
+		if v, ok := pod.Labels[storageos.ReservedLabelFencing]; ok {
+			enabled, err := strconv.ParseBool(v)
+			if err != nil {
+				log.Error(err, "failed to parse enabled value for storageos.com/fenced label, expected true/false")
 			}
+			fenced = enabled
 		}
 		if !fenced {
 			log.Info("skipping pod without storageos.com/fenced=true label set")
