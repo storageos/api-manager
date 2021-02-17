@@ -5,9 +5,9 @@ node goes offline.  This is particularly useful when the workload is deployed
 using a StatefulSet.
 
 To protect data integrity, Kubernetes guarantees that there will never be more
-than one instance of a Pod running at a time.  It assumes that when a node is
+than one instance of a StatefulSet Pod running at a time.  It assumes that when a node is
 determined to be offline it may still be running but partitioned from the
-network and still running the workload.  Since it is unable to verify that the
+network and still running the workload.  Since Kubernetes is unable to verify that the
 Pod has been stopped it errs on the side of caution and does not allow a
 replacement to start on another node.
 

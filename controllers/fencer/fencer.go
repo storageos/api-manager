@@ -167,7 +167,7 @@ func (r *Reconciler) fencePod(ctx context.Context, pod *corev1.Pod, vaList *stor
 		span.SetAttributes(label.String("va", va.GetName()))
 		log = log.WithValues("va", va.GetName())
 
-		// This should neven happen as we're only prcessing StorageOS PVCs, but check anyways.
+		// This should never happen as we're only processing StorageOS PVCs, but check anyways.
 		if va.Spec.Attacher != DriverName {
 			span.RecordError(ErrUnexpectedVolumeAttacher)
 			log.Error(ErrUnexpectedVolumeAttacher, "skipping volume attachment removal, expected storageos attacher")
