@@ -52,7 +52,9 @@ type Reconciler struct {
 	cache           *cache.Object
 }
 
+// +kubebuilder:rbac:groups="",resources=node,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch
 // +kubebuilder:rbac:groups="storage.k8s.io",resources=volumeattachments,verbs=get;list;watch;delete
 
 // NewReconciler returns a new Node label reconciler.

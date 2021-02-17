@@ -37,6 +37,14 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - node
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - nodes
   verbs:
   - get
