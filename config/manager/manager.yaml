@@ -22,6 +22,18 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: control-plane
+                  operator: In
+                  values:
+                  - controller-manager
+              topologyKey: kubernetes.io/hostname
+            weight: 100
       containers:
       - command:
         - /manager
