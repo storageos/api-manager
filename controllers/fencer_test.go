@@ -576,7 +576,7 @@ var _ = Describe("Fencing controller", func() {
 		pod := genPod(podName, nsName, true, nodeName, pvcs)
 
 		SetupFencerTest(ctx, nsName, genNode(nodeName), pod, pvcs, pvs, vas, vols)
-		It("Should not delete the Pod when its node is unhealthy", func() {
+		It("Should delete the Pod when its node is unhealthy", func() {
 			By("Confirming Pod exists in k8s on node")
 			var gotPod corev1.Pod
 			Expect(k8sClient.Get(ctx, key(podName, nsName), &gotPod)).Should(Succeed())
@@ -641,7 +641,7 @@ var _ = Describe("Fencing controller", func() {
 		pod := genPod(podName, nsName, true, nodeName, pvcs)
 
 		SetupFencerTest(ctx, nsName, genNode(nodeName), pod, pvcs, nil, vas, vols)
-		It("Should not delete the Pod when its node is unhealthy", func() {
+		It("Should delete the Pod when its node is unhealthy", func() {
 			By("Confirming Pod exists in k8s on node")
 			var gotPod corev1.Pod
 			Expect(k8sClient.Get(ctx, key(podName, nsName), &gotPod)).Should(Succeed())
