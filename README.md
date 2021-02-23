@@ -134,7 +134,7 @@ the following environment variables:
 
 ```console
 JAEGER_DISABLED=false
-JAEGER_ENDPOINT=http://<service-address>:14268/api/traces environment
+JAEGER_ENDPOINT=http://<service-address>:14268/api/traces
 ```
 
 Tracing is not enabled by default.
