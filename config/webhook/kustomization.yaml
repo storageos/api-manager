@@ -4,3 +4,5 @@ resources:
 
 configurations:
 - kustomizeconfig.yaml
+
+namePrefix: storageos-

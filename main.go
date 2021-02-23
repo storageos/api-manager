@@ -23,19 +23,31 @@ import (
 	"os"
 	"time"
 
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
 	"github.com/darkowlzz/operator-toolkit/telemetry/export"
+	"github.com/darkowlzz/operator-toolkit/webhook/cert"
 	"go.uber.org/zap/zapcore"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/storageos/api-manager/controllers/admission/scheduler"
 	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
 	nodelabel "github.com/storageos/api-manager/controllers/node-label"
 	pvclabel "github.com/storageos/api-manager/controllers/pvc-label"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
+	"github.com/storageos/api-manager/internal/pkg/cluster"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	apimetrics "github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	// +kubebuilder:scaffold:imports
@@ -60,8 +72,17 @@ func init() {
 
 func main() {
 	var loggerOpts zap.Options
+	var namespace string
 	var metricsAddr string
 	var enableLeaderElection bool
+	var schedulerName string
+	var webhookServiceName string
+	var webhookServiceNamespace string
+	var webhookSecretName string
+	var webhookSecretNamespace string
+	var webhookConfigMutatingName string
+	var webhookMutatePodsPath string
+	var webhookCertRefreshInterval time.Duration
 	var apiSecretPath string
 	var apiEndpoint string
 	var apiPollInterval time.Duration
@@ -86,6 +107,15 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&namespace, "namespace", "", "Namespace that the StorageOS components, including api-manager, are installed into.  Will be auto-detected if unset.")
+	flag.StringVar(&schedulerName, "scheduler-name", "storageos-scheduler", "Name of the Pod scheduler to use for Pods with StorageOS volumes.  Set to an empty value to disable setting the Pod scheduler.")
+	flag.StringVar(&webhookServiceName, "webhook-service-name", "storageos-webhook", "Name of the webhook service.")
+	flag.StringVar(&webhookServiceNamespace, "webhook-service-namespace", "", "Namespace of the webhook service.  Will be auto-detected or value of -namespace if unset.")
+	flag.StringVar(&webhookSecretName, "webhook-secret-name", "storageos-webhook", "Name of the webhook secret containing the certificate.")
+	flag.StringVar(&webhookSecretNamespace, "webhook-secret-namespace", "", "Namespace of the webhook secret.  Will be auto-detected or value of -namespace if unset.")
+	flag.StringVar(&webhookConfigMutatingName, "webhook-config-mutating", "storageos-mutating-webhook", "Name of the mutating webhook configuration.")
+	flag.StringVar(&webhookMutatePodsPath, "webhook-mutate-pods-path", "/mutate-pods", "URL path of the Pod mutating webhook.")
+	flag.DurationVar(&webhookCertRefreshInterval, "webhook-cert-refresh-interval", 30*time.Minute, "Frequency of webhook certificate refresh.")
 	flag.StringVar(&apiSecretPath, "api-secret-path", "/etc/storageos/secrets/api", "Path where the StorageOS api secret is mounted.  The secret must have \"username\" and \"password\" set.")
 	flag.StringVar(&apiEndpoint, "api-endpoint", "storageos", "The StorageOS api endpoint address.")
 	flag.DurationVar(&apiPollInterval, "api-poll-interval", 5*time.Second, "Frequency of StorageOS api polling.")
@@ -163,6 +193,59 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create an uncached client to be used in the certificate manager.
+	// NOTE: Cached client from manager can't be used here because the cache is
+	// uninitialized at this point.
+	cli, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+	if err != nil {
+		setupLog.Error(err, "failed to create raw client")
+		os.Exit(1)
+	}
+
+	// Get the namespace that we're running in.  This will always be set in
+	// normal deployments, but allow it to be set manually for testing.
+	if namespace == "" {
+		namespace, err = cluster.Namespace()
+		if err != nil {
+			setupLog.Error(err, "unable to determine namespace, set --namespace.")
+		}
+	}
+
+	// The webhook secret and service should always be in the same namespace as
+	// the api-manager.
+	if webhookSecretNamespace == "" {
+		webhookSecretNamespace = namespace
+	}
+	if webhookServiceNamespace == "" {
+		webhookServiceNamespace = namespace
+	}
+
+	// Configure the certificate manager.
+	certOpts := cert.Options{
+		CertRefreshInterval: webhookCertRefreshInterval,
+		Service: &admissionregistrationv1.ServiceReference{
+			Name:      webhookServiceName,
+			Namespace: webhookServiceNamespace,
+		},
+		Client:                    cli,
+		SecretRef:                 &types.NamespacedName{Name: webhookSecretName, Namespace: webhookSecretNamespace},
+		MutatingWebhookConfigRefs: []types.NamespacedName{{Name: webhookConfigMutatingName}},
+	}
+	// Create certificate manager without manager to start the provisioning
+	// immediately.
+	// NOTE: Certificate Manager implements nonLeaderElectionRunnable interface
+	// but since the webhook server is also a nonLeaderElectionRunnable, they
+	// start at the same time, resulting in a race condition where sometimes
+	// the certificates aren't available when the webhook server starts. By
+	// passing nil instead of the manager, the certificate manager is not
+	// managed by the controller manager. It starts immediately, in a blocking
+	// fashion, ensuring that the cert is created before the webhook server
+	// starts.
+	if err := cert.NewManager(nil, certOpts); err != nil {
+		setupLog.Error(err, "unable to provision certificate")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	// Events sent on apiReset channel will trigger the api client to re-initialise.
@@ -207,6 +290,14 @@ func main() {
 		setupLog.Error(err, "failed to register namespace delete reconciler")
 		os.Exit(1)
 	}
+
+	// Register webhook controllers.
+	decoder, err := admission.NewDecoder(scheme)
+	if err != nil {
+		setupLog.Error(err, "failed to build decoder")
+		os.Exit(1)
+	}
+	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: scheduler.NewPodSchedulerSetter(mgr.GetClient(), decoder, schedulerName)})
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {

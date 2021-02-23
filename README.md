@@ -93,6 +93,8 @@ The following flags are supported:
     	Paths to a kubeconfig. Only required if out-of-cluster.
   -metrics-addr string
     	The address the metric endpoint binds to. (default ":8080")
+  -namespace string
+    	Namespace that the StorageOS components, including api-manager, are installed into.  Will be auto-detected if unset.
   -namespace-delete-gc-delay duration
     	Startup delay of initial namespace garbage collection. (default 20s)
   -namespace-delete-gc-interval duration
@@ -117,6 +119,22 @@ The following flags are supported:
     	Frequency of PVC label resync. (default 1h0m0s)
   -pvc-label-sync-workers int
     	Maximum concurrent PVC label sync operations. (default 5)
+  -scheduler-name string
+    	Name of the Pod scheduler to use for Pods with StorageOS volumes.  Set to an empty value to disable setting the Pod scheduler. (default "storageos-scheduler")
+  -webhook-cert-refresh-interval duration
+    	Frequency of webhook certificate refresh. (default 30m0s)
+  -webhook-config-mutating string
+    	Name of the mutating webhook configuration. (default "storageos-mutating-webhook")
+  -webhook-mutate-pods-path string
+    	URL path of the Pod mutating webhook. (default "/mutate-pods")
+  -webhook-secret-name string
+    	Name of the webhook secret containing the certificate. (default "storageos-webhook")
+  -webhook-secret-namespace string
+    	Namespace of the webhook secret.  Will be auto-detected or value of -namespace if unset.
+  -webhook-service-name string
+    	Name of the webhook service. (default "storageos-webhook")
+  -webhook-service-namespace string
+    	Namespace of the webhook service.  Will be auto-detected or value of -namespace if unset.
   -zap-devel
     	Development Mode defaults(encoder=consoleEncoder,logLevel=Debug,stackTraceLevel=Warn). Production Mode defaults(encoder=jsonEncoder,logLevel=Info,stackTraceLevel=Error)
   -zap-encoder value
@@ -124,7 +142,7 @@ The following flags are supported:
   -zap-log-level value
     	Zap Level to configure the verbosity of logging. Can be one of 'debug', 'info', 'error', or any integer value > 0 which corresponds to custom debug levels of increasing verbosity
   -zap-stacktrace-level value
-    	Zap Level at and above which stacktraces are captured (one of 'info', 'error').
+    	Zap Level at and above which stacktraces are captured (one of 'info', 'error', 'panic').
 ```
 
 ## Tracing

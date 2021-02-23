@@ -1,5 +1,18 @@
 # cloud.google.com/go v0.65.0
 cloud.google.com/go/compute/metadata
+# github.com/Azure/go-autorest v14.2.0+incompatible
+github.com/Azure/go-autorest
+# github.com/Azure/go-autorest/autorest v0.11.1
+github.com/Azure/go-autorest/autorest
+github.com/Azure/go-autorest/autorest/azure
+# github.com/Azure/go-autorest/autorest/adal v0.9.5
+github.com/Azure/go-autorest/autorest/adal
+# github.com/Azure/go-autorest/autorest/date v0.3.0
+github.com/Azure/go-autorest/autorest/date
+# github.com/Azure/go-autorest/logger v0.2.0
+github.com/Azure/go-autorest/logger
+# github.com/Azure/go-autorest/tracing v0.6.0
+github.com/Azure/go-autorest/tracing
 # github.com/DataDog/sketches-go v0.0.1
 github.com/DataDog/sketches-go/ddsketch
 # github.com/antihax/optional v1.0.0
@@ -10,17 +23,24 @@ github.com/apache/thrift/lib/go/thrift
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/darkowlzz/operator-toolkit v0.0.0-20210330120333-872c6b1f97ab
+# github.com/darkowlzz/operator-toolkit v0.0.0-20210303192340-282c7a37e084
 ## explicit
 github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1
 github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1
 github.com/darkowlzz/operator-toolkit/controller/sync/v1
+github.com/darkowlzz/operator-toolkit/internal/pkiutil
+github.com/darkowlzz/operator-toolkit/internal/webhook/cert
+github.com/darkowlzz/operator-toolkit/internal/webhook/cert/generator
+github.com/darkowlzz/operator-toolkit/internal/webhook/cert/writer
 github.com/darkowlzz/operator-toolkit/object
 github.com/darkowlzz/operator-toolkit/telemetry/export
+github.com/darkowlzz/operator-toolkit/webhook/cert
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/evanphx/json-patch v4.9.0+incompatible
 github.com/evanphx/json-patch
+# github.com/form3tech-oss/jwt-go v3.2.2+incompatible
+github.com/form3tech-oss/jwt-go
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/go-logr/logr v0.3.0
@@ -216,6 +236,8 @@ go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
 # golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
+golang.org/x/crypto/pkcs12
+golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 golang.org/x/net/context
@@ -520,8 +542,12 @@ k8s.io/client-go/pkg/apis/clientauthentication
 k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/pkg/version
+k8s.io/client-go/plugin/pkg/client/auth
+k8s.io/client-go/plugin/pkg/client/auth/azure
 k8s.io/client-go/plugin/pkg/client/auth/exec
 k8s.io/client-go/plugin/pkg/client/auth/gcp
+k8s.io/client-go/plugin/pkg/client/auth/oidc
+k8s.io/client-go/plugin/pkg/client/auth/openstack
 k8s.io/client-go/rest
 k8s.io/client-go/rest/watch
 k8s.io/client-go/restmapper

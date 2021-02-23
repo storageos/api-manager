@@ -6,8 +6,8 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	"github.com/storageos/api-manager/internal/pkg/annotation"
 	"github.com/storageos/api-manager/internal/pkg/predicate"
+	"github.com/storageos/api-manager/internal/pkg/provisioner"
 )
 
 // Predicate filters events before enqueuing the keys.  Ignore all but Update
@@ -25,7 +25,7 @@ type Predicate struct {
 // Update determines whether an object update should trigger a reconcile.
 func (p Predicate) Update(e event.UpdateEvent) bool {
 	// Ignore PVCs that aren't provisvioned by StorageOS.
-	if !annotation.StorageOSProvisioned(e.ObjectNew) {
+	if !provisioner.IsStorageOSPVC(e.ObjectNew) {
 		return false
 	}
 
