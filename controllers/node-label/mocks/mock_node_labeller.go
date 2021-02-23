@@ -6,36 +6,37 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	storageos "github.com/storageos/api-manager/internal/pkg/storageos"
 	types "k8s.io/apimachinery/pkg/types"
-	reflect "reflect"
 )
 
-// MockNodeLabeller is a mock of NodeLabeller interface
+// MockNodeLabeller is a mock of NodeLabeller interface.
 type MockNodeLabeller struct {
 	ctrl     *gomock.Controller
 	recorder *MockNodeLabellerMockRecorder
 }
 
-// MockNodeLabellerMockRecorder is the mock recorder for MockNodeLabeller
+// MockNodeLabellerMockRecorder is the mock recorder for MockNodeLabeller.
 type MockNodeLabellerMockRecorder struct {
 	mock *MockNodeLabeller
 }
 
-// NewMockNodeLabeller creates a new mock instance
+// NewMockNodeLabeller creates a new mock instance.
 func NewMockNodeLabeller(ctrl *gomock.Controller) *MockNodeLabeller {
 	mock := &MockNodeLabeller{ctrl: ctrl}
 	mock.recorder = &MockNodeLabellerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockNodeLabeller) EXPECT() *MockNodeLabellerMockRecorder {
 	return m.recorder
 }
 
-// EnsureNodeLabels mocks base method
+// EnsureNodeLabels mocks base method.
 func (m *MockNodeLabeller) EnsureNodeLabels(arg0 context.Context, arg1 types.NamespacedName, arg2 map[string]string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnsureNodeLabels", arg0, arg1, arg2)
@@ -43,13 +44,13 @@ func (m *MockNodeLabeller) EnsureNodeLabels(arg0 context.Context, arg1 types.Nam
 	return ret0
 }
 
-// EnsureNodeLabels indicates an expected call of EnsureNodeLabels
+// EnsureNodeLabels indicates an expected call of EnsureNodeLabels.
 func (mr *MockNodeLabellerMockRecorder) EnsureNodeLabels(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureNodeLabels", reflect.TypeOf((*MockNodeLabeller)(nil).EnsureNodeLabels), arg0, arg1, arg2)
 }
 
-// NodeObjects mocks base method
+// NodeObjects mocks base method.
 func (m *MockNodeLabeller) NodeObjects(arg0 context.Context) (map[types.NamespacedName]storageos.Object, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NodeObjects", arg0)
@@ -58,7 +59,7 @@ func (m *MockNodeLabeller) NodeObjects(arg0 context.Context) (map[types.Namespac
 	return ret0, ret1
 }
 
-// NodeObjects indicates an expected call of NodeObjects
+// NodeObjects indicates an expected call of NodeObjects.
 func (mr *MockNodeLabellerMockRecorder) NodeObjects(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NodeObjects", reflect.TypeOf((*MockNodeLabeller)(nil).NodeObjects), arg0)

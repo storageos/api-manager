@@ -6,36 +6,37 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	storageos "github.com/storageos/api-manager/internal/pkg/storageos"
 	types "k8s.io/apimachinery/pkg/types"
-	reflect "reflect"
 )
 
-// MockVolumeLabeller is a mock of VolumeLabeller interface
+// MockVolumeLabeller is a mock of VolumeLabeller interface.
 type MockVolumeLabeller struct {
 	ctrl     *gomock.Controller
 	recorder *MockVolumeLabellerMockRecorder
 }
 
-// MockVolumeLabellerMockRecorder is the mock recorder for MockVolumeLabeller
+// MockVolumeLabellerMockRecorder is the mock recorder for MockVolumeLabeller.
 type MockVolumeLabellerMockRecorder struct {
 	mock *MockVolumeLabeller
 }
 
-// NewMockVolumeLabeller creates a new mock instance
+// NewMockVolumeLabeller creates a new mock instance.
 func NewMockVolumeLabeller(ctrl *gomock.Controller) *MockVolumeLabeller {
 	mock := &MockVolumeLabeller{ctrl: ctrl}
 	mock.recorder = &MockVolumeLabellerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockVolumeLabeller) EXPECT() *MockVolumeLabellerMockRecorder {
 	return m.recorder
 }
 
-// EnsureVolumeLabels mocks base method
+// EnsureVolumeLabels mocks base method.
 func (m *MockVolumeLabeller) EnsureVolumeLabels(arg0 context.Context, arg1 types.NamespacedName, arg2 map[string]string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnsureVolumeLabels", arg0, arg1, arg2)
@@ -43,13 +44,13 @@ func (m *MockVolumeLabeller) EnsureVolumeLabels(arg0 context.Context, arg1 types
 	return ret0
 }
 
-// EnsureVolumeLabels indicates an expected call of EnsureVolumeLabels
+// EnsureVolumeLabels indicates an expected call of EnsureVolumeLabels.
 func (mr *MockVolumeLabellerMockRecorder) EnsureVolumeLabels(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureVolumeLabels", reflect.TypeOf((*MockVolumeLabeller)(nil).EnsureVolumeLabels), arg0, arg1, arg2)
 }
 
-// VolumeObjects mocks base method
+// VolumeObjects mocks base method.
 func (m *MockVolumeLabeller) VolumeObjects(arg0 context.Context) (map[types.NamespacedName]storageos.Object, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VolumeObjects", arg0)
@@ -58,7 +59,7 @@ func (m *MockVolumeLabeller) VolumeObjects(arg0 context.Context) (map[types.Name
 	return ret0, ret1
 }
 
-// VolumeObjects indicates an expected call of VolumeObjects
+// VolumeObjects indicates an expected call of VolumeObjects.
 func (mr *MockVolumeLabellerMockRecorder) VolumeObjects(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VolumeObjects", reflect.TypeOf((*MockVolumeLabeller)(nil).VolumeObjects), arg0)

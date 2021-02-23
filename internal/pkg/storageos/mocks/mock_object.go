@@ -5,34 +5,35 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockObject is a mock of Object interface
+// MockObject is a mock of Object interface.
 type MockObject struct {
 	ctrl     *gomock.Controller
 	recorder *MockObjectMockRecorder
 }
 
-// MockObjectMockRecorder is the mock recorder for MockObject
+// MockObjectMockRecorder is the mock recorder for MockObject.
 type MockObjectMockRecorder struct {
 	mock *MockObject
 }
 
-// NewMockObject creates a new mock instance
+// NewMockObject creates a new mock instance.
 func NewMockObject(ctrl *gomock.Controller) *MockObject {
 	mock := &MockObject{ctrl: ctrl}
 	mock.recorder = &MockObjectMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockObject) EXPECT() *MockObjectMockRecorder {
 	return m.recorder
 }
 
-// GetID mocks base method
+// GetID mocks base method.
 func (m *MockObject) GetID() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetID")
@@ -40,13 +41,13 @@ func (m *MockObject) GetID() string {
 	return ret0
 }
 
-// GetID indicates an expected call of GetID
+// GetID indicates an expected call of GetID.
 func (mr *MockObjectMockRecorder) GetID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetID", reflect.TypeOf((*MockObject)(nil).GetID))
 }
 
-// GetLabels mocks base method
+// GetLabels mocks base method.
 func (m *MockObject) GetLabels() map[string]string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLabels")
@@ -54,13 +55,13 @@ func (m *MockObject) GetLabels() map[string]string {
 	return ret0
 }
 
-// GetLabels indicates an expected call of GetLabels
+// GetLabels indicates an expected call of GetLabels.
 func (mr *MockObjectMockRecorder) GetLabels() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLabels", reflect.TypeOf((*MockObject)(nil).GetLabels))
 }
 
-// GetName mocks base method
+// GetName mocks base method.
 func (m *MockObject) GetName() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetName")
@@ -68,13 +69,13 @@ func (m *MockObject) GetName() string {
 	return ret0
 }
 
-// GetName indicates an expected call of GetName
+// GetName indicates an expected call of GetName.
 func (mr *MockObjectMockRecorder) GetName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetName", reflect.TypeOf((*MockObject)(nil).GetName))
 }
 
-// GetNamespace mocks base method
+// GetNamespace mocks base method.
 func (m *MockObject) GetNamespace() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNamespace")
@@ -82,7 +83,7 @@ func (m *MockObject) GetNamespace() string {
 	return ret0
 }
 
-// GetNamespace indicates an expected call of GetNamespace
+// GetNamespace indicates an expected call of GetNamespace.
 func (mr *MockObjectMockRecorder) GetNamespace() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockObject)(nil).GetNamespace))
