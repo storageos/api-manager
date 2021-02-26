@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/darkowlzz/operator-toolkit v0.0.0-20210127153629-3694257a34c2
 	github.com/go-logr/logr v0.3.0
-	github.com/golang/mock v1.4.4
+	github.com/golang/mock v1.5.0
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/onsi/ginkgo v1.14.1

@@ -6,36 +6,37 @@ package mocks
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
-	api "github.com/storageos/go-api/v2"
 	http "net/http"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+	api "github.com/storageos/go-api/v2"
 )
 
-// MockControlPlane is a mock of ControlPlane interface
+// MockControlPlane is a mock of ControlPlane interface.
 type MockControlPlane struct {
 	ctrl     *gomock.Controller
 	recorder *MockControlPlaneMockRecorder
 }
 
-// MockControlPlaneMockRecorder is the mock recorder for MockControlPlane
+// MockControlPlaneMockRecorder is the mock recorder for MockControlPlane.
 type MockControlPlaneMockRecorder struct {
 	mock *MockControlPlane
 }
 
-// NewMockControlPlane creates a new mock instance
+// NewMockControlPlane creates a new mock instance.
 func NewMockControlPlane(ctrl *gomock.Controller) *MockControlPlane {
 	mock := &MockControlPlane{ctrl: ctrl}
 	mock.recorder = &MockControlPlaneMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockControlPlane) EXPECT() *MockControlPlaneMockRecorder {
 	return m.recorder
 }
 
-// DeleteNamespace mocks base method
+// DeleteNamespace mocks base method.
 func (m *MockControlPlane) DeleteNamespace(arg0 context.Context, arg1, arg2 string, arg3 *api.DeleteNamespaceOpts) (*http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteNamespace", arg0, arg1, arg2, arg3)
@@ -44,13 +45,13 @@ func (m *MockControlPlane) DeleteNamespace(arg0 context.Context, arg1, arg2 stri
 	return ret0, ret1
 }
 
-// DeleteNamespace indicates an expected call of DeleteNamespace
+// DeleteNamespace indicates an expected call of DeleteNamespace.
 func (mr *MockControlPlaneMockRecorder) DeleteNamespace(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNamespace", reflect.TypeOf((*MockControlPlane)(nil).DeleteNamespace), arg0, arg1, arg2, arg3)
 }
 
-// DeleteNode mocks base method
+// DeleteNode mocks base method.
 func (m *MockControlPlane) DeleteNode(arg0 context.Context, arg1, arg2 string, arg3 *api.DeleteNodeOpts) (*http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteNode", arg0, arg1, arg2, arg3)
@@ -59,13 +60,13 @@ func (m *MockControlPlane) DeleteNode(arg0 context.Context, arg1, arg2 string, a
 	return ret0, ret1
 }
 
-// DeleteNode indicates an expected call of DeleteNode
+// DeleteNode indicates an expected call of DeleteNode.
 func (mr *MockControlPlaneMockRecorder) DeleteNode(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNode", reflect.TypeOf((*MockControlPlane)(nil).DeleteNode), arg0, arg1, arg2, arg3)
 }
 
-// GetVolume mocks base method
+// GetVolume mocks base method.
 func (m *MockControlPlane) GetVolume(arg0 context.Context, arg1, arg2 string) (api.Volume, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetVolume", arg0, arg1, arg2)
@@ -75,13 +76,13 @@ func (m *MockControlPlane) GetVolume(arg0 context.Context, arg1, arg2 string) (a
 	return ret0, ret1, ret2
 }
 
-// GetVolume indicates an expected call of GetVolume
+// GetVolume indicates an expected call of GetVolume.
 func (mr *MockControlPlaneMockRecorder) GetVolume(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVolume", reflect.TypeOf((*MockControlPlane)(nil).GetVolume), arg0, arg1, arg2)
 }
 
-// ListNamespaces mocks base method
+// ListNamespaces mocks base method.
 func (m *MockControlPlane) ListNamespaces(arg0 context.Context) ([]api.Namespace, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListNamespaces", arg0)
@@ -91,13 +92,13 @@ func (m *MockControlPlane) ListNamespaces(arg0 context.Context) ([]api.Namespace
 	return ret0, ret1, ret2
 }
 
-// ListNamespaces indicates an expected call of ListNamespaces
+// ListNamespaces indicates an expected call of ListNamespaces.
 func (mr *MockControlPlaneMockRecorder) ListNamespaces(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockControlPlane)(nil).ListNamespaces), arg0)
 }
 
-// ListNodes mocks base method
+// ListNodes mocks base method.
 func (m *MockControlPlane) ListNodes(arg0 context.Context) ([]api.Node, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListNodes", arg0)
@@ -107,13 +108,13 @@ func (m *MockControlPlane) ListNodes(arg0 context.Context) ([]api.Node, *http.Re
 	return ret0, ret1, ret2
 }
 
-// ListNodes indicates an expected call of ListNodes
+// ListNodes indicates an expected call of ListNodes.
 func (mr *MockControlPlaneMockRecorder) ListNodes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodes", reflect.TypeOf((*MockControlPlane)(nil).ListNodes), arg0)
 }
 
-// ListVolumes mocks base method
+// ListVolumes mocks base method.
 func (m *MockControlPlane) ListVolumes(arg0 context.Context, arg1 string) ([]api.Volume, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListVolumes", arg0, arg1)
@@ -123,13 +124,13 @@ func (m *MockControlPlane) ListVolumes(arg0 context.Context, arg1 string) ([]api
 	return ret0, ret1, ret2
 }
 
-// ListVolumes indicates an expected call of ListVolumes
+// ListVolumes indicates an expected call of ListVolumes.
 func (mr *MockControlPlaneMockRecorder) ListVolumes(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVolumes", reflect.TypeOf((*MockControlPlane)(nil).ListVolumes), arg0, arg1)
 }
 
-// RefreshJwt mocks base method
+// RefreshJwt mocks base method.
 func (m *MockControlPlane) RefreshJwt(arg0 context.Context) (api.UserSession, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshJwt", arg0)
@@ -139,13 +140,13 @@ func (m *MockControlPlane) RefreshJwt(arg0 context.Context) (api.UserSession, *h
 	return ret0, ret1, ret2
 }
 
-// RefreshJwt indicates an expected call of RefreshJwt
+// RefreshJwt indicates an expected call of RefreshJwt.
 func (mr *MockControlPlaneMockRecorder) RefreshJwt(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshJwt", reflect.TypeOf((*MockControlPlane)(nil).RefreshJwt), arg0)
 }
 
-// SetComputeOnly mocks base method
+// SetComputeOnly mocks base method.
 func (m *MockControlPlane) SetComputeOnly(arg0 context.Context, arg1 string, arg2 api.SetComputeOnlyNodeData, arg3 *api.SetComputeOnlyOpts) (api.Node, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetComputeOnly", arg0, arg1, arg2, arg3)
@@ -155,13 +156,13 @@ func (m *MockControlPlane) SetComputeOnly(arg0 context.Context, arg1 string, arg
 	return ret0, ret1, ret2
 }
 
-// SetComputeOnly indicates an expected call of SetComputeOnly
+// SetComputeOnly indicates an expected call of SetComputeOnly.
 func (mr *MockControlPlaneMockRecorder) SetComputeOnly(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetComputeOnly", reflect.TypeOf((*MockControlPlane)(nil).SetComputeOnly), arg0, arg1, arg2, arg3)
 }
 
-// SetReplicas mocks base method
+// SetReplicas mocks base method.
 func (m *MockControlPlane) SetReplicas(arg0 context.Context, arg1, arg2 string, arg3 api.SetReplicasRequest, arg4 *api.SetReplicasOpts) (api.AcceptedMessage, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetReplicas", arg0, arg1, arg2, arg3, arg4)
@@ -171,13 +172,13 @@ func (m *MockControlPlane) SetReplicas(arg0 context.Context, arg1, arg2 string, 
 	return ret0, ret1, ret2
 }
 
-// SetReplicas indicates an expected call of SetReplicas
+// SetReplicas indicates an expected call of SetReplicas.
 func (mr *MockControlPlaneMockRecorder) SetReplicas(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReplicas", reflect.TypeOf((*MockControlPlane)(nil).SetReplicas), arg0, arg1, arg2, arg3, arg4)
 }
 
-// UpdateNFSVolumeMountEndpoint mocks base method
+// UpdateNFSVolumeMountEndpoint mocks base method.
 func (m *MockControlPlane) UpdateNFSVolumeMountEndpoint(arg0 context.Context, arg1, arg2 string, arg3 api.NfsVolumeMountEndpoint, arg4 *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateNFSVolumeMountEndpoint", arg0, arg1, arg2, arg3, arg4)
@@ -186,13 +187,13 @@ func (m *MockControlPlane) UpdateNFSVolumeMountEndpoint(arg0 context.Context, ar
 	return ret0, ret1
 }
 
-// UpdateNFSVolumeMountEndpoint indicates an expected call of UpdateNFSVolumeMountEndpoint
+// UpdateNFSVolumeMountEndpoint indicates an expected call of UpdateNFSVolumeMountEndpoint.
 func (mr *MockControlPlaneMockRecorder) UpdateNFSVolumeMountEndpoint(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNFSVolumeMountEndpoint", reflect.TypeOf((*MockControlPlane)(nil).UpdateNFSVolumeMountEndpoint), arg0, arg1, arg2, arg3, arg4)
 }
 
-// UpdateNode mocks base method
+// UpdateNode mocks base method.
 func (m *MockControlPlane) UpdateNode(arg0 context.Context, arg1 string, arg2 api.UpdateNodeData) (api.Node, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateNode", arg0, arg1, arg2)
@@ -202,13 +203,13 @@ func (m *MockControlPlane) UpdateNode(arg0 context.Context, arg1 string, arg2 ap
 	return ret0, ret1, ret2
 }
 
-// UpdateNode indicates an expected call of UpdateNode
+// UpdateNode indicates an expected call of UpdateNode.
 func (mr *MockControlPlaneMockRecorder) UpdateNode(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNode", reflect.TypeOf((*MockControlPlane)(nil).UpdateNode), arg0, arg1, arg2)
 }
 
-// UpdateVolume mocks base method
+// UpdateVolume mocks base method.
 func (m *MockControlPlane) UpdateVolume(arg0 context.Context, arg1, arg2 string, arg3 api.UpdateVolumeData, arg4 *api.UpdateVolumeOpts) (api.Volume, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateVolume", arg0, arg1, arg2, arg3, arg4)
@@ -218,7 +219,7 @@ func (m *MockControlPlane) UpdateVolume(arg0 context.Context, arg1, arg2 string,
 	return ret0, ret1, ret2
 }
 
-// UpdateVolume indicates an expected call of UpdateVolume
+// UpdateVolume indicates an expected call of UpdateVolume.
 func (mr *MockControlPlaneMockRecorder) UpdateVolume(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateVolume", reflect.TypeOf((*MockControlPlane)(nil).UpdateVolume), arg0, arg1, arg2, arg3, arg4)
