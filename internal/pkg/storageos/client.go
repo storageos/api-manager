@@ -25,6 +25,7 @@ import (
 // mocks regenerated.
 type ControlPlane interface {
 	RefreshJwt(ctx context.Context) (api.UserSession, *http.Response, error)
+	AuthenticateUser(ctx context.Context, authUserData api.AuthUserData) (api.UserSession, *http.Response, error)
 	ListNamespaces(ctx context.Context) ([]api.Namespace, *http.Response, error)
 	DeleteNamespace(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNamespaceOpts) (*http.Response, error)
 	ListNodes(ctx context.Context) ([]api.Node, *http.Response, error)
