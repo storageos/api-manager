@@ -21,13 +21,6 @@ var (
 	ErrNamespaceInUse = errors.New("namespace still in use")
 )
 
-//NamespaceDeleter provides access to removing namespaces from StorageOS.
-//go:generate mockgen -destination=mocks/mock_namespace_deleter.go -package=mocks . NamespaceDeleter
-type NamespaceDeleter interface {
-	DeleteNamespace(ctx context.Context, key client.ObjectKey) error
-	ListNamespaces(ctx context.Context) ([]Object, error)
-}
-
 // ListNamespaces returns a list of all StorageOS namespace objects.
 func (c *Client) ListNamespaces(ctx context.Context) ([]Object, error) {
 	funcName := "list_namespaces"

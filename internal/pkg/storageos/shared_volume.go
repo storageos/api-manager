@@ -34,13 +34,6 @@ var (
 	ErrListingVolumes = errors.New("failed to list volumes")
 )
 
-// VolumeSharer provides access to StorageOS SharedVolumes.
-//go:generate mockgen -destination=mocks/mock_volume_sharer.go -package=mocks . VolumeSharer
-type VolumeSharer interface {
-	ListSharedVolumes(ctx context.Context) (SharedVolumeList, error)
-	SetExternalEndpoint(ctx context.Context, volID string, namespace string, endpoint string) error
-}
-
 // ListSharedVolumes returns a list of active shared volumes.
 func (c *Client) ListSharedVolumes(ctx context.Context) (SharedVolumeList, error) {
 	funcName := "list_shared_volumes"

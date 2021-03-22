@@ -23,13 +23,6 @@ var (
 	ErrNodeHasLock = errors.New("node lock has not yet expired")
 )
 
-//NodeDeleter provides access to removing nodes from StorageOS.
-//go:generate mockgen -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
-type NodeDeleter interface {
-	DeleteNode(ctx context.Context, key client.ObjectKey) error
-	ListNodes(ctx context.Context) ([]Object, error)
-}
-
 // NodeObjects returns a map of node objects, indexed on ObjectKey for efficient
 // lookups.
 func (c *Client) NodeObjects(ctx context.Context) (map[client.ObjectKey]Object, error) {
