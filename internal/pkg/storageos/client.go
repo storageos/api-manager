@@ -198,7 +198,7 @@ func Authenticate(client *api.APIClient, username, password string) (context.Con
 // Errors are currently logged at info level since they will be retried and
 // should be recoverable.  Only a cancelled context will cause this to stop.  Be
 // aware that any errors returned will trigger a process shutdown.
-func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset chan struct{}, interval time.Duration, resultCounter metrics.ResultMetric, log logr.Logger) error {
+func (c *Client) Refresh(ctx context.Context, secretPath string, reset chan struct{}, interval time.Duration, resultCounter metrics.ResultMetric, log logr.Logger) error {
 	if c.api == nil || c.transport == nil {
 		return ErrNotInitialized
 	}
@@ -209,14 +209,31 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 			// Refresh will fail if the token has already expired.
 			_, resp, err := c.api.RefreshJwt(c.ctx)
 			if err != nil {
-				log.Info("failed to refresh storageos api credentials", "error", err)
+				log.Info("failed to refresh storageos api credentials, reauthenticating immediately", "error", err)
 				if c.traced {
 					resultCounter.Increment("refresh_token", api.MapAPIError(err, resp))
 				}
-				// Trigger api client reset on refresh failures.  This allows
-				// the client to recover if the token was not able to be
-				// refreshed before it expired.
-				reset <- struct{}{}
+				// Reset the api client directly on refresh errors. We can't
+				// send to the reset channel as it may cause a deadlock.  We may
+				// also have a reset queued in the channel but that's ok, we'll
+				// just reset twice.
+				//
+				// We need to trigger here since the standby manager won't have
+				// controllers polling the api, so the token refresh is the only
+				// place we'll detect an error.
+				newCtx, err := c.resetClient(secretPath)
+				if err != nil {
+					if c.traced {
+						resultCounter.Increment("reset_api", err)
+					}
+					log.Error(err, "failed to reset storageos api client")
+					continue
+				}
+				c.ctx = newCtx
+				if c.traced {
+					resultCounter.Increment("reset_api", nil)
+				}
+				log.V(5).Info("reset storageos api client")
 				continue
 			}
 			defer resp.Body.Close()
@@ -232,31 +249,56 @@ func (c *Client) Refresh(ctx context.Context, secretPath, endpoint string, reset
 			if c.traced {
 				resultCounter.Increment("refresh_token", nil)
 			}
+			log.V(5).Info("refreshed storageos api token")
 		case <-reset:
-			username, password, err := ReadCredsFromMountedSecret(secretPath)
+			log.V(5).Info("processing request to reset storageos api client")
+			newCtx, err := c.resetClient(secretPath)
 			if err != nil {
-				resultCounter.Increment("reset_api", err)
-				continue
-			}
-			// Create new api client on any api errors.
-			clientCtx, api, err := newAuthenticatedClient(username, password, endpoint, c.transport)
-			if err != nil {
-				log.Info("failed to recreate storageos api client", "error", err)
 				if c.traced {
 					resultCounter.Increment("reset_api", err)
 				}
+				log.Error(err, "failed to reset storageos api client")
 				continue
 			}
-			c.api = api.DefaultApi
-			c.ctx = clientCtx
+			c.ctx = newCtx
 			if c.traced {
 				resultCounter.Increment("reset_api", nil)
 			}
+			log.V(5).Info("reset storageos api client")
 		case <-ctx.Done():
 			// Clean shutdown.
 			return ctx.Err()
 		}
 	}
+}
+
+// resetClient resets the api client by reauthenticating and returning a new
+// client context.
+func (c *Client) resetClient(secretPath string) (context.Context, error) {
+	username, password, err := ReadCredsFromMountedSecret(secretPath)
+	if err != nil {
+		return nil, err
+	}
+	// Create context just for the login.
+	ctx, cancel := context.WithTimeout(context.Background(), AuthenticationTimeout)
+	defer cancel()
+
+	// Initial basic auth to retrieve the jwt token.
+	_, resp, err := c.api.AuthenticateUser(ctx, api.AuthUserData{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		return nil, api.MapAPIError(err, resp)
+	}
+	defer resp.Body.Close()
+
+	// Set auth token in a new context for re-use.
+	token := respAuthToken(resp)
+	if token == "" {
+		return nil, ErrNoAuthToken
+	}
+	return context.WithValue(context.Background(), api.ContextAccessToken, token), nil
 }
 
 // AddToken adds the current authentication token to a given context.

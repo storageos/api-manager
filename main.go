@@ -175,7 +175,7 @@ func main() {
 	// Goroutine to handle api credential refreshes and client reconnects
 	// whenever events are received on the apiReset channel.
 	go func() {
-		err := api.Refresh(ctx, apiSecretPath, apiEndpoint, apiReset, apiRefreshInterval, apimetrics.Errors, setupLog)
+		err := api.Refresh(ctx, apiSecretPath, apiReset, apiRefreshInterval, apimetrics.Errors, setupLog)
 		setupLog.Info("api token refresh stopped", "reason", err)
 		os.Exit(1)
 	}()
