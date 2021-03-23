@@ -20,15 +20,17 @@ import (
 )
 
 func TestClient_Refresh(t *testing.T) {
+	testUsername := "bob"
+	testPassword := "password1"
 	secretPath, err := ioutil.TempDir("", "secrets")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(secretPath)
-	if err := ioutil.WriteFile(filepath.Join(secretPath, "username"), []byte("username"), 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(secretPath, secretUsernameKey), []byte(testUsername), 0644); err != nil {
 		t.Fatalf("failed to write username file: %v", err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(secretPath, "password"), []byte("password"), 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(secretPath, secretPasswordKey), []byte(testPassword), 0644); err != nil {
 		t.Fatalf("failed to write password file: %v", err)
 	}
 
@@ -74,7 +76,7 @@ func TestClient_Refresh(t *testing.T) {
 					Body: ioutil.NopCloser(bytes.NewReader([]byte(""))),
 				}
 				m.EXPECT().RefreshJwt(gomock.Any()).Return(api.UserSession{}, nil, errRefresh).Times(1)
-				m.EXPECT().AuthenticateUser(gomock.Any(), api.AuthUserData{Username: "username", Password: "password"}).Return(api.UserSession{}, httpResp, nil).Times(1)
+				m.EXPECT().AuthenticateUser(gomock.Any(), api.AuthUserData{Username: testUsername, Password: testPassword}).Return(api.UserSession{}, httpResp, nil).Times(1)
 				m.EXPECT().RefreshJwt(gomock.Any()).Return(api.UserSession{}, httpResp, nil).Times(9)
 			},
 			wantErrors: map[error]int{
@@ -94,7 +96,7 @@ func TestClient_Refresh(t *testing.T) {
 					},
 					Body: ioutil.NopCloser(bytes.NewReader([]byte(""))),
 				}
-				m.EXPECT().AuthenticateUser(gomock.Any(), api.AuthUserData{Username: "username", Password: "password"}).Return(api.UserSession{}, httpResp, nil).Times(5)
+				m.EXPECT().AuthenticateUser(gomock.Any(), api.AuthUserData{Username: testUsername, Password: testPassword}).Return(api.UserSession{}, httpResp, nil).Times(5)
 			},
 		},
 		{
@@ -107,7 +109,7 @@ func TestClient_Refresh(t *testing.T) {
 					Body: ioutil.NopCloser(bytes.NewReader([]byte(""))),
 				}
 				m.EXPECT().RefreshJwt(gomock.Any()).Return(api.UserSession{}, nil, errRefresh).Times(10)
-				m.EXPECT().AuthenticateUser(gomock.Any(), api.AuthUserData{Username: "username", Password: "password"}).Return(api.UserSession{}, httpResp, errors.New("auth error")).Times(10)
+				m.EXPECT().AuthenticateUser(gomock.Any(), api.AuthUserData{Username: testUsername, Password: testPassword}).Return(api.UserSession{}, httpResp, errors.New("auth error")).Times(10)
 			},
 			wantErrors: map[error]int{
 				errRefresh: 10,
@@ -124,7 +126,7 @@ func TestClient_Refresh(t *testing.T) {
 					Body: ioutil.NopCloser(bytes.NewReader([]byte(""))),
 				}
 				m.EXPECT().RefreshJwt(gomock.Any()).Return(api.UserSession{}, nil, errRefresh).Times(10)
-				m.EXPECT().AuthenticateUser(gomock.Any(), api.AuthUserData{Username: "username", Password: "password"}).Return(api.UserSession{}, httpResp, errAuth).Times(15)
+				m.EXPECT().AuthenticateUser(gomock.Any(), api.AuthUserData{Username: testUsername, Password: testPassword}).Return(api.UserSession{}, httpResp, errAuth).Times(15)
 			},
 			wantErrors: map[error]int{
 				errRefresh: 10,

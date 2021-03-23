@@ -16,6 +16,14 @@ import (
 	api "github.com/storageos/go-api/v2"
 )
 
+const (
+	// secretUsernameKey is the key in the secret that holds the username value.
+	secretUsernameKey = "username"
+
+	// secretPasswordKey is the key in the secret that holds the password value.
+	secretPasswordKey = "password"
+)
+
 //go:generate mockgen -destination=mocks/mock_control_plane.go -package=mocks . ControlPlane
 //go:generate mockgen -destination=mocks/mock_identifier.go -package=mocks . Identifier
 //go:generate mockgen -destination=mocks/mock_object.go -package=mocks . Object
@@ -319,11 +327,11 @@ func respAuthToken(resp *http.Response) string {
 // Kubernetes secret mounted at the given path.  If the username or password in
 // the secret changes, the data in the mounted file will also change.
 func ReadCredsFromMountedSecret(path string) (string, string, error) {
-	username, err := secret.Read(filepath.Join(path, "username"))
+	username, err := secret.Read(filepath.Join(path, secretUsernameKey))
 	if err != nil {
 		return "", "", err
 	}
-	password, err := secret.Read(filepath.Join(path, "password"))
+	password, err := secret.Read(filepath.Join(path, secretPasswordKey))
 	if err != nil {
 		return "", "", err
 	}
