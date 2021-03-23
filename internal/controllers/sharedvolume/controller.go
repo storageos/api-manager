@@ -39,19 +39,26 @@ var (
 	ErrCastCache = errors.New("failed to cast object from cache")
 )
 
+// VolumeSharer provides access to StorageOS SharedVolumes.
+//go:generate mockgen -destination=mocks/mock_volume_sharer.go -package=mocks . VolumeSharer
+type VolumeSharer interface {
+	ListSharedVolumes() (storageos.SharedVolumeList, error)
+	SetExternalEndpoint(volID string, namespace string, endpoint string) error
+}
+
 // Reconciler reconciles a SharedVolume object by creating the Kubernetes
 // services that it requires to operate.
 type Reconciler struct {
 	client.Client
 	log      logr.Logger
-	api      storageos.VolumeSharer
+	api      VolumeSharer
 	apiReset chan<- struct{}
 	volumes  *cache.Cache
 	recorder record.EventRecorder
 }
 
 // NewReconciler returns a new SharedVolumeAPIReconciler.
-func NewReconciler(api storageos.VolumeSharer, apiReset chan<- struct{}, k8s client.Client, recorder record.EventRecorder) *Reconciler {
+func NewReconciler(api VolumeSharer, apiReset chan<- struct{}, k8s client.Client, recorder record.EventRecorder) *Reconciler {
 	// Register prometheus metrics.
 	RegisterMetrics()
 

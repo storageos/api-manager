@@ -12,10 +12,32 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+
 	"github.com/storageos/api-manager/internal/pkg/secret"
 	"github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	api "github.com/storageos/go-api/v2"
 )
+
+//go:generate mockgen -destination=mocks/mock_control_plane.go -package=mocks . ControlPlane
+
+// ControlPlane is the subset of the StorageOS control plane ControlPlane that
+// api-manager requires.  New methods should be added here as needed, then the
+// mocks regenerated.
+type ControlPlane interface {
+	RefreshJwt(ctx context.Context) (api.UserSession, *http.Response, error)
+	AuthenticateUser(ctx context.Context, authUserData api.AuthUserData) (api.UserSession, *http.Response, error)
+	ListNamespaces(ctx context.Context) ([]api.Namespace, *http.Response, error)
+	DeleteNamespace(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNamespaceOpts) (*http.Response, error)
+	ListNodes(ctx context.Context) ([]api.Node, *http.Response, error)
+	UpdateNode(ctx context.Context, id string, updateNodeData api.UpdateNodeData) (api.Node, *http.Response, error)
+	DeleteNode(ctx context.Context, id string, version string, localVarOptionals *api.DeleteNodeOpts) (*http.Response, error)
+	// SetComputeOnly(ctx context.Context, id string, setComputeOnlyNodeData api.SetComputeOnlyNodeData, localVarOptionals *api.SetComputeOnlyOpts) (api.Node, *http.Response, error)
+	ListVolumes(ctx context.Context, namespaceID string) ([]api.Volume, *http.Response, error)
+	GetVolume(ctx context.Context, namespaceID string, id string) (api.Volume, *http.Response, error)
+	UpdateVolume(ctx context.Context, namespaceID string, id string, updateVolumeData api.UpdateVolumeData, localVarOptionals *api.UpdateVolumeOpts) (api.Volume, *http.Response, error)
+	SetReplicas(ctx context.Context, namespaceID string, id string, setReplicasRequest api.SetReplicasRequest, localVarOptionals *api.SetReplicasOpts) (api.AcceptedMessage, *http.Response, error)
+	UpdateNFSVolumeMountEndpoint(ctx context.Context, namespaceID string, id string, nfsVolumeMountEndpoint api.NfsVolumeMountEndpoint, localVarOptionals *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error)
+}
 
 // Client provides access to the StorageOS API.
 type Client struct {

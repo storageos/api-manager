@@ -38,12 +38,6 @@ var (
 	ErrListingVolumes = errors.New("failed to list volumes")
 )
 
-// VolumeSharer provides access to StorageOS SharedVolumes.
-type VolumeSharer interface {
-	ListSharedVolumes() (SharedVolumeList, error)
-	SetExternalEndpoint(id string, namespace string, endpoint string) error
-}
-
 // ListSharedVolumes returns a list of active shared volumes.
 func (c *Client) ListSharedVolumes() (SharedVolumeList, error) {
 	funcName := "list_shared_volumes"

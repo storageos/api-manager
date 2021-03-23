@@ -68,7 +68,8 @@ func TestSplitAddressPort(t *testing.T) {
 		if address, port, err := SplitAddressPort(tt.addressPort); err == nil {
 			t.Errorf("SplitAddressPort(%q) should have failed", tt.addressPort)
 		} else {
-			switch err.(type) { //nolint:gosimple // Test taken from elsewhere.
+			//nolint:gosimple // Test taken from elsewhere.
+			switch err.(type) {
 			case *net.AddrError:
 				e := err.(*net.AddrError)
 				if e.Err != tt.err {
