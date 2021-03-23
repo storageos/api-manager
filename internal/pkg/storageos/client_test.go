@@ -22,22 +22,12 @@ import (
 func TestClient_Refresh(t *testing.T) {
 	testUsername := "bob"
 	testPassword := "password1"
-	secretPath, err := ioutil.TempDir("", "secrets")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(secretPath)
-	if err := ioutil.WriteFile(filepath.Join(secretPath, secretUsernameKey), []byte(testUsername), 0644); err != nil {
-		t.Fatalf("failed to write username file: %v", err)
-	}
-	if err := ioutil.WriteFile(filepath.Join(secretPath, secretPasswordKey), []byte(testPassword), 0644); err != nil {
-		t.Fatalf("failed to write password file: %v", err)
-	}
-
 	token := "faketoken"
 
 	errRefresh := errors.New("refresh error")
 	errAuth := errors.New("auth error")
+
+	t.Parallel()
 
 	tests := []struct {
 		name       string
@@ -137,6 +127,20 @@ func TestClient_Refresh(t *testing.T) {
 	for _, tt := range tests {
 		var tt = tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			secretPath, err := ioutil.TempDir("", "secrets")
+			if err != nil {
+				t.Fatalf("failed to create temp dir: %v", err)
+			}
+			defer os.RemoveAll(secretPath)
+			if err := ioutil.WriteFile(filepath.Join(secretPath, secretUsernameKey), []byte(testUsername), 0644); err != nil {
+				t.Fatalf("failed to write username file: %v", err)
+			}
+			if err := ioutil.WriteFile(filepath.Join(secretPath, secretPasswordKey), []byte(testPassword), 0644); err != nil {
+				t.Fatalf("failed to write password file: %v", err)
+			}
+
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			mockCP := mocks.NewMockControlPlane(mockCtrl)
