@@ -24,7 +24,7 @@ WORKDIR /
 LABEL name="api-manager" \
     maintainer="support@storageos.com" \
     vendor="StorageOS" \
-    version="v1.0.1" \
+    version="v1.0.2" \
     release="1" \
     distribution-scope="public" \
     architecture="x86_64" \
