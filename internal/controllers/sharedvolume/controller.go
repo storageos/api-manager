@@ -41,12 +41,19 @@ var (
 	ErrCastCache = errors.New("failed to cast object from cache")
 )
 
+// VolumeSharer provides access to StorageOS SharedVolumes.
+//go:generate mockgen -destination=mocks/mock_volume_sharer.go -package=mocks . VolumeSharer
+type VolumeSharer interface {
+	ListSharedVolumes(ctx context.Context) (storageos.SharedVolumeList, error)
+	SetExternalEndpoint(ctx context.Context, volID string, namespace string, endpoint string) error
+}
+
 // Reconciler reconciles a SharedVolume object by creating the Kubernetes
 // services that it requires to operate.
 type Reconciler struct {
 	client.Client
 	log                   logr.Logger
-	api                   storageos.VolumeSharer
+	api                   VolumeSharer
 	apiReset              chan<- struct{}
 	apiPollInterval       time.Duration
 	cacheExpiryInterval   time.Duration
@@ -58,7 +65,7 @@ type Reconciler struct {
 
 // NewReconciler returns a new SharedVolumeAPIReconciler.
 func NewReconciler(
-	api storageos.VolumeSharer,
+	api VolumeSharer,
 	apiReset chan<- struct{},
 	k8s client.Client,
 	apiPollInterval time.Duration,

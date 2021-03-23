@@ -1,6 +1,7 @@
 package nsdelete
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -15,12 +16,19 @@ import (
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
+//NamespaceDeleter provides access to removing namespaces from StorageOS.
+//go:generate mockgen -destination=mocks/mock_namespace_deleter.go -package=mocks . NamespaceDeleter
+type NamespaceDeleter interface {
+	DeleteNamespace(ctx context.Context, key client.ObjectKey) error
+	ListNamespaces(ctx context.Context) ([]storageos.Object, error)
+}
+
 // Reconciler reconciles a Namespace object by deleting the StorageOS namespace
 // when the corresponding Kubernetes namespace is deleted.
 type Reconciler struct {
 	client.Client
 	log        logr.Logger
-	api        storageos.NamespaceDeleter
+	api        NamespaceDeleter
 	gcDelay    time.Duration
 	gcInterval time.Duration
 
@@ -33,7 +41,7 @@ type Reconciler struct {
 //
 // The gcInterval determines how often the periodic resync operation should be
 // run.
-func NewReconciler(api storageos.NamespaceDeleter, k8s client.Client, gcDelay time.Duration, gcInterval time.Duration) *Reconciler {
+func NewReconciler(api NamespaceDeleter, k8s client.Client, gcDelay time.Duration, gcInterval time.Duration) *Reconciler {
 	return &Reconciler{
 		Client:     k8s,
 		log:        ctrl.Log,

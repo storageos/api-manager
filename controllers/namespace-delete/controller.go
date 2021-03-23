@@ -18,7 +18,7 @@ import (
 // namespaces in StorageOS when they have been detected as deleted in
 // Kubernetes.
 type Controller struct {
-	api storageos.NamespaceDeleter
+	api NamespaceDeleter
 	log logr.Logger
 }
 
@@ -26,7 +26,7 @@ var _ syncv1.Controller = &Controller{}
 
 // NewController returns a Controller that implements namespace garbage
 // collection in StorageOS.
-func NewController(api storageos.NamespaceDeleter, log logr.Logger) (*Controller, error) {
+func NewController(api NamespaceDeleter, log logr.Logger) (*Controller, error) {
 	return &Controller{api: api, log: log}, nil
 }
 

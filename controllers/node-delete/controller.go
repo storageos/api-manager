@@ -17,7 +17,7 @@ import (
 // Controller implements the SyncReconciler contoller interface, deleting nodes
 // in StorageOS when they have been detected as deleted in Kubernetes.
 type Controller struct {
-	api storageos.NodeDeleter
+	api NodeDeleter
 	log logr.Logger
 }
 
@@ -25,7 +25,7 @@ var _ syncv1.Controller = &Controller{}
 
 // NewController returns a Controller that implements node garbage collection in
 // StorageOS.
-func NewController(api storageos.NodeDeleter, log logr.Logger) (*Controller, error) {
+func NewController(api NodeDeleter, log logr.Logger) (*Controller, error) {
 	return &Controller{api: api, log: log}, nil
 }
 

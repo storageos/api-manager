@@ -1,6 +1,7 @@
 package nodedelete
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -15,12 +16,19 @@ import (
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
+//NodeDeleter provides access to removing nodes from StorageOS.
+//go:generate mockgen -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
+type NodeDeleter interface {
+	DeleteNode(ctx context.Context, key client.ObjectKey) error
+	ListNodes(ctx context.Context) ([]storageos.Object, error)
+}
+
 // Reconciler reconciles a Node object by deleting the StorageOS node object
 // when the corresponding Kubernetes node is deleted.
 type Reconciler struct {
 	client.Client
 	log        logr.Logger
-	api        storageos.NodeDeleter
+	api        NodeDeleter
 	gcDelay    time.Duration
 	gcInterval time.Duration
 
@@ -33,7 +41,7 @@ type Reconciler struct {
 //
 // The gcInterval determines how often the periodic resync operation should be
 // run.
-func NewReconciler(api storageos.NodeDeleter, k8s client.Client, gcDelay time.Duration, gcInterval time.Duration) *Reconciler {
+func NewReconciler(api NodeDeleter, k8s client.Client, gcDelay time.Duration, gcInterval time.Duration) *Reconciler {
 	return &Reconciler{
 		Client:     k8s,
 		log:        ctrl.Log,
