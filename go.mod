@@ -4,6 +4,8 @@ go 1.13
 
 require (
 	github.com/go-logr/logr v0.1.0
+	github.com/go-logr/zapr v0.1.0
+	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/go-multierror v1.1.0

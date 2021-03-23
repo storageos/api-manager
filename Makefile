@@ -68,8 +68,9 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
+generate: controller-gen mockgen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	go generate ./...
 
 # Build the docker image
 docker-build:
@@ -95,6 +96,10 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+# Install mockgen
+mockgen:
+	GO111MODULE=on go get -v github.com/golang/mock/mockgen@latest
 
 # Create local secret, required for `run` target.
 secret: .secret .secret/username .secret/password

@@ -143,7 +143,7 @@ func main() {
 	// whenever events are received on the apiReset channel.
 	wg.Add(1)
 	go func() {
-		err := api.Refresh(ctx, apiSecretPath, apiEndpoint, apiReset, apiRefreshInterval, apimetrics.Errors, setupLog)
+		err := api.Refresh(ctx, apiSecretPath, apiReset, apiRefreshInterval, apimetrics.Errors, setupLog)
 		errCh <- fmt.Errorf("api token refresh error: %w", err)
 		wg.Done()
 	}()
