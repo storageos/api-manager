@@ -99,7 +99,7 @@ endif
 
 # Install mockgen
 mockgen:
-	GO111MODULE=on go get -v github.com/golang/mock/mockgen@latest
+	go install github.com/golang/mock/mockgen@v1.5.0
 
 # Create local secret, required for `run` target.
 secret: .secret .secret/username .secret/password

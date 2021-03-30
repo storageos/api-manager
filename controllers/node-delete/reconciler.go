@@ -17,7 +17,7 @@ import (
 )
 
 //NodeDeleter provides access to removing nodes from StorageOS.
-//go:generate mockgen -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
+//go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_node_deleter.go -package=mocks . NodeDeleter
 type NodeDeleter interface {
 	DeleteNode(ctx context.Context, key client.ObjectKey) error
 	ListNodes(ctx context.Context) ([]storageos.Object, error)

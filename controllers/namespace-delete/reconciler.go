@@ -17,7 +17,7 @@ import (
 )
 
 //NamespaceDeleter provides access to removing namespaces from StorageOS.
-//go:generate mockgen -destination=mocks/mock_namespace_deleter.go -package=mocks . NamespaceDeleter
+//go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_namespace_deleter.go -package=mocks . NamespaceDeleter
 type NamespaceDeleter interface {
 	DeleteNamespace(ctx context.Context, key client.ObjectKey) error
 	ListNamespaces(ctx context.Context) ([]storageos.Object, error)

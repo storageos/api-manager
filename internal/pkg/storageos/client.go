@@ -24,9 +24,9 @@ const (
 	secretPasswordKey = "password"
 )
 
-//go:generate mockgen -destination=mocks/mock_control_plane.go -package=mocks . ControlPlane
-//go:generate mockgen -destination=mocks/mock_identifier.go -package=mocks . Identifier
-//go:generate mockgen -destination=mocks/mock_object.go -package=mocks . Object
+//go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_control_plane.go -package=mocks . ControlPlane
+//go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_identifier.go -package=mocks . Identifier
+//go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_object.go -package=mocks . Object
 
 // ControlPlane is the subset of the StorageOS control plane ControlPlane that
 // api-manager requires.  New methods should be added here as needed, then the
