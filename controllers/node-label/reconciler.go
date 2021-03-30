@@ -17,7 +17,7 @@ import (
 )
 
 // NodeLabeller provides access to update node labels.
-//go:generate mockgen -destination=mocks/mock_node_labeller.go -package=mocks . NodeLabeller
+//go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_node_labeller.go -package=mocks . NodeLabeller
 type NodeLabeller interface {
 	EnsureNodeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error
 	NodeObjects(ctx context.Context) (map[client.ObjectKey]storageos.Object, error)

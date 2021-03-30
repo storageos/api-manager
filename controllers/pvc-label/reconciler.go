@@ -17,7 +17,7 @@ import (
 )
 
 // VolumeLabeller provides access to update volume labels.
-//go:generate mockgen -destination=mocks/mock_volume_labeller.go -package=mocks . VolumeLabeller
+//go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_volume_labeller.go -package=mocks . VolumeLabeller
 type VolumeLabeller interface {
 	EnsureVolumeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error
 	VolumeObjects(ctx context.Context) (map[client.ObjectKey]storageos.Object, error)

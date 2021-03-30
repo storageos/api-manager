@@ -42,7 +42,7 @@ var (
 )
 
 // VolumeSharer provides access to StorageOS SharedVolumes.
-//go:generate mockgen -destination=mocks/mock_volume_sharer.go -package=mocks . VolumeSharer
+//go:generate mockgen -build_flags=--mod=vendor -destination=mocks/mock_volume_sharer.go -package=mocks . VolumeSharer
 type VolumeSharer interface {
 	ListSharedVolumes(ctx context.Context) (storageos.SharedVolumeList, error)
 	SetExternalEndpoint(ctx context.Context, volID string, namespace string, endpoint string) error
