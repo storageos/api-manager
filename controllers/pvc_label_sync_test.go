@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	pvclabel "github.com/storageos/api-manager/controllers/pvc-label"
-	"github.com/storageos/api-manager/internal/pkg/annotation"
+	"github.com/storageos/api-manager/internal/pkg/provisioner"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
@@ -64,7 +64,7 @@ func SetupPVCLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels m
 		}
 		if isStorageOS {
 			pvc.Annotations = map[string]string{
-				annotation.ProvisionerAnnotationKey: annotation.DriverName,
+				provisioner.PVCProvisionerAnnotationKey: provisioner.DriverName,
 			}
 		}
 

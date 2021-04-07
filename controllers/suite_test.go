@@ -8,7 +8,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/client-go/kubernetes/scheme"
+	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -55,6 +57,9 @@ var _ = BeforeSuite(func(done Done) {
 	By("Bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+		WebhookInstallOptions: envtest.WebhookInstallOptions{
+			Paths: []string{filepath.Join("..", "config", "webhook")},
+		},
 	}
 
 	// Start the envtest cluster.
@@ -63,7 +68,14 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	scheme := runtime.NewScheme()
+	err = kscheme.AddToScheme(scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = admissionv1.AddToScheme(scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 

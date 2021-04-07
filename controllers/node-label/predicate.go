@@ -6,8 +6,8 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	"github.com/storageos/api-manager/internal/pkg/annotation"
 	"github.com/storageos/api-manager/internal/pkg/predicate"
+	"github.com/storageos/api-manager/internal/pkg/provisioner"
 )
 
 // Predicate filters events before enqueuing the keys.  Ignore all but Update
@@ -26,7 +26,7 @@ type Predicate struct {
 // Update determines whether an object update should trigger a reconcile.
 func (p Predicate) Update(e event.UpdateEvent) bool {
 	// Ignore nodes that haven't run StorageOS.
-	isStorageOS, err := annotation.StorageOSCSIDriver(e.ObjectNew)
+	isStorageOS, err := provisioner.IsStorageOSNode(e.ObjectNew)
 	if err != nil {
 		p.log.Error(err, "failed to process current node annotations", "node", e.ObjectNew.GetName())
 	}
@@ -35,7 +35,7 @@ func (p Predicate) Update(e event.UpdateEvent) bool {
 	}
 
 	// Reconcile if the StorageOS CSI annotation was just added.
-	wasStorageOS, err := annotation.StorageOSCSIDriver(e.ObjectOld)
+	wasStorageOS, err := provisioner.IsStorageOSNode(e.ObjectOld)
 	if err != nil {
 		p.log.Error(err, "failed to process previous node annotations", "node", e.ObjectOld.GetName())
 	}

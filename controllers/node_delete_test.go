@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
+	"github.com/storageos/api-manager/internal/pkg/provisioner"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
@@ -158,7 +159,7 @@ var _ = Describe("Node Delete controller", func() {
 
 			By("By setting an invalid annotation")
 			node.Annotations = map[string]string{
-				nodedelete.DriverAnnotationKey: "{\"csi.storageos.com\":}",
+				provisioner.NodeDriverAnnotationKey: "{\"csi.storageos.com\":}",
 			}
 			Expect(k8sClient.Update(ctx, &node, &client.UpdateOptions{})).Should(Succeed())
 

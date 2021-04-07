@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nodelabel "github.com/storageos/api-manager/controllers/node-label"
-	"github.com/storageos/api-manager/internal/pkg/annotation"
+	"github.com/storageos/api-manager/internal/pkg/provisioner"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
@@ -83,9 +83,9 @@ func SetupNodeLabelSyncTest(ctx context.Context, isStorageOS bool, createLabels 
 // getCSIAnnotation is a helper to return a valid StorageOS CSI Driver annotation.
 func getCSIAnnotation() (string, string) {
 	driverMap, _ := json.Marshal(map[string]string{
-		annotation.DriverName: uuid.New().String(),
+		provisioner.DriverName: uuid.New().String(),
 	})
-	return annotation.DriverAnnotationKey, string(driverMap)
+	return provisioner.NodeDriverAnnotationKey, string(driverMap)
 }
 
 var _ = Describe("Node Label controller", func() {
@@ -342,7 +342,7 @@ var _ = Describe("Node Label controller", func() {
 
 			By("By setting an invalid annotation")
 			node.Annotations = map[string]string{
-				annotation.DriverAnnotationKey: "{\"csi.storageos.com\":}",
+				provisioner.NodeDriverAnnotationKey: "{\"csi.storageos.com\":}",
 			}
 			Expect(k8sClient.Update(ctx, &node, &client.UpdateOptions{})).Should(Succeed())
 
