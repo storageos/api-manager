@@ -17,6 +17,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	go.opentelemetry.io/otel v0.15.0
 	go.uber.org/zap v1.15.0
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
