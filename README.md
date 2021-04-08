@@ -39,6 +39,14 @@ StorageOS cluster when the namespace has been removed from Kubernetes.
 See [Namespace Delete Controller](controllers/namespace-delete/README.md) for
 more detail.
 
+### Pod Mutator Admission Controller
+
+The Pod Mutator is a mutating admission controller that modifies Pods during the
+create process.
+
+See [Pod Mutator Admission Controller](controllers/pod-mutator/README.md) for
+more detail.
+
 ## Initialization
 
 Startup blocks on obtaining a connection to the StorageOS control plane API,

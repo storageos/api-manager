@@ -19,7 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/storageos/api-manager/controllers/admission/scheduler"
+	podmutator "github.com/storageos/api-manager/controllers/pod-mutator"
+	"github.com/storageos/api-manager/controllers/pod-mutator/scheduler"
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
 )
 
@@ -27,12 +28,6 @@ const (
 	// defaultStorageClassKey is the annotation used to denote whether a
 	// StorageClass is the cluster default.
 	defaultStorageClassKey = "storageclass.kubernetes.io/is-default-class"
-
-	webhookMutatingConfigName = "mutating-webhook-configuration"
-	webhookServiceName        = "webhook-service"
-	webhookServiceNamespace   = "kube-system"
-	webhookSecretName         = "storageos-webhook-secret"
-	webhookSecretNamespace    = "kube-system"
 )
 
 // SetupSchedulerTest will set up a testing environment.  It must be called
@@ -80,8 +75,10 @@ func SetupSchedulerTest(ctx context.Context, schedulerName string, scs []*storag
 		decoder, err := admission.NewDecoder(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
-		controller := scheduler.NewPodSchedulerSetter(mgr.GetClient(), decoder, schedulerName)
-		mgr.GetWebhookServer().Register("/mutate-pods", &webhook.Admission{Handler: controller})
+		podMutator := podmutator.NewController(mgr.GetClient(), decoder, []podmutator.Mutator{
+			scheduler.NewPodSchedulerSetter(mgr.GetClient(), schedulerName),
+		})
+		mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		go func() {

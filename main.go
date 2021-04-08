@@ -41,10 +41,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/storageos/api-manager/controllers/admission/scheduler"
 	nsdelete "github.com/storageos/api-manager/controllers/namespace-delete"
 	nodedelete "github.com/storageos/api-manager/controllers/node-delete"
 	nodelabel "github.com/storageos/api-manager/controllers/node-label"
+	podmutator "github.com/storageos/api-manager/controllers/pod-mutator"
+	"github.com/storageos/api-manager/controllers/pod-mutator/scheduler"
 	pvclabel "github.com/storageos/api-manager/controllers/pvc-label"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/cluster"
@@ -297,7 +298,11 @@ func main() {
 		setupLog.Error(err, "failed to build decoder")
 		os.Exit(1)
 	}
-	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: scheduler.NewPodSchedulerSetter(mgr.GetClient(), decoder, schedulerName)})
+
+	podMutator := podmutator.NewController(mgr.GetClient(), decoder, []podmutator.Mutator{
+		scheduler.NewPodSchedulerSetter(mgr.GetClient(), schedulerName),
+	})
+	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
