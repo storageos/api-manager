@@ -47,6 +47,7 @@ import (
 	podmutator "github.com/storageos/api-manager/controllers/pod-mutator"
 	"github.com/storageos/api-manager/controllers/pod-mutator/scheduler"
 	pvclabel "github.com/storageos/api-manager/controllers/pvc-label"
+	pvcmutator "github.com/storageos/api-manager/controllers/pvc-mutator"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/cluster"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
@@ -83,6 +84,7 @@ func main() {
 	var webhookSecretNamespace string
 	var webhookConfigMutatingName string
 	var webhookMutatePodsPath string
+	var webhookMutatePVCsPath string
 	var webhookCertRefreshInterval time.Duration
 	var apiSecretPath string
 	var apiEndpoint string
@@ -116,6 +118,7 @@ func main() {
 	flag.StringVar(&webhookSecretNamespace, "webhook-secret-namespace", "", "Namespace of the webhook secret.  Will be auto-detected or value of -namespace if unset.")
 	flag.StringVar(&webhookConfigMutatingName, "webhook-config-mutating", "storageos-mutating-webhook", "Name of the mutating webhook configuration.")
 	flag.StringVar(&webhookMutatePodsPath, "webhook-mutate-pods-path", "/mutate-pods", "URL path of the Pod mutating webhook.")
+	flag.StringVar(&webhookMutatePVCsPath, "webhook-mutate-pvcs-path", "/mutate-pvcs", "URL path of the PVC mutating webhook.")
 	flag.DurationVar(&webhookCertRefreshInterval, "webhook-cert-refresh-interval", 30*time.Minute, "Frequency of webhook certificate refresh.")
 	flag.StringVar(&apiSecretPath, "api-secret-path", "/etc/storageos/secrets/api", "Path where the StorageOS api secret is mounted.  The secret must have \"username\" and \"password\" set.")
 	flag.StringVar(&apiEndpoint, "api-endpoint", "storageos", "The StorageOS api endpoint address.")
@@ -303,6 +306,9 @@ func main() {
 		scheduler.NewPodSchedulerSetter(mgr.GetClient(), schedulerName),
 	})
 	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
+
+	pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{})
+	mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
