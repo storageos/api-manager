@@ -44,7 +44,7 @@ type PodSchedulerSetter struct {
 // Check if the Handler interface is implemented.
 var _ admission.Handler = &PodSchedulerSetter{}
 
-// +kubebuilder:webhook:path=/mutate-pods,mutating=true,failurePolicy=ignore,groups="",resources=pods,verbs=create,versions=v1,name=pod-mutator.storageos.com
+// +kubebuilder:webhook:path=/mutate-pods,mutating=true,failurePolicy=ignore,sideEffects=None,groups="",resources=pods,verbs=create,versions=v1,name=pod-mutator.storageos.com,admissionReviewVersions=v1
 
 // NewPodSchedulerSetter returns a new Pod Scheduler mutating admission
 // controller.
