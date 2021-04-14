@@ -1,40 +1,34 @@
-# Pod Scheduler Admission Controller
+# Pod Mutator Admission Controller
 
-This is a mutating admission controller that adds the name of the
-StorageOS scheduler extender to the Pod's `SchedulerName`, if the Pod has
-volumes backed by StorageOS and does not have the
-`storageos.com/scheduler=false` annotation set on the Pod.
+The Pod Mutator is a mutating admission controller that modifies Pods during the
+create process.
 
-## Trigger
+## Mutators
 
-All Pod create events are evaluated.
+The Pod Mutator can run multiple mutation functions, each performing a different
+task:
 
-Pods that have the annotation `storageos.com/scheduler=false` set are ignored.
-
-The Pod's volumes are enumerated, and if at least one volume is backed by
-StorageOS, the SchedulerName will be changed to use the StorageOS Pod scheduler.
-
-## Disabling
-
-Pod's can be skipped individually by setting the `storageos.com/scheduler=false`
-annotation.
-
-To disable for all Pods, the api-manager can be started with `-scheduler-name`
-set to an empty string.
+- The Pod Scheduler mutator adds the name of the StorageOS scheduler extender to
+  the Pod's `SchedulerName`.  See [Pod Scheduler
+  Mutator](controllers/pod-mutator/scheduler/README.md) for more detail.
 
 ## Webhook server
 
-The Pod Scheduler admission controller runs as a webhook within api-manager.
-The webhook server is shared by other admission controllers and uses a
-self-signed certificate.
+The admission controller runs as a webhook within api-manager.
+The webhook server uses a self-signed certificate.
 
 Certificates are rotated automatically and stored in a secret.  Multiple
-instances of the api-manager shared the same certificate and will check for
+instances of the api-manager share the same certificate and will check for
 updates periodically, configured with the `-webhook-cert-refresh-interval` flag.
 
 Certificates are valid for 1 year and re-issued after 6 months.  The
 `-webhook-cert-refresh-interval` should be kept to run frequently (default
 `30m`) as restarting the api-manager will reset the refresh timer.
+
+## Disabling
+
+It is not possible to disable the Webhook server.  Instead, disable the
+individual mutation functions so the Pod Mutation becomes a no-op.
 
 ## Tunables
 

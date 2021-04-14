@@ -169,7 +169,7 @@ func TestMutatePodFn(t *testing.T) {
 
 			// Pass the created pod to the mutatePodFn and check if the schedulerName in
 			// podSpec changed.
-			if err := podSchedulerSetter.mutatePodsFn(context.Background(), pod, testNamespace); err != nil {
+			if err := podSchedulerSetter.MutatePod(context.Background(), pod, testNamespace); err != nil {
 				t.Fatalf("failed to mutate pod: %v", err)
 			}
 
