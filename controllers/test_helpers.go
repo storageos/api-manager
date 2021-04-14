@@ -14,6 +14,7 @@ const (
 	webhookSecretName         = "storageos-webhook-secret"
 	webhookSecretNamespace    = "kube-system"
 	webhookMutatePodsPath     = "/mutate-pods"
+	webhookMutatePVCsPath     = "/mutate-pvcs"
 )
 
 // testMutator is a test mutator that adds an annotation to pods or pvcs.
