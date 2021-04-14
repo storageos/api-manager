@@ -1,4 +1,7 @@
 domain: storageos.com
+layout:
+- go.kubebuilder.io/v3
+projectName: api-manager
 repo: github.com/storageos/api-manager
 resources:
-version: "2"
+version: "3"

@@ -6,8 +6,9 @@ metadata:
   creationTimestamp: null
   name: mutating-webhook-configuration
 webhooks:
-- clientConfig:
-    caBundle: Cg==
+- admissionReviewVersions:
+  - v1
+  clientConfig:
     service:
       name: webhook-service
       namespace: system
@@ -23,3 +24,4 @@ webhooks:
     - CREATE
     resources:
     - pods
+  sideEffects: None
