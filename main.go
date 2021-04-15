@@ -190,7 +190,7 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "d73494fd.storageos.com",
+		LeaderElectionID:   "api-manager-lease",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
