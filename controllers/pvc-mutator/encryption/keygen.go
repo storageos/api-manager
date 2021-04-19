@@ -86,7 +86,8 @@ func NewEncryptionKeySetter(k8s client.Client) *EncryptionKeySetter {
 // MutatePVC mutates a given pvc with annotations containing its encryption key,
 // if the pvc has encryption enabled.
 //
-// Errors returned here will block creation of the PVC.
+// Errors returned here may block creation of the PVC, depending on the
+// FailurePolicy set in the webhook configuration.
 func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim, namespace string) error {
 	log := s.log.WithValues("pvc", client.ObjectKeyFromObject(pvc).String())
 	log.V(4).Info("received pvc for mutation")

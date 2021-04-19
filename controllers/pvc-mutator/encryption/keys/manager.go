@@ -35,11 +35,7 @@ func New(client client.Client) *KeyManager {
 func (m *KeyManager) Ensure(ctx context.Context, nsKeyRef client.ObjectKey, volKeyRef client.ObjectKey) error {
 	// Return immediately if the volume key already exists, or an error if
 	// another error (e.g. permission denied).
-	err := m.client.Get(ctx, volKeyRef, &corev1.Secret{})
-	if err == nil {
-		return nil
-	}
-	if !apierrors.IsNotFound(err) {
+	if err := m.client.Get(ctx, volKeyRef, &corev1.Secret{}); err == nil || !apierrors.IsNotFound(err) {
 		return err
 	}
 
