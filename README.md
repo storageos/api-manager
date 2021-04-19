@@ -188,6 +188,8 @@ The following flags are supported:
     	Maximum concurrent PVC label sync operations. (default 5)
   -scheduler-name string
     	Name of the Pod scheduler to use for Pods with StorageOS volumes.  Set to an empty value to disable setting the Pod scheduler. (default "storageos-scheduler")
+  -webhook-cert-validity duration
+    	Validity of webhook certificate. (default 1y)
   -webhook-cert-refresh-interval duration
     	Frequency of webhook certificate refresh. (default 30m0s)
   -webhook-config-mutating string
