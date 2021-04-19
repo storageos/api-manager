@@ -25,7 +25,7 @@ type Predicate struct {
 // Update determines whether an object update should trigger a reconcile.
 func (p Predicate) Update(e event.UpdateEvent) bool {
 	// Ignore PVCs that aren't provisvioned by StorageOS.
-	if !provisioner.IsStorageOSPVC(e.ObjectNew) {
+	if !provisioner.HasStorageOSAnnotation(e.ObjectNew) {
 		return false
 	}
 

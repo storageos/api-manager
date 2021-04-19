@@ -8,6 +8,7 @@ import (
 
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption/keys"
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -76,7 +77,7 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with encryption",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EnabledLabel: "true",
+				storageos.ReservedLabelEncryption: "true",
 			},
 			wantSecretNameAnnotationGenerated: true,
 			wantSecretNamespaceAnnotation:     testNamespace,
@@ -85,7 +86,7 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with user-specifed secret name",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EnabledLabel: "true",
+				storageos.ReservedLabelEncryption: "true",
 			},
 			annotations: map[string]string{
 				SecretNameAnnotationKey: "my-secret-name",
@@ -97,7 +98,7 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with user specifed secret namespace",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EnabledLabel: "true",
+				storageos.ReservedLabelEncryption: "true",
 			},
 			annotations: map[string]string{
 				SecretNamespaceAnnotationKey: testNamespace,
@@ -109,7 +110,7 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with user specifed secret namespace to another namespace",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EnabledLabel: "true",
+				storageos.ReservedLabelEncryption: "true",
 			},
 			annotations: map[string]string{
 				SecretNamespaceAnnotationKey: "another-users-ns",
@@ -120,7 +121,7 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with user-specifed secret name and namespace",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EnabledLabel: "true",
+				storageos.ReservedLabelEncryption: "true",
 			},
 			annotations: map[string]string{
 				SecretNameAnnotationKey:      "my-secret-name",
@@ -140,7 +141,7 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with encryption beta annotation",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EnabledLabel: "true",
+				storageos.ReservedLabelEncryption: "true",
 			},
 			betaAnnotation:                    true,
 			wantSecretNameAnnotationGenerated: true,
@@ -156,7 +157,7 @@ func TestMutatePVC(t *testing.T) {
 
 			// Create a EncryptionKeySetter instance with the fake client.
 			encryptionKeySetter := EncryptionKeySetter{
-				enabledLabel:                 EnabledLabel,
+				enabledLabel:                 storageos.ReservedLabelEncryption,
 				secretNameAnnotationKey:      SecretNameAnnotationKey,
 				secretNamespaceAnnotationKey: SecretNamespaceAnnotationKey,
 
@@ -393,7 +394,7 @@ func TestEncryptionKeySetter_VolumeSecretLabels(t *testing.T) {
 		var tt = tt
 		t.Run(tt.name, func(t *testing.T) {
 			s := &EncryptionKeySetter{
-				enabledLabel:                 EnabledLabel,
+				enabledLabel:                 storageos.ReservedLabelEncryption,
 				secretNameAnnotationKey:      SecretNameAnnotationKey,
 				secretNamespaceAnnotationKey: SecretNamespaceAnnotationKey,
 				labels:                       tt.labels,

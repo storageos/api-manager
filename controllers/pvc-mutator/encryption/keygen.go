@@ -10,15 +10,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption/keys"
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	// EnabledLabel label must be set to true to enable encryption for the pvc.
-	EnabledLabel = "storageos.com/encryption"
-
 	// SecretNameAnnotationKey is the name of the pvc annotation to store the
 	// encryption secret name in.
 	SecretNameAnnotationKey = "storageos.com/encryption-secret-name"
@@ -83,7 +81,7 @@ type EncryptionKeySetter struct {
 // location as PVC annotations.
 func NewKeySetter(k8s client.Client, uncached client.Client, labels map[string]string) *EncryptionKeySetter {
 	return &EncryptionKeySetter{
-		enabledLabel:                 EnabledLabel,
+		enabledLabel:                 storageos.ReservedLabelEncryption,
 		secretNameAnnotationKey:      SecretNameAnnotationKey,
 		secretNamespaceAnnotationKey: SecretNamespaceAnnotationKey,
 
