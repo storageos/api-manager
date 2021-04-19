@@ -15,12 +15,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/storageos/api-manager/internal/pkg/provisioner"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 // Controller implements the Sync contoller interface, applying PVC labels to
 // StorageOS volumes.
 type Controller struct {
+	client.Client
 	api    VolumeLabeller
 	scheme *runtime.Scheme
 	log    logr.Logger
@@ -30,8 +32,8 @@ var _ msyncv1.Controller = &Controller{}
 
 // NewController returns a Controller that implements PVC label sync in
 // StorageOS.
-func NewController(api VolumeLabeller, scheme *runtime.Scheme, log logr.Logger) (*Controller, error) {
-	return &Controller{api: api, scheme: scheme, log: log}, nil
+func NewController(k8s client.Client, api VolumeLabeller, scheme *runtime.Scheme, log logr.Logger) (*Controller, error) {
+	return &Controller{Client: k8s, api: api, scheme: scheme, log: log}, nil
 }
 
 // Ensure applies labels set on the k8s PVC to the StorageOS volume.
@@ -58,24 +60,58 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 	ctx, cancel := context.WithTimeout(ctx, storageos.DefaultRequestTimeout)
 	defer cancel()
 
-	// The PV name is required, as this will be the name of the StorageOS
-	// volume.  We can get this without re-fetching the PVC by converting to an
-	// unstructured object, and then reading from the spec.
 	u, err := object.GetUnstructuredObject(c.scheme, obj)
 	if err != nil {
 		return observeErr(err)
 	}
+
+	// The StorageClass is required, as defaults may be set there that were
+	// applied during volume creation.
+	scName, _, err := unstructured.NestedString(u.Object, []string{"spec", "storageClassName"}...)
+	if err != nil {
+		return observeErr(fmt.Errorf("failed to get storageclass name from pvc: %w", err))
+	}
+
+	sc, err := provisioner.StorageClass(c.Client, scName)
+	if err != nil {
+		return observeErr(fmt.Errorf("failed to get storageclass for pvc: %w", err))
+	}
+
+	// Verify that the StorageClass is the same one that created the volume.  We
+	// don't want to risk applying new default params automatically.  Instead,
+	// the user should manually remove the `storageos.com/storageclass=<uid>`
+	// annotation from the PVC to re-enable label sync for the volume.
+	ok, err := provisioner.ValidateOrSetStorageClassUID(ctx, c.Client, sc.UID, obj)
+	if err != nil {
+		return observeErr(fmt.Errorf("failed to set storageclass annotation on the pvc: %w", err))
+	}
+	if !ok {
+		// Don't requeue if the StorageClass doesn't match, it's not transient.
+		c.log.Error(err, "current storageclass does not match storageclass annotation on the pvc, skipping label sync")
+		return nil
+	}
+
+	// Overlay the PVC labels on top of the StorageClass default parameters
+	// before applying to the volume.
+	ensureLabels := provisioner.StorageClassReservedParams(sc)
+	for k, v := range obj.GetLabels() {
+		ensureLabels[k] = v
+	}
+
+	// The PV name is required, as this will be the name of the StorageOS
+	// volume.  We can get this without re-fetching the PVC by converting to an
+	// unstructured object, and then reading from the spec.
 	pvName, ok, err := unstructured.NestedString(u.Object, []string{"spec", "volumeName"}...)
 	if err != nil {
 		return observeErr(fmt.Errorf("failed to get pv name from pvc: %w", err))
 	}
 	if !ok {
-		return observeErr(fmt.Errorf("pv for pvc not yet provisioned: %w", err))
+		return observeErr(fmt.Errorf("pv for pvc not yet provisioned"))
 	}
 
 	// Use the PV name, and the PVC namespace for the StorageOS volume lookup.
 	key := client.ObjectKey{Name: pvName, Namespace: obj.GetNamespace()}
-	if err := c.api.EnsureVolumeLabels(ctx, key, obj.GetLabels()); err != nil {
+	if err := c.api.EnsureVolumeLabels(ctx, key, ensureLabels); err != nil {
 		return observeErr(err)
 	}
 	span.SetStatus(codes.Ok, "pvc labels applied to storageos")
