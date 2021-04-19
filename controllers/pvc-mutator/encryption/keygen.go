@@ -15,17 +15,16 @@ import (
 )
 
 const (
-	// EncryptionEnabledLabel label must be set to true to enable encryption for
-	// the pvc.
-	EncryptionEnabledLabel = "storageos.com/encryption"
+	// EnabledLabel label must be set to true to enable encryption for the pvc.
+	EnabledLabel = "storageos.com/encryption"
 
-	// EncryptionSecretNameAnnotationKey is the name of the pvc annotation to
-	// store the encryption secret name in.
-	EncryptionSecretNameAnnotationKey = "storageos.com/encryption-secret-name"
+	// SecretNameAnnotationKey is the name of the pvc annotation to store the
+	// encryption secret name in.
+	SecretNameAnnotationKey = "storageos.com/encryption-secret-name"
 
-	// EncryptionSecretNamespaceAnnotationKey is the name of the pvc annotation
-	// to store the encryption secret namespace in.
-	EncryptionSecretNamespaceAnnotationKey = "storageos.com/encryption-secret-namespace"
+	// SecretNamespaceAnnotationKey is the name of the pvc annotation to store
+	// the encryption secret namespace in.
+	SecretNamespaceAnnotationKey = "storageos.com/encryption-secret-namespace"
 
 	// VolumeSecretNamePrefix will be used to prefix all volume key secrets.
 	VolumeSecretNamePrefix = "storageos-volume-key"
@@ -69,17 +68,18 @@ type EncryptionKeySetter struct {
 	log  logr.Logger
 }
 
-// NewEncryptionKeySetter returns a new PVC encryption key mutating admission
-// controller.
-func NewEncryptionKeySetter(k8s client.Client) *EncryptionKeySetter {
+// NewKeySetter returns a new PVC encryption key mutating admission
+// controller that generates volume encryption keys and sets references to their
+// location as PVC annotations.
+func NewKeySetter(k8s client.Client) *EncryptionKeySetter {
 	return &EncryptionKeySetter{
-		enabledLabel:                 EncryptionEnabledLabel,
-		secretNameAnnotationKey:      EncryptionSecretNameAnnotationKey,
-		secretNamespaceAnnotationKey: EncryptionSecretNamespaceAnnotationKey,
+		enabledLabel:                 EnabledLabel,
+		secretNameAnnotationKey:      SecretNameAnnotationKey,
+		secretNamespaceAnnotationKey: SecretNamespaceAnnotationKey,
 
 		Client: k8s,
 		keys:   keys.New(k8s),
-		log:    ctrl.Log,
+		log:    ctrl.Log.WithName("keygen"),
 	}
 }
 

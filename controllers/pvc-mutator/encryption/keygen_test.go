@@ -68,7 +68,7 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with encryption",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EncryptionEnabledLabel: "true",
+				EnabledLabel: "true",
 			},
 			wantSecretNameAnnotationGenerated: true,
 			wantSecretNamespaceAnnotation:     testNamespace,
@@ -77,10 +77,10 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with user-specifed secret name",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EncryptionEnabledLabel: "true",
+				EnabledLabel: "true",
 			},
 			annotations: map[string]string{
-				EncryptionSecretNameAnnotationKey: "my-secret-name",
+				SecretNameAnnotationKey: "my-secret-name",
 			},
 			wantSecretNameAnnotation:      "my-secret-name",
 			wantSecretNamespaceAnnotation: testNamespace,
@@ -89,10 +89,10 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with user specifed secret namespace",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EncryptionEnabledLabel: "true",
+				EnabledLabel: "true",
 			},
 			annotations: map[string]string{
-				EncryptionSecretNamespaceAnnotationKey: testNamespace,
+				SecretNamespaceAnnotationKey: testNamespace,
 			},
 			wantSecretNameAnnotationGenerated: true,
 			wantSecretNamespaceAnnotation:     testNamespace,
@@ -101,10 +101,10 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with user specifed secret namespace to another namespace",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EncryptionEnabledLabel: "true",
+				EnabledLabel: "true",
 			},
 			annotations: map[string]string{
-				EncryptionSecretNamespaceAnnotationKey: "another-users-ns",
+				SecretNamespaceAnnotationKey: "another-users-ns",
 			},
 			wantErr: true,
 		},
@@ -112,11 +112,11 @@ func TestMutatePVC(t *testing.T) {
 			name:      "pvc with user-specifed secret name and namespace",
 			namespace: testNamespace,
 			labels: map[string]string{
-				EncryptionEnabledLabel: "true",
+				EnabledLabel: "true",
 			},
 			annotations: map[string]string{
-				EncryptionSecretNameAnnotationKey:      "my-secret-name",
-				EncryptionSecretNamespaceAnnotationKey: testNamespace,
+				SecretNameAnnotationKey:      "my-secret-name",
+				SecretNamespaceAnnotationKey: testNamespace,
 			},
 			wantSecretNameAnnotation:      "my-secret-name",
 			wantSecretNamespaceAnnotation: testNamespace,
@@ -131,9 +131,9 @@ func TestMutatePVC(t *testing.T) {
 
 			// Create a EncryptionKeySetter instance with the fake client.
 			encryptionKeySetter := EncryptionKeySetter{
-				enabledLabel:                 EncryptionEnabledLabel,
-				secretNameAnnotationKey:      EncryptionSecretNameAnnotationKey,
-				secretNamespaceAnnotationKey: EncryptionSecretNamespaceAnnotationKey,
+				enabledLabel:                 EnabledLabel,
+				secretNameAnnotationKey:      SecretNameAnnotationKey,
+				secretNamespaceAnnotationKey: SecretNamespaceAnnotationKey,
 
 				Client: k8s,
 				keys:   keys.New(k8s),
@@ -157,27 +157,27 @@ func TestMutatePVC(t *testing.T) {
 
 			// Check name ref annotation.
 			annotations := pvc.GetAnnotations()
-			nameRef := annotations[EncryptionSecretNameAnnotationKey]
+			nameRef := annotations[SecretNameAnnotationKey]
 			if tc.wantSecretNameAnnotationGenerated && !strings.HasPrefix(nameRef, VolumeSecretNamePrefix) {
-				t.Errorf("expected %s annotation to be generated, got %s", EncryptionSecretNameAnnotationKey, nameRef)
+				t.Errorf("expected %s annotation to be generated, got %s", SecretNameAnnotationKey, nameRef)
 			}
 			if tc.wantSecretNameAnnotation != "" && nameRef != tc.wantSecretNameAnnotation {
-				t.Errorf("expected %s annotation to be set to %s, got %s", EncryptionSecretNameAnnotationKey, tc.wantSecretNameAnnotation, nameRef)
+				t.Errorf("expected %s annotation to be set to %s, got %s", SecretNameAnnotationKey, tc.wantSecretNameAnnotation, nameRef)
 			}
 			if !tc.wantSecretNameAnnotationGenerated && tc.wantSecretNameAnnotation == "" && nameRef != "" {
-				t.Errorf("expected %s annotation to be unset, got %s", EncryptionSecretNameAnnotationKey, nameRef)
+				t.Errorf("expected %s annotation to be unset, got %s", SecretNameAnnotationKey, nameRef)
 			}
 
 			// Check namespace ref annotation.
-			nsRef := annotations[EncryptionSecretNamespaceAnnotationKey]
+			nsRef := annotations[SecretNamespaceAnnotationKey]
 			switch tc.wantSecretNamespaceAnnotation == "" {
 			case true:
 				if nsRef != "" {
-					t.Errorf("expected %s annotation to be unset, got %s", EncryptionSecretNamespaceAnnotationKey, nsRef)
+					t.Errorf("expected %s annotation to be unset, got %s", SecretNamespaceAnnotationKey, nsRef)
 				}
 			case false:
 				if nsRef != tc.wantSecretNamespaceAnnotation {
-					t.Errorf("expected %s annotation to be set to %s, got %s", EncryptionSecretNamespaceAnnotationKey, tc.wantSecretNamespaceAnnotation, nsRef)
+					t.Errorf("expected %s annotation to be set to %s, got %s", SecretNamespaceAnnotationKey, tc.wantSecretNamespaceAnnotation, nsRef)
 				}
 			}
 

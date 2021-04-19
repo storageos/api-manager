@@ -326,7 +326,7 @@ func main() {
 	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
 
 	pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-		encryption.NewEncryptionKeySetter(mgr.GetClient()),
+		encryption.NewKeySetter(mgr.GetClient()),
 	})
 	mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 

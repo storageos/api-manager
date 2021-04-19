@@ -58,7 +58,7 @@ func SetupPVCKeygenTest(ctx context.Context) {
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
 		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-			encryption.NewEncryptionKeySetter(mgr.GetClient()),
+			encryption.NewKeySetter(mgr.GetClient()),
 		})
 
 		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
@@ -111,7 +111,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	ctx := context.Background()
 
 	labelsEnabled := map[string]string{
-		encryption.EncryptionEnabledLabel: "true",
+		encryption.EnabledLabel: "true",
 	}
 
 	Context("When the PVC Mutator has no mutators", func() {
@@ -161,7 +161,7 @@ var _ = Describe("PVC Keygen controller", func() {
 				if err != nil {
 					return ""
 				}
-				secretName = mutatedPVC.Annotations[encryption.EncryptionSecretNameAnnotationKey]
+				secretName = mutatedPVC.Annotations[encryption.SecretNameAnnotationKey]
 				return secretName
 			}, timeout, interval).ShouldNot(BeEmpty())
 
@@ -171,7 +171,7 @@ var _ = Describe("PVC Keygen controller", func() {
 				if err != nil {
 					return ""
 				}
-				secretNamespace = mutatedPVC.Annotations[encryption.EncryptionSecretNamespaceAnnotationKey]
+				secretNamespace = mutatedPVC.Annotations[encryption.SecretNamespaceAnnotationKey]
 				return secretNamespace
 			}, timeout, interval).Should(Equal(pvc.GetNamespace()))
 
@@ -199,7 +199,7 @@ var _ = Describe("PVC Keygen controller", func() {
 		SetupPVCKeygenTest(ctx)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
-				encryption.EncryptionSecretNameAnnotationKey: "my-key",
+				encryption.SecretNameAnnotationKey: "my-key",
 			})
 
 			By("Creating the PVC")
@@ -221,7 +221,7 @@ var _ = Describe("PVC Keygen controller", func() {
 				if err != nil {
 					return ""
 				}
-				secretName = mutatedPVC.Annotations[encryption.EncryptionSecretNameAnnotationKey]
+				secretName = mutatedPVC.Annotations[encryption.SecretNameAnnotationKey]
 				return secretName
 			}, timeout, interval).Should(Equal("my-key"))
 
@@ -231,7 +231,7 @@ var _ = Describe("PVC Keygen controller", func() {
 				if err != nil {
 					return ""
 				}
-				secretNamespace = mutatedPVC.Annotations[encryption.EncryptionSecretNamespaceAnnotationKey]
+				secretNamespace = mutatedPVC.Annotations[encryption.SecretNamespaceAnnotationKey]
 				return secretNamespace
 			}, timeout, interval).Should(Equal(pvc.GetNamespace()))
 
@@ -259,7 +259,7 @@ var _ = Describe("PVC Keygen controller", func() {
 		SetupPVCKeygenTest(ctx)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
-				encryption.EncryptionSecretNamespaceAnnotationKey: "default",
+				encryption.SecretNamespaceAnnotationKey: "default",
 			})
 
 			By("Creating the PVC")
@@ -281,7 +281,7 @@ var _ = Describe("PVC Keygen controller", func() {
 				if err != nil {
 					return ""
 				}
-				secretName = mutatedPVC.Annotations[encryption.EncryptionSecretNameAnnotationKey]
+				secretName = mutatedPVC.Annotations[encryption.SecretNameAnnotationKey]
 				return secretName
 			}, timeout, interval).ShouldNot(BeEmpty())
 
@@ -291,7 +291,7 @@ var _ = Describe("PVC Keygen controller", func() {
 				if err != nil {
 					return ""
 				}
-				secretNamespace = mutatedPVC.Annotations[encryption.EncryptionSecretNamespaceAnnotationKey]
+				secretNamespace = mutatedPVC.Annotations[encryption.SecretNamespaceAnnotationKey]
 				return secretNamespace
 			}, timeout, interval).Should(Equal(pvc.GetNamespace()))
 
@@ -319,7 +319,7 @@ var _ = Describe("PVC Keygen controller", func() {
 		SetupPVCKeygenTest(ctx)
 		It("The pvc should not be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
-				encryption.EncryptionSecretNamespaceAnnotationKey: "another-users-namespace",
+				encryption.SecretNamespaceAnnotationKey: "another-users-namespace",
 			})
 
 			By("Creating the PVC")
