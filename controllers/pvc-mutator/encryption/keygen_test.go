@@ -261,3 +261,57 @@ func createPVC(name, namespace, storageClassName string, betaAnnotation bool, la
 
 	return pvc
 }
+
+func Test_isEnabled(t *testing.T) {
+	tests := []struct {
+		name string
+		key  string
+		kv   map[string]string
+		want bool
+	}{
+		{
+			name: "enabled",
+			key:  "foo",
+			kv: map[string]string{
+				"foo": "true",
+			},
+			want: true,
+		},
+		{
+			name: "disabled",
+			key:  "foo",
+			kv: map[string]string{
+				"foo": "false",
+			},
+			want: false,
+		},
+		{
+			name: "empty value",
+			key:  "foo",
+			kv: map[string]string{
+				"foo": "",
+			},
+			want: false,
+		},
+		{
+			name: "empty map",
+			key:  "foo",
+			kv:   map[string]string{},
+			want: false,
+		},
+		{
+			name: "nil map",
+			key:  "foo",
+			kv:   nil,
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		var tt = tt
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isEnabled(tt.key, tt.kv); got != tt.want {
+				t.Errorf("isEnabled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

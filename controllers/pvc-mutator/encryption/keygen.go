@@ -2,12 +2,12 @@ package encryption
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption/keys"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -95,7 +95,7 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 	// the StorageClass to make sure it's StorageOS.  The encryption label
 	// should only be added to StorageOS PVCs.
 	if !isEnabled(s.enabledLabel, pvc.GetLabels()) {
-		log.V(4).Info("pvc does not have storageos.com/encryption=true label, skipping")
+		log.V(4).Info(fmt.Sprintf("pvc does not have %s=true annotation, skipping", s.enabledLabel))
 		return nil
 	}
 
@@ -112,7 +112,7 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 	volKeyRef := s.VolumeSecretKeyRef(pvc, namespace)
 
 	if err := s.keys.Ensure(ctx, nsKeyRef, volKeyRef); err != nil {
-		return err
+		return errors.Wrap(err, "failed to ensure encryption key present for pvc")
 	}
 
 	// Set annotations on the PVC pointing to the volume key secret.  The
@@ -144,7 +144,7 @@ func (s *EncryptionKeySetter) VolumeSecretKeyRef(pvc *corev1.PersistentVolumeCla
 	annotations := pvc.GetAnnotations()
 	name, ok := annotations[s.secretNameAnnotationKey]
 	if !ok || name == "" {
-		name = VolumeSecretName()
+		name = GenerateVolumeSecretName()
 	}
 	namespace, ok := annotations[s.secretNamespaceAnnotationKey]
 	if !ok || namespace == "" {
@@ -157,21 +157,19 @@ func (s *EncryptionKeySetter) VolumeSecretKeyRef(pvc *corev1.PersistentVolumeCla
 	}
 }
 
-// VolumeSecretName returns the name of the secret to use for the volume key.
+// GenerateVolumeSecretName returns the name of the secret to use for the volume
+// key.
 //
 // The secret relates to the StorageOS volume (or Kubernetes PV), not the PVC
 // which may be deleted and then the PV reused.  Since the volume hasn't been
 // provisioned yet we don't have a reference for it, so generate a unique
 // identifier to use instead.
-func VolumeSecretName() string {
+func GenerateVolumeSecretName() string {
 	return fmt.Sprintf("%s-%s", VolumeSecretNamePrefix, uuid.New().String())
 }
 
 // isEnabled returns true if the key is set in the kv map and its value is true.
 func isEnabled(key string, kv map[string]string) bool {
-	if kv == nil {
-		return false
-	}
 	val, exists := kv[key]
 	if !exists {
 		return false
