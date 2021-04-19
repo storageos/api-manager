@@ -54,6 +54,7 @@ import (
 	pvclabel "github.com/storageos/api-manager/controllers/pvc-label"
 	pvcmutator "github.com/storageos/api-manager/controllers/pvc-mutator"
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption"
+	storageclasslabelsync "github.com/storageos/api-manager/controllers/pvc-mutator/storage-class-label-sync"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/cluster"
 	"github.com/storageos/api-manager/internal/pkg/labels"
@@ -328,6 +329,7 @@ func main() {
 
 	pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
 		encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
+		storageclasslabelsync.NewStorageClassParamsLabelSetter(mgr.GetClient()),
 	})
 	mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 
