@@ -53,7 +53,7 @@ func NewReconciler(api VolumeLabeller, k8s client.Client, resyncDelay time.Durat
 
 // SetupWithManager registers the controller with the controller manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, workers int) error {
-	c, err := NewController(r.api, mgr.GetScheme(), r.log)
+	c, err := NewController(r.Client, r.api, mgr.GetScheme(), r.log)
 	if err != nil {
 		return err
 	}
