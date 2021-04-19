@@ -88,3 +88,17 @@ func (mr *MockObjectMockRecorder) GetNamespace() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockObject)(nil).GetNamespace))
 }
+
+// IsHealthy mocks base method.
+func (m *MockObject) IsHealthy() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsHealthy")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsHealthy indicates an expected call of IsHealthy.
+func (mr *MockObjectMockRecorder) IsHealthy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsHealthy", reflect.TypeOf((*MockObject)(nil).IsHealthy))
+}

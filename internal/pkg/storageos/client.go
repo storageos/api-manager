@@ -58,6 +58,7 @@ type Identifier interface {
 type Object interface {
 	Identifier
 	GetLabels() map[string]string
+	IsHealthy() bool
 }
 
 // Client provides access to the StorageOS API.

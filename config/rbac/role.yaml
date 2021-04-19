@@ -37,6 +37,14 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - node
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - nodes
   verbs:
   - get
@@ -47,6 +55,15 @@ rules:
   resources:
   - persistentvolumeclaims
   verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - delete
   - get
   - list
   - watch
@@ -70,3 +87,12 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - volumeattachments
+  verbs:
+  - delete
+  - get
+  - list
+  - watch

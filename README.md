@@ -24,6 +24,13 @@ Endpoint will be updated, but the Service ClusterIP will remain the same.
 See [Shared Volume Contoller](internal/controllers/sharedvolume/README.md) for
 more detail.
 
+### Fencing Controller
+
+The fencing controller performs fast failovers of Pods with StorageOS volumes
+when a node is detected offline.
+
+See [Fencing Contoller](controllers/fencer/README.md) for more detail.
+
 ### Node Delete Controller
 
 The Node Delete Controller is responsible for removing nodes from the StorageOS
@@ -140,16 +147,12 @@ The following flags are supported:
 ```console
   -api-endpoint string
     	The StorageOS api endpoint address. (default "storageos")
-  -api-poll-interval duration
-    	Frequency of StorageOS api polling. (default 5s)
   -api-refresh-interval duration
     	Frequency of StorageOS api authentication token refresh. (default 1m0s)
   -api-retry-interval duration
     	Frequency of StorageOS api retries on failure. (default 5s)
   -api-secret-path string
     	Path where the StorageOS api secret is mounted.  The secret must have "username" and "password" set. (default "/etc/storageos/secrets/api")
-  -cache-expiry-interval duration
-    	Frequency of cached volume re-validation. (default 1m0s)
   -enable-leader-election
     	Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.
   -k8s-create-poll-interval duration
@@ -174,12 +177,22 @@ The following flags are supported:
     	Frequency of node garbage collection. (default 1h0m0s)
   -node-delete-workers int
     	Maximum concurrent node delete operations. (default 5)
+  -node-expiry-interval duration
+    	Frequency of cached StorageOS node re-validation. (default 1h0m0s)
+  -node-fencer-workers int
+    	Maximum concurrent node fencing operations. (default 1)
+  -node-fencer-retry-interval duration
+    	Frequency of fencing retries on failure. (default 5s)
+  -node-fencer-timeout duration
+    	Maximum time to wait for fencing to complete. (default 25s)
   -node-label-resync-delay duration
     	Startup delay of initial node label resync. (default 10s)
   -node-label-resync-interval duration
     	Frequency of node label resync. (default 1h0m0s)
   -node-label-sync-workers int
     	Maximum concurrent node label sync operations. (default 5)
+  -node-poll-interval duration
+    	Frequency of StorageOS node polling. (default 5s)
   -pvc-label-resync-delay duration
     	Startup delay of initial PVC label resync. (default 5s)
   -pvc-label-resync-interval duration
@@ -204,6 +217,10 @@ The following flags are supported:
     	Name of the webhook service. (default "storageos-webhook")
   -webhook-service-namespace string
     	Namespace of the webhook service.  Will be auto-detected or value of -namespace if unset.
+  -volume-expiry-interval duration
+    	Frequency of cached StorageOS volume re-validation. (default 1m0s)
+  -volume-poll-interval duration
+    	Frequency of StorageOS volume polling. (default 5s)
   -zap-devel
     	Development Mode defaults(encoder=consoleEncoder,logLevel=Debug,stackTraceLevel=Warn). Production Mode defaults(encoder=jsonEncoder,logLevel=Info,stackTraceLevel=Error)
   -zap-encoder value
@@ -222,6 +239,16 @@ the following environment variables:
 ```console
 JAEGER_DISABLED=false
 JAEGER_ENDPOINT=http://<service-address>:14268/api/traces
+```
+
+This can be done by editing `deployment.apps/storageos-api-manager`:
+
+```yaml
+        env:
+        - name: JAEGER_DISABLED
+          value: "false"
+        - name: JAEGER_ENDPOINT
+          value: http://172.17.0.1:14268/api/traces
 ```
 
 Tracing is not enabled by default.

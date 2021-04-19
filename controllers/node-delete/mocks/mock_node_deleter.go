@@ -9,8 +9,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	storageos "github.com/storageos/api-manager/internal/pkg/storageos"
 	types "k8s.io/apimachinery/pkg/types"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MockNodeDeleter is a mock of NodeDeleter interface.
@@ -51,10 +51,10 @@ func (mr *MockNodeDeleterMockRecorder) DeleteNode(arg0, arg1 interface{}) *gomoc
 }
 
 // ListNodes mocks base method.
-func (m *MockNodeDeleter) ListNodes(arg0 context.Context) ([]storageos.Object, error) {
+func (m *MockNodeDeleter) ListNodes(arg0 context.Context) ([]client.Object, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListNodes", arg0)
-	ret0, _ := ret[0].([]storageos.Object)
+	ret0, _ := ret[0].([]client.Object)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -11,7 +11,13 @@ github.com/cespare/xxhash/v2
 # github.com/darkowlzz/operator-toolkit v0.0.0-20210417061919-7030a782a07c
 ## explicit
 github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1
+github.com/darkowlzz/operator-toolkit/controller/external/builder
+github.com/darkowlzz/operator-toolkit/controller/external/cache
+github.com/darkowlzz/operator-toolkit/controller/external/handler
+github.com/darkowlzz/operator-toolkit/controller/external/source
 github.com/darkowlzz/operator-toolkit/controller/metadata-sync/v1
+github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1
+github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action
 github.com/darkowlzz/operator-toolkit/controller/sync/v1
 github.com/darkowlzz/operator-toolkit/internal/pkiutil
 github.com/darkowlzz/operator-toolkit/internal/webhook/cert
@@ -148,7 +154,7 @@ github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/storageos/go-api/v2 v2.3.1-0.20210129113721-89706365d21f
+# github.com/storageos/go-api/v2 v2.3.1-0.20210211170707-7520f2fe0974
 ## explicit
 github.com/storageos/go-api/v2
 github.com/storageos/go-api/v2/api

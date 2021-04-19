@@ -26,7 +26,7 @@ const (
 	// managerWaitDuration is the time to wait for the manager to start and be
 	// ready to process events.  The manager starts asychronously, so without a
 	// wait, events may be missed.
-	managerWaitDuration = 1 * time.Second
+	managerWaitDuration = 2 * time.Second
 
 	// defaultWorkers is the number of concurrent requests that test controllers
 	// can operate on in paralllel.

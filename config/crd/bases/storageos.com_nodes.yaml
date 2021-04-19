@@ -1,0 +1,91 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: nodes.storageos.com
+spec:
+  group: storageos.com
+  names:
+    kind: Node
+    listKind: NodeList
+    plural: nodes
+    singular: node
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Node is the Schema for the nodes API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NodeSpec defines the desired state of Node.
+            properties:
+              clusteringEndpoint:
+                description: Endpoint at which we operate our clustering GRPC API.
+                  This value is set on startup by the corresponding environment variable
+                  (INTERNAL_API_ADVERTISE_ADDRESS).
+                type: string
+              gossipEndpoint:
+                description: Endpoint at which we operate our health checking service.
+                  This value is set on startup by the corresponding environment variable
+                  (GOSSIP_ADVERTISE_ADDRESS).
+                type: string
+              ioEndpoint:
+                description: Endpoint at which we operate our dataplane's dfs service.
+                  (used for IO operations) This value is set on startup by the corresponding
+                  environment variable (IO_ADVERTISE_ADDRESS).
+                type: string
+              supervisorEndpoint:
+                description: Endpoint at which we operate our dataplane's supervisor
+                  service (used for sync). This value is set on startup by the corresponding
+                  environment variable (SUPERVISOR_ADVERTISE_ADDRESS).
+                type: string
+            type: object
+          status:
+            description: NodeStatus defines the observed state of the Node.
+            properties:
+              capacity:
+                description: Capacity of the node.
+                properties:
+                  available:
+                    description: Byte value available to an unprivileged user
+                    format: int64
+                    type: integer
+                  free:
+                    description: Free bytes in the filesystem available to root user
+                    format: int64
+                    type: integer
+                  total:
+                    description: Total bytes in the filesystem
+                    format: int64
+                    type: integer
+                type: object
+              health:
+                description: Health of the node.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
