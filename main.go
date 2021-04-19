@@ -56,6 +56,7 @@ import (
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption"
 	"github.com/storageos/api-manager/internal/controllers/sharedvolume"
 	"github.com/storageos/api-manager/internal/pkg/cluster"
+	"github.com/storageos/api-manager/internal/pkg/labels"
 	"github.com/storageos/api-manager/internal/pkg/storageos"
 	apimetrics "github.com/storageos/api-manager/internal/pkg/storageos/metrics"
 	// +kubebuilder:scaffold:imports
@@ -326,7 +327,7 @@ func main() {
 	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
 
 	pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-		encryption.NewKeySetter(mgr.GetClient()),
+		encryption.NewKeySetter(mgr.GetClient(), labels.Default()),
 	})
 	mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 

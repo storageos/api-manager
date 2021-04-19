@@ -2,6 +2,7 @@ package encryption
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -19,6 +20,8 @@ import (
 )
 
 func TestMutatePVC(t *testing.T) {
+	t.Parallel()
+
 	// Test values only.
 	storageosProvisioner := provisioner.DriverName
 
@@ -263,6 +266,8 @@ func createPVC(name, namespace, storageClassName string, betaAnnotation bool, la
 }
 
 func Test_isEnabled(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		key  string
@@ -311,6 +316,72 @@ func Test_isEnabled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := isEnabled(tt.key, tt.kv); got != tt.want {
 				t.Errorf("isEnabled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEncryptionKeySetter_VolumeSecretLabels(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		pvcName string
+		labels  map[string]string
+		want    map[string]string
+	}{
+		{
+			name:    "default",
+			pvcName: "pvc1",
+			labels: map[string]string{
+				"foo": "bar",
+			},
+			want: map[string]string{
+				VolumeSecretPVCNameLabel: "pvc1",
+				"foo":                    "bar",
+			},
+		},
+		{
+			name:    "empty pvc name",
+			pvcName: "",
+			labels: map[string]string{
+				"foo": "bar",
+			},
+			want: map[string]string{
+				"foo": "bar",
+			},
+		},
+		{
+			name:    "empty base labels",
+			pvcName: "pvc1",
+			labels:  map[string]string{},
+			want: map[string]string{
+				VolumeSecretPVCNameLabel: "pvc1",
+			},
+		},
+		{
+			name:    "nil base labels",
+			pvcName: "pvc1",
+			labels:  nil,
+			want: map[string]string{
+				VolumeSecretPVCNameLabel: "pvc1",
+			},
+		},
+	}
+	for _, tt := range tests {
+		var tt = tt
+		t.Run(tt.name, func(t *testing.T) {
+			s := &EncryptionKeySetter{
+				enabledLabel:                 EnabledLabel,
+				secretNameAnnotationKey:      SecretNameAnnotationKey,
+				secretNamespaceAnnotationKey: SecretNamespaceAnnotationKey,
+				labels:                       tt.labels,
+				Client:                       nil,
+				keys:                         keys.New(nil),
+				log:                          ctrl.Log,
+			}
+			if got := s.VolumeSecretLabels(tt.pvcName); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("EncryptionKeySetter.VolumeSecretLabels() = %v, want %v", got, tt.want)
 			}
 		})
 	}

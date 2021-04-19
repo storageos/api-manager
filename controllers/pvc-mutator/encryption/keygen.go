@@ -29,6 +29,11 @@ const (
 	// VolumeSecretNamePrefix will be used to prefix all volume key secrets.
 	VolumeSecretNamePrefix = "storageos-volume-key"
 
+	// VolumeSecretPVCNameLabel is used to set the reference to the PVC name on
+	// the volume key secret.  The namespace is not needed as it will be the
+	// same as the secret.
+	VolumeSecretPVCNameLabel = "storageos.com/pvc"
+
 	// NamespaceSecretName is the name of the secret containing the user key in
 	// each namespace with encrypted volumes.
 	NamespaceSecretName = "storageos-namespace-key"
@@ -45,7 +50,7 @@ var (
 // KeyManager is the encrption key manager, responsible for creating and
 // retrieving secrets that contain the keys required for volume encryption.
 type KeyManager interface {
-	Ensure(ctx context.Context, userKeyRef client.ObjectKey, volKeyRef client.ObjectKey) error
+	Ensure(ctx context.Context, userKeyRef client.ObjectKey, volKeyRef client.ObjectKey, nsSecretLabels map[string]string, volSecretLabels map[string]string) error
 }
 
 // EncryptionKeySetter is responsible for generating and setting pvc encryption
@@ -63,6 +68,10 @@ type EncryptionKeySetter struct {
 	// namespace of the secret containing the encryption key.
 	secretNamespaceAnnotationKey string
 
+	// labels that should be applied to any kubernetes resources created by the
+	// key manager.
+	labels map[string]string
+
 	client.Client
 	keys KeyManager
 	log  logr.Logger
@@ -71,7 +80,7 @@ type EncryptionKeySetter struct {
 // NewKeySetter returns a new PVC encryption key mutating admission
 // controller that generates volume encryption keys and sets references to their
 // location as PVC annotations.
-func NewKeySetter(k8s client.Client) *EncryptionKeySetter {
+func NewKeySetter(k8s client.Client, labels map[string]string) *EncryptionKeySetter {
 	return &EncryptionKeySetter{
 		enabledLabel:                 EnabledLabel,
 		secretNameAnnotationKey:      SecretNameAnnotationKey,
@@ -79,6 +88,7 @@ func NewKeySetter(k8s client.Client) *EncryptionKeySetter {
 
 		Client: k8s,
 		keys:   keys.New(k8s),
+		labels: labels,
 		log:    ctrl.Log.WithName("keygen"),
 	}
 }
@@ -112,7 +122,15 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 	nsKeyRef := s.NamespaceSecretKeyRef(namespace)
 	volKeyRef := s.VolumeSecretKeyRef(pvc, namespace)
 
-	if err := s.keys.Ensure(ctx, nsKeyRef, volKeyRef); err != nil {
+	// Add the PVC reference to the volume key secret labels.  This is
+	// convenience only and should not be relied on.  The volume key should
+	// really relate to the PV, not the PVC but the PV hasn't been provisioned
+	// yet.
+	volSecretLabels := s.VolumeSecretLabels(pvc.GetName())
+
+	// Ensure that the encryption keys exist where expected, creating them if
+	// needed.
+	if err := s.keys.Ensure(ctx, nsKeyRef, volKeyRef, s.labels, volSecretLabels); err != nil {
 		return errors.Wrap(err, "failed to ensure encryption key present for pvc")
 	}
 
@@ -126,6 +144,22 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 
 	log.Info("set volume encryption key annotations")
 	return nil
+}
+
+// VolumeSecretLabels returns the labels that should be set on the volume key
+// secret.
+func (s *EncryptionKeySetter) VolumeSecretLabels(pvcName string) map[string]string {
+	labels := make(map[string]string)
+	for k, v := range s.labels {
+		labels[k] = v
+	}
+
+	// pvcName should never be empty, but no point setting if it is.
+	if pvcName != "" {
+		labels[VolumeSecretPVCNameLabel] = pvcName
+	}
+
+	return labels
 }
 
 // NamespaceSecretKeyRef returns the reference of the secret that should be used to

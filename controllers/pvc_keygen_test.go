@@ -20,6 +20,7 @@ import (
 
 	pvcmutator "github.com/storageos/api-manager/controllers/pvc-mutator"
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption"
+	"github.com/storageos/api-manager/internal/pkg/labels"
 )
 
 // SetupPVCKeygenTest will set up a testing environment.  It must be called
@@ -58,7 +59,7 @@ func SetupPVCKeygenTest(ctx context.Context) {
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
 		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-			encryption.NewKeySetter(mgr.GetClient()),
+			encryption.NewKeySetter(mgr.GetClient(), labels.Default()),
 		})
 
 		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
@@ -192,6 +193,22 @@ var _ = Describe("PVC Keygen controller", func() {
 				}
 				return len(got.Data["key"])
 			}, timeout, interval).Should(Equal(64))
+
+			By("Expecting secret to have correct labels set")
+			Eventually(func() map[string]string {
+				got := corev1.Secret{}
+				err := k8sClient.Get(ctx, secretRef, &got)
+				if err != nil {
+					return nil
+				}
+				return got.GetLabels()
+			}, timeout, interval).Should(Equal(map[string]string{
+				labels.AppComponent:                 labels.DefaultAppComponent,
+				labels.AppManagedBy:                 labels.DefaultAppManagedBy,
+				labels.AppName:                      labels.DefaultAppName,
+				labels.AppPartOf:                    labels.DefaultAppPartOf,
+				encryption.VolumeSecretPVCNameLabel: pvc.Name,
+			}))
 		})
 	})
 
@@ -252,6 +269,22 @@ var _ = Describe("PVC Keygen controller", func() {
 				}
 				return len(got.Data["key"])
 			}, timeout, interval).Should(Equal(64))
+
+			By("Expecting secret to have correct labels set")
+			Eventually(func() map[string]string {
+				got := corev1.Secret{}
+				err := k8sClient.Get(ctx, secretRef, &got)
+				if err != nil {
+					return nil
+				}
+				return got.GetLabels()
+			}, timeout, interval).Should(Equal(map[string]string{
+				labels.AppComponent:                 labels.DefaultAppComponent,
+				labels.AppManagedBy:                 labels.DefaultAppManagedBy,
+				labels.AppName:                      labels.DefaultAppName,
+				labels.AppPartOf:                    labels.DefaultAppPartOf,
+				encryption.VolumeSecretPVCNameLabel: pvc.Name,
+			}))
 		})
 	})
 
@@ -312,6 +345,22 @@ var _ = Describe("PVC Keygen controller", func() {
 				}
 				return len(got.Data["key"])
 			}, timeout, interval).Should(Equal(64))
+
+			By("Expecting secret to have correct labels set")
+			Eventually(func() map[string]string {
+				got := corev1.Secret{}
+				err := k8sClient.Get(ctx, secretRef, &got)
+				if err != nil {
+					return nil
+				}
+				return got.GetLabels()
+			}, timeout, interval).Should(Equal(map[string]string{
+				labels.AppComponent:                 labels.DefaultAppComponent,
+				labels.AppManagedBy:                 labels.DefaultAppManagedBy,
+				labels.AppName:                      labels.DefaultAppName,
+				labels.AppPartOf:                    labels.DefaultAppPartOf,
+				encryption.VolumeSecretPVCNameLabel: pvc.Name,
+			}))
 		})
 	})
 
