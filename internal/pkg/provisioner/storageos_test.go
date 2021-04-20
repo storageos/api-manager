@@ -164,6 +164,21 @@ func TestIsStorageOSPVC(t *testing.T) {
 func TestIsProvisionedVolume(t *testing.T) {
 	t.Parallel()
 
+	provisioned, err := IsProvisionedVolume(nil, corev1.Volume{}, "")
+
+	if provisioned {
+		t.Errorf("TestIsProvisionedVolume() = %t", provisioned)
+		return
+	}
+	if err != nil {
+		t.Errorf("TestIsProvisionedVolume() error = %v, not allowed", err)
+		return
+	}
+}
+
+func TestIsProvisionedPVC(t *testing.T) {
+	t.Parallel()
+
 	// Create a new scheme and add all the types from different clientsets.
 	scheme := runtime.NewScheme()
 	if err := kscheme.AddToScheme(scheme); err != nil {
@@ -214,7 +229,6 @@ func TestIsProvisionedVolume(t *testing.T) {
 		name           string
 		storageClasses []*storagev1.StorageClass
 		pvc            corev1.PersistentVolumeClaim
-		volume         corev1.Volume
 		want           bool
 		wantErr        bool
 	}{
@@ -222,49 +236,42 @@ func TestIsProvisionedVolume(t *testing.T) {
 			name:           "storageos volume",
 			storageClasses: []*storagev1.StorageClass{stosSC, fooSC},
 			pvc:            createPVC("pv1", testNamespace, stosSC.Name, false),
-			volume:         createVolume("pv1"),
 			want:           true,
 		},
 		{
 			name:           "storageos volume, beta annotation",
 			storageClasses: []*storagev1.StorageClass{stosSC, fooSC},
 			pvc:            createPVC("pv1", testNamespace, stosSC.Name, true),
-			volume:         createVolume("pv1"),
 			want:           true,
 		},
 		{
 			name:           "storageos volume, default storage class",
 			storageClasses: []*storagev1.StorageClass{stosSCdefault, fooSC},
 			pvc:            createPVC("pv1", testNamespace, "", false),
-			volume:         createVolume("pv1"),
 			want:           true,
 		},
 		{
 			name:           "non-storageos volume",
 			storageClasses: []*storagev1.StorageClass{stosSC, fooSC},
 			pvc:            createPVC("pv1", testNamespace, fooSC.Name, false),
-			volume:         createVolume("pv1"),
 			want:           false,
 		},
 		{
 			name:           "non-storageos volume, beta annotation",
 			storageClasses: []*storagev1.StorageClass{stosSC, fooSC},
 			pvc:            createPVC("pv1", testNamespace, fooSC.Name, true),
-			volume:         createVolume("pv1"),
 			want:           false,
 		},
 		{
 			name:           "non-storageos volume, default storage class",
 			storageClasses: []*storagev1.StorageClass{stosSC, fooSCdefault},
 			pvc:            createPVC("pv1", testNamespace, "", true),
-			volume:         createVolume("pv1"),
 			want:           false,
 		},
 		{
 			name:           "non-storageos volume, no storage classes",
 			storageClasses: []*storagev1.StorageClass{},
 			pvc:            createPVC("pv1", testNamespace, "", true),
-			volume:         createVolume("pv1"),
 			want:           false,
 			wantErr:        true,
 		},
@@ -282,13 +289,13 @@ func TestIsProvisionedVolume(t *testing.T) {
 			objects = append(objects, &tt.pvc)
 			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
 
-			got, err := IsProvisionedVolume(client, tt.volume, testNamespace, DriverName)
+			got, err := IsProvisionedPVC(client, tt.pvc, testNamespace, DriverName)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("IsProvisionedVolume() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("IsProvisionedPVC() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("IsProvisionedVolume() = %v, want %v", got, tt.want)
+				t.Errorf("IsProvisionedPVC() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -326,16 +333,4 @@ func createPVC(name, namespace, storageClassName string, betaAnnotation bool) co
 	}
 
 	return pvc
-}
-
-// createVolume creates and returns a Volume object.
-func createVolume(pvcName string) corev1.Volume {
-	return corev1.Volume{
-		Name: pvcName,
-		VolumeSource: corev1.VolumeSource{
-			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-				ClaimName: pvcName,
-			},
-		},
-	}
 }

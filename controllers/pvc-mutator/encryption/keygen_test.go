@@ -62,6 +62,11 @@ func TestMutatePVC(t *testing.T) {
 		wantErr                           bool
 	}{
 		{
+			name:      "foreign pvc",
+			namespace: testNamespace,
+			notStos:   true,
+		},
+		{
 			name:                          "pvc without encryption",
 			namespace:                     testNamespace,
 			wantSecretNameAnnotation:      "",

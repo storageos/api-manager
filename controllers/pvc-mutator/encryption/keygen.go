@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption/keys"
+	"github.com/storageos/api-manager/internal/pkg/provisioner"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -101,6 +102,16 @@ func NewKeySetter(k8s client.Client, uncached client.Client, labels map[string]s
 func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim, namespace string) error {
 	log := s.log.WithValues("pvc", client.ObjectKeyFromObject(pvc).String())
 	log.V(4).Info("received pvc for mutation")
+
+	// Skip mutation if the PVC is not provisioned by StorageOS
+	provisioned, err := provisioner.IsProvisionedPVC(s.Client, *pvc, namespace, provisioner.DriverName)
+	if err != nil {
+		return errors.Wrap(err, "failed to check pvc provisioner")
+	}
+	if !provisioned {
+		log.V(4).Info("pvc does not provisioned by StorageOS, skipping")
+		return nil
+	}
 
 	// Skip mutation if the PVC does not have encryption enabled.  Don't bother checking
 	// the StorageClass to make sure it's StorageOS.  The encryption label

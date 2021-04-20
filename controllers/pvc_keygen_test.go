@@ -10,6 +10,7 @@ import (
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,12 +22,23 @@ import (
 	pvcmutator "github.com/storageos/api-manager/controllers/pvc-mutator"
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption"
 	"github.com/storageos/api-manager/internal/pkg/labels"
+	"github.com/storageos/api-manager/internal/pkg/provisioner"
 )
 
 // SetupPVCKeygenTest will set up a testing environment.  It must be called
 // from each test.
 func SetupPVCKeygenTest(ctx context.Context) {
 	var cancel func()
+
+	sc := storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				defaultStorageClassKey: "true",
+			},
+		},
+		Provisioner: provisioner.DriverName,
+	}
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(ctx)
@@ -71,6 +83,8 @@ func SetupPVCKeygenTest(ctx context.Context) {
 		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
+		Expect(k8sClient.Create(ctx, &sc)).Should(Succeed())
+
 		go func() {
 			err := mgr.Start(ctx)
 			Expect(err).NotTo(HaveOccurred(), "failed to start manager")
@@ -81,6 +95,8 @@ func SetupPVCKeygenTest(ctx context.Context) {
 	})
 
 	AfterEach(func() {
+		Expect(k8sClient.Delete(ctx, &sc)).Should(Succeed())
+
 		cancel()
 	})
 }
