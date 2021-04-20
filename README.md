@@ -155,6 +155,10 @@ The following flags are supported:
     	Path where the StorageOS api secret is mounted.  The secret must have "username" and "password" set. (default "/etc/storageos/secrets/api")
   -enable-leader-election
     	Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.
+  -enable-node-label-sync
+    	Enable node label sync controller. (default true)
+  -enable-pvc-label-sync
+    	Enable pvc label sync controller. (default true)
   -k8s-create-poll-interval duration
     	Frequency of Kubernetes api polling for new objects to appear once created. (default 1s)
   -k8s-create-wait-duration duration
@@ -179,12 +183,12 @@ The following flags are supported:
     	Maximum concurrent node delete operations. (default 5)
   -node-expiry-interval duration
     	Frequency of cached StorageOS node re-validation. (default 1h0m0s)
-  -node-fencer-workers int
-    	Maximum concurrent node fencing operations. (default 1)
   -node-fencer-retry-interval duration
     	Frequency of fencing retries on failure. (default 5s)
   -node-fencer-timeout duration
     	Maximum time to wait for fencing to complete. (default 25s)
+  -node-fencer-workers int
+    	Maximum concurrent node fencing operations. (default 5)
   -node-label-resync-delay duration
     	Startup delay of initial node label resync. (default 10s)
   -node-label-resync-interval duration
@@ -201,14 +205,20 @@ The following flags are supported:
     	Maximum concurrent PVC label sync operations. (default 5)
   -scheduler-name string
     	Name of the Pod scheduler to use for Pods with StorageOS volumes.  Set to an empty value to disable setting the Pod scheduler. (default "storageos-scheduler")
-  -webhook-cert-validity duration
-    	Validity of webhook certificate. (default 1y)
+  -volume-expiry-interval duration
+    	Frequency of cached StorageOS volume re-validation. (default 1m0s)
+  -volume-poll-interval duration
+    	Frequency of StorageOS volume polling. (default 5s)
   -webhook-cert-refresh-interval duration
     	Frequency of webhook certificate refresh. (default 30m0s)
+  -webhook-cert-validity duration
+    	Validity of webhook certificate. (default 8760h0m0s)
   -webhook-config-mutating string
     	Name of the mutating webhook configuration. (default "storageos-mutating-webhook")
   -webhook-mutate-pods-path string
     	URL path of the Pod mutating webhook. (default "/mutate-pods")
+  -webhook-mutate-pvcs-path string
+    	URL path of the PVC mutating webhook. (default "/mutate-pvcs")
   -webhook-secret-name string
     	Name of the webhook secret containing the certificate. (default "storageos-webhook")
   -webhook-secret-namespace string
@@ -217,10 +227,6 @@ The following flags are supported:
     	Name of the webhook service. (default "storageos-webhook")
   -webhook-service-namespace string
     	Namespace of the webhook service.  Will be auto-detected or value of -namespace if unset.
-  -volume-expiry-interval duration
-    	Frequency of cached StorageOS volume re-validation. (default 1m0s)
-  -volume-poll-interval duration
-    	Frequency of StorageOS volume polling. (default 5s)
   -zap-devel
     	Development Mode defaults(encoder=consoleEncoder,logLevel=Debug,stackTraceLevel=Warn). Production Mode defaults(encoder=jsonEncoder,logLevel=Info,stackTraceLevel=Error)
   -zap-encoder value

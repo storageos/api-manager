@@ -69,3 +69,8 @@ Resync is run on startup after a delay defined by the
 
 [CSI Provisioner]: https://github.com/storageos/external-provisioner/tree/53f0949-patched
 [StorageOS Feature Labels]: https://docs.storageos.com/docs/reference/labels
+
+## Disabling
+
+The PVC Label Sync Controller can be disabled by setting the
+`-enable-pvc-label-sync=false` flag.

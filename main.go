@@ -119,6 +119,9 @@ func main() {
 	var nodeFencerRetryInterval time.Duration
 	var nodeFencerTimeout time.Duration
 	var pvcLabelSyncWorkers int
+	var enablePVCLabelSync bool
+	var enableNodeLabelSync bool
+
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -159,6 +162,8 @@ func main() {
 	flag.IntVar(&nsDeleteWorkers, "namespace-delete-workers", 5, "Maximum concurrent namespace delete operations.")
 	flag.IntVar(&nodeLabelSyncWorkers, "node-label-sync-workers", 5, "Maximum concurrent node label sync operations.")
 	flag.IntVar(&pvcLabelSyncWorkers, "pvc-label-sync-workers", 5, "Maximum concurrent PVC label sync operations.")
+	flag.BoolVar(&enablePVCLabelSync, "enable-pvc-label-sync", true, "Enable pvc label sync controller.")
+	flag.BoolVar(&enableNodeLabelSync, "enable-node-label-sync", true, "Enable node label sync controller.")
 
 	loggerOpts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -291,13 +296,17 @@ func main() {
 		fatal(err, "failed to register shared volume reconciler")
 	}
 
-	setupLog.Info("starting pvc label sync controller ")
-	if err := pvclabel.NewReconciler(api, mgr.GetClient(), resyncPVCLabelDelay, resyncPVCLabelInterval).SetupWithManager(mgr, pvcLabelSyncWorkers); err != nil {
-		fatal(err, "failed to register pvc label reconciler")
+	if enablePVCLabelSync {
+		setupLog.Info("starting pvc label sync controller ")
+		if err := pvclabel.NewReconciler(api, mgr.GetClient(), resyncPVCLabelDelay, resyncPVCLabelInterval).SetupWithManager(mgr, pvcLabelSyncWorkers); err != nil {
+			fatal(err, "failed to register pvc label reconciler")
+		}
 	}
-	setupLog.Info("starting node label sync controller ")
-	if err := nodelabel.NewReconciler(api, mgr.GetClient(), resyncNodeLabelDelay, resyncNodeLabelInterval).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
-		fatal(err, "failed to register node label reconciler")
+	if enableNodeLabelSync {
+		setupLog.Info("starting node label sync controller ")
+		if err := nodelabel.NewReconciler(api, mgr.GetClient(), resyncNodeLabelDelay, resyncNodeLabelInterval).SetupWithManager(mgr, nodeLabelSyncWorkers); err != nil {
+			fatal(err, "failed to register node label reconciler")
+		}
 	}
 	setupLog.Info("starting node delete controller")
 	if err := nodedelete.NewReconciler(api, mgr.GetClient(), gcNodeDeleteDelay, gcNodeDeleteInterval).SetupWithManager(mgr, nodeDeleteWorkers); err != nil {
