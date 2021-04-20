@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -15,7 +14,7 @@ import (
 )
 
 var (
-	// ErrNoKeyInSecret is returned is a secret was expected to contain an
+	// ErrNoKeyInSecret is returned when a secret was expected to contain an
 	// encryption key, but didn't.
 	ErrNoKeyInSecret = errors.New("secret does not contain encryption key")
 )
@@ -26,7 +25,8 @@ type KeyManager struct {
 }
 
 // New creates a new KeyManager that is responsible for generationg and storing
-// volume encryption keys.
+// volume encryption keys.  The client should be uncached so that created
+// secrets can be read back immediately.
 func New(client client.Client) *KeyManager {
 	return &KeyManager{client: client}
 }
@@ -36,7 +36,11 @@ func New(client client.Client) *KeyManager {
 func (m *KeyManager) Ensure(ctx context.Context, nsKeyRef client.ObjectKey, volKeyRef client.ObjectKey, nsSecretLabels map[string]string, volSecretLabels map[string]string) error {
 	// Return immediately if the volume key already exists, or an error if
 	// another error (e.g. permission denied).
-	if err := m.client.Get(ctx, volKeyRef, &corev1.Secret{}); err == nil || !apierrors.IsNotFound(err) {
+	err := m.client.Get(ctx, volKeyRef, &corev1.Secret{})
+	if err == nil {
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
 		return err
 	}
 
@@ -73,25 +77,7 @@ func (m *KeyManager) ensureNamespaceKey(ctx context.Context, nsKeyRef client.Obj
 	if err := m.client.Create(ctx, secret); err != nil {
 		return "", err
 	}
-
-	// Wait for secret to be created.  There's not much value in making these
-	// configurable.  The create should be almost instant.
-	ticker := time.NewTicker(50 * time.Millisecond)
-	timeout := time.After(2 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if err = m.client.Get(ctx, nsKeyRef, secret); err != nil {
-				continue
-			}
-			return keyFromSecret(secret)
-		case <-timeout:
-			// Return last error.
-			return "", err
-		}
-	}
+	return keyFromSecret(secret)
 }
 
 // createVolumeKey generates a new volume key and stores it in a secret at

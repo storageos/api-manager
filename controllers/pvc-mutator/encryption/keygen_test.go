@@ -124,6 +124,23 @@ func TestMutatePVC(t *testing.T) {
 			wantSecretNameAnnotation:      "my-secret-name",
 			wantSecretNamespaceAnnotation: testNamespace,
 		},
+		{
+			name:                          "non-stos pvc without encryption",
+			namespace:                     testNamespace,
+			notStos:                       true,
+			wantSecretNameAnnotation:      "",
+			wantSecretNamespaceAnnotation: "",
+		},
+		{
+			name:      "pvc with encryption beta annotation",
+			namespace: testNamespace,
+			labels: map[string]string{
+				EnabledLabel: "true",
+			},
+			betaAnnotation:                    true,
+			wantSecretNameAnnotationGenerated: true,
+			wantSecretNamespaceAnnotation:     testNamespace,
+		},
 	}
 
 	for _, tc := range testcases {
@@ -173,12 +190,11 @@ func TestMutatePVC(t *testing.T) {
 
 			// Check namespace ref annotation.
 			nsRef := annotations[SecretNamespaceAnnotationKey]
-			switch tc.wantSecretNamespaceAnnotation == "" {
-			case true:
+			if tc.wantSecretNamespaceAnnotation == "" {
 				if nsRef != "" {
 					t.Errorf("expected %s annotation to be unset, got %s", SecretNamespaceAnnotationKey, nsRef)
 				}
-			case false:
+			} else {
 				if nsRef != tc.wantSecretNamespaceAnnotation {
 					t.Errorf("expected %s annotation to be set to %s, got %s", SecretNamespaceAnnotationKey, tc.wantSecretNamespaceAnnotation, nsRef)
 				}

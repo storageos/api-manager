@@ -219,7 +219,7 @@ func main() {
 	// Create an uncached client to be used in the certificate manager.
 	// NOTE: Cached client from manager can't be used here because the cache is
 	// uninitialized at this point.
-	cli, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+	uncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
 	if err != nil {
 		setupLog.Error(err, "failed to create raw client")
 		os.Exit(1)
@@ -251,7 +251,7 @@ func main() {
 			Name:      webhookServiceName,
 			Namespace: webhookServiceNamespace,
 		},
-		Client:                    cli,
+		Client:                    uncachedClient,
 		SecretRef:                 &types.NamespacedName{Name: webhookSecretName, Namespace: webhookSecretNamespace},
 		MutatingWebhookConfigRefs: []types.NamespacedName{{Name: webhookConfigMutatingName}},
 	}
@@ -327,7 +327,7 @@ func main() {
 	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
 
 	pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-		encryption.NewKeySetter(mgr.GetClient(), labels.Default()),
+		encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
 	})
 	mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 

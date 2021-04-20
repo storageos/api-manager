@@ -58,8 +58,14 @@ func SetupPVCKeygenTest(ctx context.Context) {
 		decoder, err := admission.NewDecoder(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
+		uncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+		if err != nil {
+			Expect(err).NotTo(HaveOccurred(), "failed to create raw client")
+			return
+		}
+
 		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-			encryption.NewKeySetter(mgr.GetClient(), labels.Default()),
+			encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
 		})
 
 		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
