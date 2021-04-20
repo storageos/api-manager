@@ -178,6 +178,22 @@ func (mr *MockControlPlaneMockRecorder) SetComputeOnly(arg0, arg1, arg2, arg3 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetComputeOnly", reflect.TypeOf((*MockControlPlane)(nil).SetComputeOnly), arg0, arg1, arg2, arg3)
 }
 
+// SetFailureMode mocks base method.
+func (m *MockControlPlane) SetFailureMode(arg0 context.Context, arg1, arg2 string, arg3 api.SetFailureModeRequest, arg4 *api.SetFailureModeOpts) (api.Volume, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetFailureMode", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(api.Volume)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SetFailureMode indicates an expected call of SetFailureMode.
+func (mr *MockControlPlaneMockRecorder) SetFailureMode(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFailureMode", reflect.TypeOf((*MockControlPlane)(nil).SetFailureMode), arg0, arg1, arg2, arg3, arg4)
+}
+
 // SetReplicas mocks base method.
 func (m *MockControlPlane) SetReplicas(arg0 context.Context, arg1, arg2 string, arg3 api.SetReplicasRequest, arg4 *api.SetReplicasOpts) (api.AcceptedMessage, *http.Response, error) {
 	m.ctrl.T.Helper()

@@ -13,6 +13,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	FailureModeSoft     = "soft"
+	FailureModeHard     = "hard"
+	FailureModeAlwaysOn = "alwayson"
+)
+
+var (
+	// ErrBadFailureMode is returned if the failure-mode label value was
+	// invalid.
+	ErrBadFailureMode = errors.New("failed to parse failure-mode label, must be hard, soft, alwayson or an integer toleration")
+)
+
 // EnsureVolumeLabels applies a set of labels to a StorageOS volume.
 //
 // Labels prefixed with the StorageOS reserved label indicator
@@ -23,6 +35,7 @@ import (
 func (c *Client) EnsureVolumeLabels(ctx context.Context, key client.ObjectKey, labels map[string]string) error {
 	var unreservedLabels = make(map[string]string)
 	var replicas uint64
+	var failureMode string
 	var err error
 	var errs = &multierror.Error{ErrorFormat: ListErrors}
 
@@ -36,6 +49,8 @@ func (c *Client) EnsureVolumeLabels(ctx context.Context, key client.ObjectKey, l
 		case k == ReservedLabelNoCache || k == ReservedLabelNoCompress:
 			// Don't attempt reserved labels that can't be modifed after creation.
 			errs = multierror.Append(errs, errors.Wrap(ErrReservedLabelFixed, k))
+		case k == ReservedLabelFailureMode:
+			failureMode = v
 		case k == ReservedLabelReplicas:
 			replicas, err = strconv.ParseUint(v, 10, 64)
 			if err != nil {
@@ -48,12 +63,15 @@ func (c *Client) EnsureVolumeLabels(ctx context.Context, key client.ObjectKey, l
 
 	// Apply reserved labels.  Labels that have been removed or have been
 	// changed to an invalid value will get their default re-applied.
-	if err := c.EnsureReplicas(ctx, key, replicas); err != nil && err != ErrNodeNotFound {
+	if err := c.EnsureReplicas(ctx, key, replicas); err != nil && err != ErrVolumeNotFound {
+		errs = multierror.Append(errs, err)
+	}
+	if err := c.EnsureFailureMode(ctx, key, failureMode); err != nil && err != ErrVolumeNotFound {
 		errs = multierror.Append(errs, err)
 	}
 
 	// Apply unreserved labels as a blob, removing any that are no longer set.
-	if err := c.EnsureUnreservedVolumeLabels(ctx, key, unreservedLabels); err != nil && err != ErrNodeNotFound {
+	if err := c.EnsureUnreservedVolumeLabels(ctx, key, unreservedLabels); err != nil && err != ErrVolumeNotFound {
 		errs = multierror.Append(errs, err)
 	}
 
@@ -161,4 +179,78 @@ func (c *Client) EnsureReplicas(ctx context.Context, key client.ObjectKey, desir
 		return observeErr(api.MapAPIError(err, resp))
 	}
 	return observeErr(nil)
+}
+
+// EnsureFailureMode ensures that the desired failure mode has been applied to
+// the StorageOS volume.
+func (c *Client) EnsureFailureMode(ctx context.Context, key client.ObjectKey, desired string) error {
+	funcName := "ensure_failure_mode"
+	start := time.Now()
+	defer func() {
+		metrics.Latency.Observe(funcName, time.Since(start))
+	}()
+	observeErr := func(e error) error {
+		metrics.Errors.Increment(funcName, e)
+		return e
+	}
+
+	ctx = c.AddToken(ctx)
+
+	vol, err := c.getVolume(ctx, key)
+	if err != nil {
+		return observeErr(err)
+	}
+
+	var current string
+
+	// If label already set, get value.
+	for k, v := range vol.Labels {
+		if k == ReservedLabelFailureMode {
+			current = v
+			break
+		}
+	}
+
+	// No change required.
+	if current == desired {
+		return nil
+	}
+
+	// Parse the label value to determine the failure mode intent or threshold.
+	mode, threshold, err := ParseFailureMode(desired)
+	if err != nil {
+		return observeErr(err)
+	}
+
+	// Apply update.
+	if _, resp, err := c.api.SetFailureMode(ctx, vol.NamespaceID, vol.Id, api.SetFailureModeRequest{Mode: mode, FailureThreshold: threshold, Version: vol.Version}, nil); err != nil {
+		return observeErr(api.MapAPIError(err, resp))
+	}
+	return observeErr(nil)
+}
+
+// ParseFailureMode parses a string and returns either a failure mode intent or
+// a threshold, if set.  Only one of the intent or threshold should be set.
+func ParseFailureMode(s string) (api.FailureModeIntent, uint64, error) {
+	//  Return defaults if no value set.
+	if s == "" {
+		return api.FAILUREMODEINTENT_HARD, 0, nil
+	}
+
+	// Check for "canned" failure mode intent.
+	switch s {
+	case FailureModeSoft:
+		return api.FAILUREMODEINTENT_SOFT, 0, nil
+	case FailureModeHard:
+		return api.FAILUREMODEINTENT_HARD, 0, nil
+	case FailureModeAlwaysOn:
+		return api.FAILUREMODEINTENT_ALWAYSON, 0, nil
+	}
+
+	// Otherwise look for an integer value for the failure threshold.
+	threshold, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return "", 0, errors.Wrap(err, ErrBadFailureMode.Error())
+	}
+	return "", threshold, nil
 }

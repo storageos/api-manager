@@ -240,6 +240,22 @@ func TestClient_EnsureNodeLabels(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "add failure-mode label",
+			labels: map[string]string{
+				storageos.ReservedLabelFailureMode: "soft",
+			},
+			prepare: func(name string, m *mocks.MockControlPlane) {
+				id := uuid.New().String()
+				node := api.Node{
+					Id:   id,
+					Name: name,
+				}
+
+				m.EXPECT().ListNodes(gomock.Any()).Return([]api.Node{node}, nil, nil).Times(2)
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		var tt = tt
