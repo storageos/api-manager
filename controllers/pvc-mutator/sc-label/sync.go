@@ -23,7 +23,7 @@ type LabelSetter struct {
 func NewLabelSetter(k8s client.Client) *LabelSetter {
 	return &LabelSetter{
 		Client: k8s,
-		log:    ctrl.Log.WithName("sc-label"),
+		log:    ctrl.Log.WithName("sc-param-sync"),
 	}
 }
 
