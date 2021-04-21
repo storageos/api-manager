@@ -13,7 +13,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
-	github.com/storageos/go-api/v2 v2.3.1-0.20210211170707-7520f2fe0974
+	github.com/storageos/go-api/v2 v2.3.1-0.20210420150320-a30cf41359d2
 	github.com/stretchr/testify v1.6.1
 	go.opentelemetry.io/otel v0.15.0
 	go.uber.org/zap v1.15.0

@@ -324,7 +324,7 @@ func (c *MockClient) EnsureVolumeLabels(ctx context.Context, key client.ObjectKe
 		switch {
 		case !IsReservedLabel(k):
 			newLabels[k] = v
-		case k == ReservedLabelReplicas:
+		case k == ReservedLabelReplicas || k == ReservedLabelFailureMode:
 			newLabels[k] = v
 		default:
 			errors = multierror.Append(errors, ErrReservedLabelUnknown)

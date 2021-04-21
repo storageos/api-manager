@@ -608,8 +608,8 @@ github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DM
 github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/yZzE=
 github.com/spf13/viper v1.7.0/go.mod h1:8WkrPz2fc9jxqZNCJI/76HCieCp4Q8HaLFoCha5qpdg=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
-github.com/storageos/go-api/v2 v2.3.1-0.20210211170707-7520f2fe0974 h1:+MovfasLBgvHCV594CiRrPAa2B4h6xf+g6fC5VOxK/c=
-github.com/storageos/go-api/v2 v2.3.1-0.20210211170707-7520f2fe0974/go.mod h1:dYUrmW64GDiLtUSEyYkr0+OAJ5VgQjQ+Q7STYWDWY9g=
+github.com/storageos/go-api/v2 v2.3.1-0.20210420150320-a30cf41359d2 h1:0cTO42QA89QyT5LE3kVbA6k7GWQhoMxs7Cff8obxVJQ=
+github.com/storageos/go-api/v2 v2.3.1-0.20210420150320-a30cf41359d2/go.mod h1:FpEkX+56ILt5L8Jt7pnXM1BRzFQ5YPkMSeZijTGcw5U=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.2.0 h1:Hbg2NidpLE8veEBkEZTL3CvlkUIVzuU9jDplZO54c48=

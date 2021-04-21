@@ -33,6 +33,7 @@ func (c *Client) EnsureNodeLabels(ctx context.Context, key client.ObjectKey, lab
 			unreservedLabels[k] = v
 		case k == ReservedLabelNoCache ||
 			k == ReservedLabelNoCompress ||
+			k == ReservedLabelFailureMode ||
 			k == ReservedLabelReplicas:
 			errs = multierror.Append(errs, errors.Wrap(ErrReservedLabelInvalid, k))
 		case k == ReservedLabelComputeOnly:

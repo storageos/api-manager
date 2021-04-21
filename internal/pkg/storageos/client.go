@@ -44,6 +44,7 @@ type ControlPlane interface {
 	GetVolume(ctx context.Context, namespaceID string, id string) (api.Volume, *http.Response, error)
 	UpdateVolume(ctx context.Context, namespaceID string, id string, updateVolumeData api.UpdateVolumeData, localVarOptionals *api.UpdateVolumeOpts) (api.Volume, *http.Response, error)
 	SetReplicas(ctx context.Context, namespaceID string, id string, setReplicasRequest api.SetReplicasRequest, localVarOptionals *api.SetReplicasOpts) (api.AcceptedMessage, *http.Response, error)
+	SetFailureMode(ctx context.Context, namespaceID string, id string, setFailureModeRequest api.SetFailureModeRequest, localVarOptionals *api.SetFailureModeOpts) (api.Volume, *http.Response, error)
 	UpdateNFSVolumeMountEndpoint(ctx context.Context, namespaceID string, id string, nfsVolumeMountEndpoint api.NfsVolumeMountEndpoint, localVarOptionals *api.UpdateNFSVolumeMountEndpointOpts) (*http.Response, error)
 }
 

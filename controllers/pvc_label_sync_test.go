@@ -265,6 +265,33 @@ var _ = Describe("PVC Label controller", func() {
 		})
 	})
 
+	Context("When adding failure-mode label", func() {
+		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
+		It("Should sync labels to StorageOS Volume", func() {
+			By("Confirming PVC exists in k8s")
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, key, &pvc)).Should(Succeed())
+
+			By("By adding replicas label to k8s PVC")
+			labels := map[string]string{
+				storageos.ReservedLabelFailureMode: "soft",
+			}
+			pvc.SetLabels(labels)
+			Eventually(func() error {
+				return k8sClient.Update(ctx, &pvc)
+			}, timeout, interval).Should(Succeed())
+
+			By("Expecting StorageOS Volume labels to match")
+			Eventually(func() map[string]string {
+				vol, err := api.GetVolume(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName, Namespace: pvc.GetNamespace()})
+				if err != nil {
+					return nil
+				}
+				return vol.GetLabels()
+			}, timeout, interval).Should(Equal(labels))
+		})
+	})
+
 	Context("When adding and removing mixed labels", func() {
 		key := SetupPVCLabelSyncTest(ctx, true, nil, false)
 		It("Should sync labels to StorageOS Volume", func() {
