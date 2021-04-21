@@ -201,15 +201,8 @@ func (c *Client) EnsureFailureMode(ctx context.Context, key client.ObjectKey, de
 		return observeErr(err)
 	}
 
-	var current string
-
 	// If label already set, get value.
-	for k, v := range vol.Labels {
-		if k == ReservedLabelFailureMode {
-			current = v
-			break
-		}
-	}
+	current := vol.Labels[ReservedLabelFailureMode]
 
 	// No change required.
 	if current == desired {
@@ -232,11 +225,6 @@ func (c *Client) EnsureFailureMode(ctx context.Context, key client.ObjectKey, de
 // ParseFailureMode parses a string and returns either a failure mode intent or
 // a threshold, if set.  Only one of the intent or threshold should be set.
 func ParseFailureMode(s string) (api.FailureModeIntent, uint64, error) {
-	//  Return defaults if no value set.
-	if s == "" {
-		return api.FAILUREMODEINTENT_HARD, 0, nil
-	}
-
 	// Check for "canned" failure mode intent.
 	switch s {
 	case FailureModeSoft:
@@ -245,6 +233,9 @@ func ParseFailureMode(s string) (api.FailureModeIntent, uint64, error) {
 		return api.FAILUREMODEINTENT_HARD, 0, nil
 	case FailureModeAlwaysOn:
 		return api.FAILUREMODEINTENT_ALWAYSON, 0, nil
+	case "":
+		//  Return defaults if no value set.
+		return api.FAILUREMODEINTENT_HARD, 0, nil
 	}
 
 	// Otherwise look for an integer value for the failure threshold.
