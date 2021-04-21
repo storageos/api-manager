@@ -53,3 +53,8 @@ Node label resync is run every hour by default (configurable via the
 
 Resync is run on startup after a delay defined by the
 `-node-label-resync-delay` flag.
+
+## Disabling
+
+The Node Label Sync Controller can be disabled by setting the
+`-enable-node-label-sync=false` flag.
