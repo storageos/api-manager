@@ -3,14 +3,17 @@ package sclabel
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	kscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -23,13 +26,23 @@ func TestMutatePVC(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	longName := strings.Join(make([]string, validation.LabelValueMaxLength+2), "X")
+
 	// StorageOS StorageClass.
 	stosSC := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "stos",
 		},
 		Provisioner: provisioner.DriverName,
-		Parameters:  map[string]string{"param": "value"},
+		Parameters: map[string]string{
+			"non-reserved":                                 "need-to-skip",
+			storageos.ReservedLabelK8sPVCNamespace:         "need-to-skip",
+			storageos.ReservedLabelK8sPVCName:              "need-to-skip",
+			storageos.ReservedLabelK8sPVName:               "need-to-skip",
+			storageos.ReservedLabelPrefix + "_invalid-key": "need-to-skip",
+			storageos.ReservedLabelPrefix + "need-to-skip": longName,
+			storageos.ReservedLabelPrefix + "param":        "value",
+		},
 	}
 
 	// Non-StorageOS StorageClass.
@@ -59,19 +72,22 @@ func TestMutatePVC(t *testing.T) {
 			name:       "nil labels",
 			namespace:  testNamespace,
 			labels:     nil,
-			wantLabels: map[string]string{"param": "value"},
+			wantLabels: map[string]string{storageos.ReservedLabelPrefix + "param": "value"},
 		},
 		{
 			name:       "overwrite label",
 			namespace:  testNamespace,
-			labels:     map[string]string{"param": "overwrited"},
-			wantLabels: map[string]string{"param": "overwrited"},
+			labels:     map[string]string{storageos.ReservedLabelPrefix + "param": "overwrited"},
+			wantLabels: map[string]string{storageos.ReservedLabelPrefix + "param": "overwrited"},
 		},
 		{
-			name:       "has extra label",
-			namespace:  testNamespace,
-			labels:     map[string]string{"extra": "value"},
-			wantLabels: map[string]string{"param": "value", "extra": "value"},
+			name:      "has extra label",
+			namespace: testNamespace,
+			labels:    map[string]string{"extra": "value"},
+			wantLabels: map[string]string{
+				storageos.ReservedLabelPrefix + "param": "value",
+				"extra":                                 "value",
+			},
 		},
 	}
 

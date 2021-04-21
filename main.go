@@ -327,10 +327,11 @@ func main() {
 	})
 	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
 
-	pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-		encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
-		sclabel.NewLabelSetter(mgr.GetClient()),
-	})
+	// Mutators need to run in a specific order, encryption mutator depends on labels
+	pvcMutators := make([]pvcmutator.Mutator, 2)
+	pvcMutators[0] = sclabel.NewLabelSetter(mgr.GetClient())
+	pvcMutators[1] = encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default())
+	pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, pvcMutators)
 	mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 
 	setupLog.Info("starting manager")

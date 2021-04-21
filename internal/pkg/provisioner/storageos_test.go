@@ -96,7 +96,7 @@ func Test_IsStorageOSNode(t *testing.T) {
 	}
 }
 
-func TestIsStorageOSPVC(t *testing.T) {
+func TestHasStorageOSAnnotation(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -154,7 +154,7 @@ func TestIsStorageOSPVC(t *testing.T) {
 		var tt = tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := IsStorageOSPVC(tt.obj); got != tt.want {
+			if got := HasStorageOSAnnotation(tt.obj); got != tt.want {
 				t.Errorf("IsStorageOSPVC() = %v, want %v", got, tt.want)
 			}
 		})

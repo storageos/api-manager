@@ -21,13 +21,14 @@ import (
 	pvcmutator "github.com/storageos/api-manager/controllers/pvc-mutator"
 	sclabel "github.com/storageos/api-manager/controllers/pvc-mutator/sc-label"
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
-var storageClassLabels = map[string]string{"param": "value"}
+var storageClassLabels = map[string]string{storageos.ReservedLabelPrefix + "param": "value"}
 
 // SetupPVCSCLabelTest will set up a testing environment.  It must be called
 // from each test.
-func SetupPVCSCLabelTest(ctx context.Context) {
+func SetupPVCSCLabelTest(ctx context.Context, addMutator bool) {
 	var cancel func()
 
 	sc := storagev1.StorageClass{
@@ -71,12 +72,14 @@ func SetupPVCSCLabelTest(ctx context.Context) {
 		decoder, err := admission.NewDecoder(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
-		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-			sclabel.NewLabelSetter(mgr.GetClient()),
-		})
+		if addMutator {
+			pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
+				sclabel.NewLabelSetter(mgr.GetClient()),
+			})
 
-		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
-		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+			mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
+			Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+		}
 
 		Expect(k8sClient.Create(ctx, &sc)).Should(Succeed())
 
@@ -127,7 +130,7 @@ var _ = Describe("PVC StorageClass label sync controller", func() {
 	ctx := context.Background()
 
 	Context("When the PVC Mutator has no mutators", func() {
-		SetupPVCSCLabelTest(ctx)
+		SetupPVCSCLabelTest(ctx, false)
 		It("The pvc should be created", func() {
 			pvc := genPVC()
 
@@ -150,7 +153,7 @@ var _ = Describe("PVC StorageClass label sync controller", func() {
 	})
 
 	Context("When the PVC Mutator has mutators", func() {
-		SetupPVCSCLabelTest(ctx)
+		SetupPVCSCLabelTest(ctx, true)
 		It("The pvc should be created", func() {
 			pvc := genPVC()
 

@@ -26,7 +26,7 @@ import (
 
 // SetupPVCKeygenTest will set up a testing environment.  It must be called
 // from each test.
-func SetupPVCKeygenTest(ctx context.Context) {
+func SetupPVCKeygenTest(ctx context.Context, addMutator bool) {
 	var cancel func()
 
 	sc := storagev1.StorageClass{
@@ -75,12 +75,14 @@ func SetupPVCKeygenTest(ctx context.Context) {
 			return
 		}
 
-		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-			encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
-		})
+		if addMutator {
+			pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
+				encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
+			})
 
-		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
-		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+			mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
+			Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+		}
 
 		Expect(k8sClient.Create(ctx, &sc)).Should(Succeed())
 
@@ -137,7 +139,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	}
 
 	Context("When the PVC Mutator has no mutators", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, false)
 		It("The pvc should be created", func() {
 			pvc := genPVC(map[string]string{}, nil)
 
@@ -160,7 +162,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has encryption enabled", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, true)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, nil)
 
@@ -234,7 +236,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has key name annotation set", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, true)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNameAnnotationKey: "my-key",
@@ -310,7 +312,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has key namespace annotation set", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, true)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNamespaceAnnotationKey: "default",
@@ -386,7 +388,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has key namespace annotation set to a namespace different than the PVC", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, true)
 		It("The pvc should not be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNamespaceAnnotationKey: "another-users-namespace",

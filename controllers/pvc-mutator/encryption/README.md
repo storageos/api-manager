@@ -40,7 +40,7 @@ namespaces that PVC will be created in.  This is enabled by default.
 
 ## Trigger
 
-All PVC create events are evaluated.
+Only PVCs that will be provisioned by StorageOS are candidates for mutation.
 
 Only PVCs that do have the label `storageos.com/encryption=true` set are
 processed.

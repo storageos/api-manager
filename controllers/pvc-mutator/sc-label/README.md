@@ -1,12 +1,14 @@
-# PVC Label Mutator
+# StorageClass Parameter Sync
 
-The PVC Label Mutator ensures that all the parameters
-configured in StorageClass has the equivalent label in created PVC.
+The StorageClass Parameter Sync mutator copies StorageOS-specific parameters from the StorageClass to the PVC as labels.
+This ensures that the defaults set in the StorageClass aren't overwritten by the PVC Label Sync controller.
+
+The StorageClass Parameter Sync mutator will not overwrite existing PVC labels.
 
 ## Trigger
 
-All PVC create events are evaluated.
+Only PVCs that will be provisioned by StorageOS are candidates for mutation.
 
 ## Tunables
 
-There are currently no tunable flags for PVC Encryption.
+There are currently no tunable flags for StorageClass Parameter Sync.

@@ -2,11 +2,14 @@ package sclabel
 
 import (
 	"context"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,7 +45,7 @@ func (s *LabelSetter) MutatePVC(ctx context.Context, pvc *corev1.PersistentVolum
 		return errors.Wrap(err, "failed to check pvc provisioner")
 	}
 	if !provisioned {
-		log.V(4).Info("pvc does not provisioned by StorageOS, skipping")
+		log.V(4).Info("pvc was not provisioned by StorageOS, skipping")
 		return nil
 	}
 
@@ -57,10 +60,19 @@ func (s *LabelSetter) MutatePVC(ctx context.Context, pvc *corev1.PersistentVolum
 		pvc.Labels = make(map[string]string)
 	}
 	for k, v := range storageClass.Parameters {
+		if !strings.HasPrefix(k, storageos.ReservedLabelPrefix) {
+			continue
+		}
+		if len(validation.IsQualifiedName(k)) > 0 {
+			continue
+		}
+		if len(validation.IsValidLabelValue(v)) > 0 {
+			continue
+		}
+
 		if _, ok := pvc.Labels[k]; ok {
 			continue
 		}
-		v := v
 		pvc.Labels[k] = v
 	}
 
