@@ -81,6 +81,27 @@ func IsStorageOSPVC(obj client.Object) bool {
 	return false
 }
 
+// IsProvisionedPVC returns true if the PVC was provided by one of
+// the given provisioners.
+func IsProvisionedPVC(k8s client.Client, pvc corev1.PersistentVolumeClaim, namespace string, provisioners ...string) (bool, error) {
+	// Get the StorageClass that provisioned the volume.
+	sc, err := StorageClassForPVC(k8s, &pvc)
+	if err != nil {
+		return false, err
+	}
+
+	// Check if the StorageClass provisioner matches with any of the provided
+	// provisioners.
+	for _, provisioner := range provisioners {
+		if sc.Provisioner == provisioner {
+			// This is a managed volume.
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // IsStorageOSVolume returns true if the volume's PVC was provisioned by
 // StorageOS.  The namespace of the Pod/PVC must be provided.
 func IsStorageOSVolume(k8s client.Client, volume corev1.Volume, namespace string) (bool, error) {
@@ -105,20 +126,5 @@ func IsProvisionedVolume(k8s client.Client, volume corev1.Volume, namespace stri
 		return false, errors.Wrap(err, "failed to get PVC")
 	}
 
-	// Get the StorageClass that provisioned the volume.
-	sc, err := StorageClassForPVC(k8s, pvc)
-	if err != nil {
-		return false, err
-	}
-
-	// Check if the StorageClass provisioner matches with any of the provided
-	// provisioners.
-	for _, provisioner := range provisioners {
-		if sc.Provisioner == provisioner {
-			// This is a managed volume.
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return IsProvisionedPVC(k8s, *pvc, namespace, provisioners...)
 }

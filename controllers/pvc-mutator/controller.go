@@ -51,16 +51,15 @@ func (c *Controller) Handle(ctx context.Context, req admission.Request) admissio
 	// pvc object lacks namespace info.
 	namespace := req.AdmissionRequest.Namespace
 
-	// Create a copy of the pod to mutate.
-	copy := pvc.DeepCopy()
+	// Run the mutators on the PVC object.
 	for _, m := range c.mutators {
-		if err := m.MutatePVC(ctx, copy, namespace); err != nil {
+		if err := m.MutatePVC(ctx, pvc, namespace); err != nil {
 			c.log.Error(err, "failed to mutate pvc")
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 	}
 
-	marshaledPVC, err := json.Marshal(copy)
+	marshaledPVC, err := json.Marshal(pvc)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
