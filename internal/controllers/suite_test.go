@@ -32,6 +32,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -68,7 +69,7 @@ func TestControllers(t *testing.T) {
 var _ = BeforeSuite(func(done Done) {
 	ctx, cancel = context.WithCancel(context.Background())
 
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.StacktraceLevel(zapcore.PanicLevel)))
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{

@@ -31,6 +31,10 @@ const (
 	// there are fewer copies of the data available than what was requested.
 	ReservedLabelFailureMode = ReservedLabelPrefix + "failure-mode"
 
+	// ReservedLabelEncryption is the PVC label used to indicate that the volume
+	// should be encrypted.
+	ReservedLabelEncryption = ReservedLabelPrefix + "encryption"
+
 	// ReservedLabelFencing can be set on Pods to indicate that the Pod should
 	// be deleted if it is running on a node that StorageOS believes no longer
 	// has access to its storage.

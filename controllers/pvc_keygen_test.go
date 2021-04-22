@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,12 +22,18 @@ import (
 	"github.com/storageos/api-manager/controllers/pvc-mutator/encryption"
 	"github.com/storageos/api-manager/internal/pkg/labels"
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
+	"github.com/storageos/api-manager/internal/pkg/storageos"
 )
 
 // SetupPVCKeygenTest will set up a testing environment.  It must be called
 // from each test.
-func SetupPVCKeygenTest(ctx context.Context) {
+func SetupPVCKeygenTest(ctx context.Context, addMutator bool, isStorageOS bool) {
 	var cancel func()
+
+	driver := "foreign"
+	if isStorageOS {
+		driver = provisioner.DriverName
+	}
 
 	sc := storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
@@ -37,7 +42,7 @@ func SetupPVCKeygenTest(ctx context.Context) {
 				defaultStorageClassKey: "true",
 			},
 		},
-		Provisioner: provisioner.DriverName,
+		Provisioner: driver,
 	}
 
 	BeforeEach(func() {
@@ -76,12 +81,14 @@ func SetupPVCKeygenTest(ctx context.Context) {
 			return
 		}
 
-		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-			encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
-		})
+		if addMutator {
+			pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
+				encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
+			})
 
-		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
-		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+			mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
+			Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+		}
 
 		Expect(k8sClient.Create(ctx, &sc)).Should(Succeed())
 
@@ -111,7 +118,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	)
 
 	genPVC := func(labels map[string]string, annotations map[string]string) corev1.PersistentVolumeClaim {
-		volumeMode := v1.PersistentVolumeFilesystem
+		volumeMode := corev1.PersistentVolumeFilesystem
 		return corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "pvc-" + randStringRunes(5),
@@ -120,7 +127,7 @@ var _ = Describe("PVC Keygen controller", func() {
 				Annotations: annotations,
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{v1.PersistentVolumeAccessMode("ReadWriteOnce")},
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode("ReadWriteOnce")},
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("1Gi"),
@@ -134,11 +141,11 @@ var _ = Describe("PVC Keygen controller", func() {
 	ctx := context.Background()
 
 	labelsEnabled := map[string]string{
-		encryption.EnabledLabel: "true",
+		storageos.ReservedLabelEncryption: "true",
 	}
 
 	Context("When the PVC Mutator has no mutators", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, false, true)
 		It("The pvc should be created", func() {
 			pvc := genPVC(map[string]string{}, nil)
 
@@ -160,8 +167,31 @@ var _ = Describe("PVC Keygen controller", func() {
 		})
 	})
 
+	Context("When the PVC has encryption enabled but is not StorageOS", func() {
+		SetupPVCKeygenTest(ctx, true, false)
+		It("The pvc should be created", func() {
+			pvc := genPVC(labelsEnabled, nil)
+
+			By("Creating the PVC")
+			Expect(k8sClient.Create(ctx, &pvc)).Should(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
+			}()
+
+			By("Expecting the PVC to be unchanged")
+			Consistently(func() corev1.PersistentVolumeClaim {
+				got := corev1.PersistentVolumeClaim{}
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
+				if err != nil {
+					return corev1.PersistentVolumeClaim{}
+				}
+				return got
+			}, timeout, interval).Should(Equal(pvc))
+		})
+	})
+
 	Context("When the PVC has encryption enabled", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, true, true)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, nil)
 
@@ -235,7 +265,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has key name annotation set", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, true, true)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNameAnnotationKey: "my-key",
@@ -311,7 +341,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has key namespace annotation set", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, true, true)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNamespaceAnnotationKey: "default",
@@ -387,7 +417,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has key namespace annotation set to a namespace different than the PVC", func() {
-		SetupPVCKeygenTest(ctx)
+		SetupPVCKeygenTest(ctx, true, true)
 		It("The pvc should not be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNamespaceAnnotationKey: "another-users-namespace",

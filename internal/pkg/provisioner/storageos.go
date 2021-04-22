@@ -35,7 +35,7 @@ func IsStorageOS(obj client.Object) (bool, error) {
 	case "Node":
 		return IsStorageOSNode(obj)
 	case "PersistentVolumeClaim":
-		return IsStorageOSPVC(obj), nil
+		return HasStorageOSAnnotation(obj), nil
 	case "Volume":
 		// Use IsStorageOSVolume() directly.
 		return false, ErrUnsupportedKind
@@ -66,13 +66,13 @@ func IsStorageOSNode(obj client.Object) (bool, error) {
 	return false, nil
 }
 
-// IsStorageOSPVC returns true if the object has the StorageOS CSI driver
+// HasStorageOSAnnotation returns true if the object has the StorageOS CSI driver
 // set as the storage provisioner.  This will only be set on PVCs.
 //
 // The annotation is added by Kubernetes core during the PVC provisioning
 // workflow, immediately after the provisioner is determined from the
 // StorageClass.  It is only set on dynamically-provisioned PVCs (which is ok).
-func IsStorageOSPVC(obj client.Object) bool {
+func HasStorageOSAnnotation(obj client.Object) bool {
 	annotations := obj.GetAnnotations()
 	provisioner, ok := annotations[PVCProvisionerAnnotationKey]
 	if ok {

@@ -8,7 +8,9 @@ PersistentVolumeClaims during the create process.
 The PVC Mutator can run multiple mutation functions, each performing a different
 task:
 
-- TODO(croomes): List of mutators should be added here.
+- [Encryption key generator](/controllers/pvc-mutator/encryption/README.md):
+  ensures that PVCs that have requested encryption have a valid configuration,
+  generating encryption keys if needed.
 
 ## Tunables
 

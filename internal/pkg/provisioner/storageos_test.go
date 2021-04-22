@@ -87,16 +87,16 @@ func Test_IsStorageOSNode(t *testing.T) {
 			t.Parallel()
 			got, gotErr := IsStorageOSNode(tt.obj)
 			if (gotErr != nil) != tt.wantErr {
-				t.Errorf("NodeHasStorageOS() error = %v, wantErr %t", gotErr, tt.wantErr)
+				t.Errorf("IsStorageOSNode() error = %v, wantErr %t", gotErr, tt.wantErr)
 			}
 			if got != tt.want {
-				t.Errorf("NodeHasStorageOS() = %v, want %v", got, tt.want)
+				t.Errorf("IsStorageOSNode() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestIsStorageOSPVC(t *testing.T) {
+func TestHasStorageOSAnnotation(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -154,8 +154,8 @@ func TestIsStorageOSPVC(t *testing.T) {
 		var tt = tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := IsStorageOSPVC(tt.obj); got != tt.want {
-				t.Errorf("IsStorageOSPVC() = %v, want %v", got, tt.want)
+			if got := HasStorageOSAnnotation(tt.obj); got != tt.want {
+				t.Errorf("HasStorageOSAnnotation() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -167,11 +167,11 @@ func TestIsProvisionedVolume(t *testing.T) {
 	provisioned, err := IsProvisionedVolume(nil, corev1.Volume{}, "")
 
 	if provisioned {
-		t.Errorf("TestIsProvisionedVolume() = %t", provisioned)
+		t.Errorf("IsProvisionedVolume() = %t", provisioned)
 		return
 	}
 	if err != nil {
-		t.Errorf("TestIsProvisionedVolume() error = %v, not allowed", err)
+		t.Errorf("IsProvisionedVolume() error = %v, not allowed", err)
 		return
 	}
 }
