@@ -6,13 +6,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
-	"github.com/storageos/api-manager/internal/pkg/storageos"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-const AnnotationKey = storageos.ReservedLabelPrefix + "storageclass"
 
 // AnnotationSetter is responsible to add an annotation
 // to link the StorageClass with the PVC.
@@ -47,7 +44,7 @@ func (s *AnnotationSetter) MutatePVC(ctx context.Context, pvc *corev1.Persistent
 
 	// Skip mutation if the PVC is not provisioned by StorageOS
 	if provisioned := provisioner.IsProvisionedStorageClass(storageClass, provisioner.DriverName); !provisioned {
-		log.V(4).Info("pvc was not provisioned by StorageOS, skipping")
+		log.V(4).Info("pvc does not provisioned by StorageOS, skipping")
 		return nil
 	}
 
@@ -55,7 +52,7 @@ func (s *AnnotationSetter) MutatePVC(ctx context.Context, pvc *corev1.Persistent
 	if pvc.Annotations == nil {
 		pvc.Annotations = make(map[string]string)
 	}
-	pvc.Annotations[AnnotationKey] = string(storageClass.UID)
+	pvc.Annotations[provisioner.StorageClassUUIDAnnotationKey] = string(storageClass.UID)
 
 	log.Info("set StorageClass UID as annotation")
 	return nil

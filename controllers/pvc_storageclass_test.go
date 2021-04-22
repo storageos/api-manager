@@ -10,7 +10,6 @@ import (
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -134,25 +133,6 @@ var _ = Describe("PVC StorageClass UID to annotation controller", func() {
 		interval = time.Millisecond * 250
 	)
 
-	genPVC := func() corev1.PersistentVolumeClaim {
-		volumeMode := corev1.PersistentVolumeFilesystem
-		return corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "pvc-" + randStringRunes(5),
-				Namespace: "default",
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode("ReadWriteOnce")},
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: resource.MustParse("1Gi"),
-					},
-				},
-				VolumeMode: &volumeMode,
-			},
-		}
-	}
-
 	ctx := context.Background()
 
 	Context("When the PVC Mutator has no mutators", func() {
@@ -207,7 +187,7 @@ var _ = Describe("PVC StorageClass UID to annotation controller", func() {
 					return ""
 				}
 
-				return mutatedPVC.Annotations[storageclass.AnnotationKey]
+				return mutatedPVC.Annotations[provisioner.StorageClassUUIDAnnotationKey]
 			}, timeout, interval).Should(Equal(string(persistedSC.UID)))
 		})
 	})

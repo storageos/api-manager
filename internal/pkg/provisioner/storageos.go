@@ -94,14 +94,13 @@ func IsProvisionedPVC(k8s client.Client, pvc corev1.PersistentVolumeClaim, names
 	return IsProvisionedStorageClass(sc, provisioners...), nil
 }
 
-// IsProvisionedStorageClass returns true if the StorageClass was provided by one of
-// the given provisioners.
+// IsProvisionedStorageClass returns true if the StorageClass has one of the given provisioners.
 func IsProvisionedStorageClass(sc *storagev1.StorageClass, provisioners ...string) bool {
 	// Check if the StorageClass provisioner matches with any of the provided
 	// provisioners.
 	for _, provisioner := range provisioners {
 		if sc.Provisioner == provisioner {
-			// This is a managed storage class.
+			// Provisoned by one of the provisioners
 			return true
 		}
 	}

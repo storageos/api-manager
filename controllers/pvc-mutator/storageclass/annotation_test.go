@@ -16,6 +16,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+func TestMutatePVCErrorToFetchStorageClass(t *testing.T) {
+	// Create a new scheme and add all the types from different clientsets.
+	scheme := runtime.NewScheme()
+	if err := kscheme.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a fake client to fail on get StorageClass
+	k8s := fake.NewClientBuilder().Build()
+
+	// Create a AnnotationSetter instance with the fake client.
+	annotationSetter := AnnotationSetter{
+		Client: k8s,
+		log:    ctrl.Log,
+	}
+
+	namespace := "namespace"
+
+	// Create a pvc
+	pvc := createPVC("pvc1", namespace, nil)
+
+	err := annotationSetter.MutatePVC(context.Background(), pvc, namespace)
+	if err == nil {
+		t.Fatal("this must fail")
+	}
+}
+
 func TestMutatePVC(t *testing.T) {
 	// Create a new scheme and add all the types from different clientsets.
 	scheme := runtime.NewScheme()
@@ -56,13 +83,7 @@ func TestMutatePVC(t *testing.T) {
 		name         string
 		namespace    string
 		storageClass *storagev1.StorageClass
-		wantErr      bool
 	}{
-		{
-			name:      "empty StorageClass",
-			namespace: testNamespace,
-			wantErr:   true,
-		},
 		{
 			name:         "foreign StorageClass",
 			namespace:    testNamespace,
@@ -97,14 +118,11 @@ func TestMutatePVC(t *testing.T) {
 
 			err := annotationSetter.MutatePVC(context.Background(), pvc, tc.namespace)
 			if err != nil {
-				if !tc.wantErr {
-					t.Errorf("got unexpected error: %v", err)
-				}
-				return
+				t.Fatalf("got unexpected error: %v", err)
 			}
 
 			// Collect annotation to test
-			scAnnotation, ok := pvc.Annotations[AnnotationKey]
+			scAnnotation, ok := pvc.Annotations[provisioner.StorageClassUUIDAnnotationKey]
 
 			// Validate result
 			switch tc.storageClass.Provisioner {
