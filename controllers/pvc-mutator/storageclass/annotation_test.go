@@ -23,7 +23,7 @@ func TestMutatePVCErrorToFetchStorageClass(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create a fake client to fail on get StorageClass
+	// Create a fake client to fail on get StorageClass.
 	k8s := fake.NewClientBuilder().Build()
 
 	// Create a AnnotationSetter instance with the fake client.
@@ -34,7 +34,7 @@ func TestMutatePVCErrorToFetchStorageClass(t *testing.T) {
 
 	namespace := "namespace"
 
-	// Create a pvc
+	// Create a pvc.
 	pvc := createPVC("pvc1", namespace, nil)
 
 	err := annotationSetter.MutatePVC(context.Background(), pvc, namespace)
@@ -55,6 +55,9 @@ func TestMutatePVC(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			UID:  types.UID("storageos-default-uid"),
 			Name: "stos-default",
+			Annotations: map[string]string{
+				provisioner.DefaultStorageClassKey: "true",
+			},
 		},
 		Provisioner: provisioner.DriverName,
 	}
@@ -66,6 +69,18 @@ func TestMutatePVC(t *testing.T) {
 			Name: "stos",
 		},
 		Provisioner: provisioner.DriverName,
+	}
+
+	// Default non-StorageOS StorageClass.
+	defaultNotStosSC := &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:  types.UID("default-foo-uid"),
+			Name: "default-non-stos",
+			Annotations: map[string]string{
+				provisioner.DefaultStorageClassKey: "true",
+			},
+		},
+		Provisioner: "foo-provisioner",
 	}
 
 	// Non-StorageOS StorageClass.
@@ -80,24 +95,46 @@ func TestMutatePVC(t *testing.T) {
 	testNamespace := "default"
 
 	testcases := []struct {
-		name         string
-		namespace    string
-		storageClass *storagev1.StorageClass
+		name                string
+		namespace           string
+		storageClass        *storagev1.StorageClass
+		defaultStorageClass *storagev1.StorageClass
 	}{
 		{
-			name:         "foreign StorageClass",
-			namespace:    testNamespace,
-			storageClass: notStosSC,
+			name:                "not given with foreign default",
+			namespace:           testNamespace,
+			storageClass:        nil,
+			defaultStorageClass: defaultNotStosSC,
 		},
 		{
-			name:         "default StorageClass",
-			namespace:    testNamespace,
-			storageClass: defStosSC,
+			name:                "not given with StorageOS default",
+			namespace:           testNamespace,
+			storageClass:        nil,
+			defaultStorageClass: defStosSC,
 		},
 		{
-			name:         "given StorageClass",
-			namespace:    testNamespace,
-			storageClass: stosSC,
+			name:                "foreign given with foreign default",
+			namespace:           testNamespace,
+			storageClass:        notStosSC,
+			defaultStorageClass: defaultNotStosSC,
+		},
+		{
+			name:                "foreign given with StorageOS default",
+			namespace:           testNamespace,
+			storageClass:        notStosSC,
+			defaultStorageClass: defStosSC,
+		},
+		{
+			name:                "StorageOS given with foreign default",
+			namespace:           testNamespace,
+			storageClass:        stosSC,
+			defaultStorageClass: defaultNotStosSC,
+		},
+		{
+			name:                "StorageOS given with StorageOS default",
+			namespace:           testNamespace,
+			storageClass:        stosSC,
+			defaultStorageClass: defStosSC,
 		},
 	}
 
@@ -105,15 +142,18 @@ func TestMutatePVC(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			// Create all the above resources and get a k8s client.
-			k8s := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defStosSC, stosSC, notStosSC).Build()
+			k8sBuilder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.defaultStorageClass)
+			if tc.storageClass != nil {
+				k8sBuilder.WithObjects(tc.storageClass)
+			}
 
 			// Create a AnnotationSetter instance with the fake client.
 			annotationSetter := AnnotationSetter{
-				Client: k8s,
+				Client: k8sBuilder.Build(),
 				log:    ctrl.Log,
 			}
 
-			// Create a pvc
+			// Create a pvc.
 			pvc := createPVC("pvc1", tc.namespace, tc.storageClass)
 
 			err := annotationSetter.MutatePVC(context.Background(), pvc, tc.namespace)
@@ -121,14 +161,20 @@ func TestMutatePVC(t *testing.T) {
 				t.Fatalf("got unexpected error: %v", err)
 			}
 
-			// Collect annotation to test
+			// Collect annotation to test.
 			scAnnotation, ok := pvc.Annotations[provisioner.StorageClassUUIDAnnotationKey]
 
-			// Validate result
-			switch tc.storageClass.Provisioner {
+			// Select default if not given.
+			storageClass := tc.defaultStorageClass
+			if tc.storageClass != nil {
+				storageClass = tc.storageClass
+			}
+
+			// Validate result.
+			switch storageClass.Provisioner {
 			case provisioner.DriverName:
-				if scAnnotation != string(tc.storageClass.UID) {
-					t.Errorf("annotation value got:\n%s\n, want:\n%s", scAnnotation, string(tc.storageClass.UID))
+				if scAnnotation != string(storageClass.UID) {
+					t.Errorf("annotation value got:\n%s\n, want:\n%s", scAnnotation, string(storageClass.UID))
 				}
 			default:
 				if ok {

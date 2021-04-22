@@ -22,46 +22,23 @@ import (
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
 )
 
-var (
-	deaultStorageClassName         = "stos-default"
-	givenStorageClassName          = "stos"
-	nonProvisionedStorageClassName = "non-stos"
+// Define utility constants for object names and testing timeouts and intervals.
+const (
+	storageClassTimeout  = time.Second * 1
+	storageClassInterval = time.Millisecond * 250
 )
 
-// SetupPVCStorageClassAnnotationTestTest will set up a testing environment.  It must be called
+var (
+	defaultStorageClassName        = "stos-default"
+	givenStorageClassName          = "stos"
+	foreignDefaultStorageClassName = "non-stos-default"
+	foreignStorageClassName        = "non-stos"
+)
+
+// SetupPVCStorageClassAnnotationTest will set up a testing environment.  It must be called
 // from each test.
-func SetupPVCStorageClassAnnotationTestTest(ctx context.Context, addMutator bool) {
+func SetupPVCStorageClassAnnotationTest(ctx context.Context, storageClasses ...storagev1.StorageClass) {
 	var cancel func()
-
-	// Default StorageOS StorageClass.
-	defStosSC := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			// UID:  types.UID("storageos-default-uid"),
-			Name: deaultStorageClassName,
-			Annotations: map[string]string{
-				defaultStorageClassKey: "true",
-			},
-		},
-		Provisioner: provisioner.DriverName,
-	}
-
-	// StorageOS StorageClass.
-	stosSC := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			// UID:  types.UID("storageos-uid"),
-			Name: givenStorageClassName,
-		},
-		Provisioner: provisioner.DriverName,
-	}
-
-	// Non-StorageOS StorageClass.
-	notStosSC := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			// UID:  types.UID("foo-uid"),
-			Name: nonProvisionedStorageClassName,
-		},
-		Provisioner: "foo-provisioner",
-	}
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(ctx)
@@ -93,18 +70,17 @@ func SetupPVCStorageClassAnnotationTestTest(ctx context.Context, addMutator bool
 		decoder, err := admission.NewDecoder(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
-		if addMutator {
-			pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-				storageclass.NewAnnotationSetter(mgr.GetClient()),
-			})
+		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
+			storageclass.NewAnnotationSetter(mgr.GetClient()),
+		})
 
-			mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
-			Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
+		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+
+		for _, sc := range storageClasses {
+			sc := sc
+			Expect(k8sClient.Create(ctx, &sc)).Should(Succeed())
 		}
-
-		Expect(k8sClient.Create(ctx, defStosSC)).Should(Succeed())
-		Expect(k8sClient.Create(ctx, stosSC)).Should(Succeed())
-		Expect(k8sClient.Create(ctx, notStosSC)).Should(Succeed())
 
 		go func() {
 			err := mgr.Start(ctx)
@@ -116,27 +92,34 @@ func SetupPVCStorageClassAnnotationTestTest(ctx context.Context, addMutator bool
 	})
 
 	AfterEach(func() {
-		Expect(k8sClient.Delete(ctx, defStosSC)).Should(Succeed())
-		Expect(k8sClient.Delete(ctx, stosSC)).Should(Succeed())
-		Expect(k8sClient.Delete(ctx, notStosSC)).Should(Succeed())
+		for _, sc := range storageClasses {
+			sc := sc
+			Expect(k8sClient.Delete(ctx, &sc)).Should(Succeed())
+		}
 
 		cancel()
 	})
 }
 
 var _ = Describe("PVC StorageClass UID to annotation controller", func() {
-	// Define utility constants for object names and testing timeouts/durations
-	// and intervals.
-	const (
-		timeout  = time.Second * 1
-		duration = time.Second * 1
-		interval = time.Millisecond * 250
-	)
-
 	ctx := context.Background()
 
-	Context("When the PVC Mutator has no mutators", func() {
-		SetupPVCStorageClassAnnotationTestTest(ctx, false)
+	Context("When there is not StorageClass", func() {
+		SetupPVCStorageClassAnnotationTest(ctx)
+
+		It("The pvc should not be created", func() {
+			By("Expecting the PVC has default StorageClass")
+			pvc := genPVC()
+
+			By("Creating the PVC")
+			Expect(k8sClient.Create(ctx, &pvc)).ShouldNot(Succeed())
+		})
+	})
+
+	Context("When the default is not StorageOS not given", func() {
+		defaultStorageClass := getStorageClass(foreignDefaultStorageClassName, true)
+
+		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass)
 
 		It("The pvc should be created", func() {
 			pvc := genPVC()
@@ -147,7 +130,7 @@ var _ = Describe("PVC StorageClass UID to annotation controller", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC to be unchanged")
+			By("Expecting the PVC has to be unchanged")
 			Consistently(func() corev1.PersistentVolumeClaim {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
@@ -155,18 +138,19 @@ var _ = Describe("PVC StorageClass UID to annotation controller", func() {
 					return corev1.PersistentVolumeClaim{}
 				}
 				return got
-			}, timeout, interval).Should(Equal(pvc))
+			}, storageClassTimeout, storageClassInterval).Should(Equal(pvc))
 		})
 	})
 
-	Context("When the PVC Mutator has mutators", func() {
-		SetupPVCStorageClassAnnotationTestTest(ctx, true)
+	Context("When the default is not StorageOS given is not StorageOS", func() {
+		defaultStorageClass := getStorageClass(foreignDefaultStorageClassName, true)
+		foreignStorageClass := getStorageClass(foreignStorageClassName, false)
 
-		It("The pvc has default StorageClass", func() {
-			scName := deaultStorageClassName
+		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, foreignStorageClass)
 
+		It("The pvc should be created", func() {
 			pvc := genPVC()
-			pvc.Spec.StorageClassName = &scName
+			pvc.Spec.StorageClassName = &foreignStorageClass.Name
 
 			By("Creating the PVC")
 			Expect(k8sClient.Create(ctx, &pvc)).Should(Succeed())
@@ -174,11 +158,40 @@ var _ = Describe("PVC StorageClass UID to annotation controller", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
+			By("Expecting the PVC has to be unchanged")
+			Consistently(func() corev1.PersistentVolumeClaim {
+				got := corev1.PersistentVolumeClaim{}
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
+				if err != nil {
+					return corev1.PersistentVolumeClaim{}
+				}
+				return got
+			}, storageClassTimeout, storageClassInterval).Should(Equal(pvc))
+		})
+	})
+
+	Context("When the default is not StorageOS given is StorageOS", func() {
+		defaultStorageClass := getStorageClass(foreignDefaultStorageClassName, true)
+		givenStorageClass := getStorageClass(givenStorageClassName, false)
+
+		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, givenStorageClass)
+
+		It("The pvc should be created", func() {
+			pvc := genPVC()
+			pvc.Spec.StorageClassName = &givenStorageClass.Name
+
+			By("Creating the PVC")
+			Expect(k8sClient.Create(ctx, &pvc)).Should(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
+			}()
+
+			By("Fetching the StorageClass")
 			persistedSC := storagev1.StorageClass{}
-			err := k8sClient.Get(ctx, client.ObjectKey{Name: scName}, &persistedSC)
+			err := k8sClient.Get(ctx, client.ObjectKey{Name: givenStorageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting StorageClass have configured as annotation")
+			By("Expecting the PVC to be patched")
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
@@ -188,7 +201,120 @@ var _ = Describe("PVC StorageClass UID to annotation controller", func() {
 				}
 
 				return mutatedPVC.Annotations[provisioner.StorageClassUUIDAnnotationKey]
-			}, timeout, interval).Should(Equal(string(persistedSC.UID)))
+			}, storageClassTimeout, storageClassInterval).Should(Equal(string(persistedSC.UID)))
+		})
+	})
+
+	Context("When the default is StorageOS not given", func() {
+		defaultStorageClass := getStorageClass(defaultStorageClassName, true)
+
+		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass)
+
+		It("The pvc should be created", func() {
+			pvc := genPVC()
+
+			By("Creating the PVC")
+			Expect(k8sClient.Create(ctx, &pvc)).Should(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
+			}()
+
+			By("Fetching the StorageClass")
+			persistedSC := storagev1.StorageClass{}
+			err := k8sClient.Get(ctx, client.ObjectKey{Name: defaultStorageClass.Name}, &persistedSC)
+			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
+
+			By("Expecting the PVC to be patched")
+			Eventually(func() string {
+				var mutatedPVC corev1.PersistentVolumeClaim
+
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
+				if err != nil {
+					return ""
+				}
+
+				return mutatedPVC.Annotations[provisioner.StorageClassUUIDAnnotationKey]
+			}, storageClassTimeout, storageClassInterval).Should(Equal(string(persistedSC.UID)))
+		})
+	})
+
+	Context("When the default is StorageOS given is not StorageOS", func() {
+		defaultStorageClass := getStorageClass(defaultStorageClassName, true)
+		foreignStorageClass := getStorageClass(foreignStorageClassName, false)
+
+		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, foreignStorageClass)
+
+		It("The pvc should be created", func() {
+			pvc := genPVC()
+			pvc.Spec.StorageClassName = &foreignStorageClass.Name
+
+			By("Creating the PVC")
+			Expect(k8sClient.Create(ctx, &pvc)).Should(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
+			}()
+
+			By("Expecting the PVC has to be unchanged")
+			Consistently(func() corev1.PersistentVolumeClaim {
+				got := corev1.PersistentVolumeClaim{}
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
+				if err != nil {
+					return corev1.PersistentVolumeClaim{}
+				}
+				return got
+			}, storageClassTimeout, storageClassInterval).Should(Equal(pvc))
+		})
+	})
+
+	Context("When the default is StorageOS given is StorageOS", func() {
+		defaultStorageClass := getStorageClass(defaultStorageClassName, true)
+		givenStorageClass := getStorageClass(givenStorageClassName, false)
+
+		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, givenStorageClass)
+
+		It("The pvc should be created", func() {
+			pvc := genPVC()
+			pvc.Spec.StorageClassName = &givenStorageClass.Name
+
+			By("Creating the PVC")
+			Expect(k8sClient.Create(ctx, &pvc)).Should(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
+			}()
+
+			By("Fetching the StorageClass")
+			persistedSC := storagev1.StorageClass{}
+			err := k8sClient.Get(ctx, client.ObjectKey{Name: givenStorageClass.Name}, &persistedSC)
+			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
+
+			By("Expecting the PVC to be patched")
+			Eventually(func() string {
+				var mutatedPVC corev1.PersistentVolumeClaim
+
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
+				if err != nil {
+					return ""
+				}
+
+				return mutatedPVC.Annotations[provisioner.StorageClassUUIDAnnotationKey]
+			}, storageClassTimeout, storageClassInterval).Should(Equal(string(persistedSC.UID)))
 		})
 	})
 })
+
+func getStorageClass(name string, isDefault bool) storagev1.StorageClass {
+	sc := storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Provisioner: provisioner.DriverName,
+	}
+
+	if isDefault {
+		sc.Annotations = map[string]string{
+			provisioner.DefaultStorageClassKey: "true",
+		}
+	}
+
+	return sc
+}

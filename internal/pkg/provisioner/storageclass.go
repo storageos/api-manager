@@ -17,9 +17,9 @@ const (
 	// still be checked as k8s still supports it.
 	pvcStorageClassKey = "volume.beta.kubernetes.io/storage-class"
 
-	// defaultStorageClassKey is the annotation used to denote whether a
+	// DefaultStorageClassKey is the annotation used to denote whether a
 	// StorageClass is the cluster default.
-	defaultStorageClassKey = "storageclass.kubernetes.io/is-default-class"
+	DefaultStorageClassKey = "storageclass.kubernetes.io/is-default-class"
 
 	// StorageClassUUIDAnnotationKey is the annotation on the PVC that stores
 	// the UUID of the StorageClass that was used to provision it.  It is used
@@ -65,7 +65,7 @@ func DefaultStorageClass(k8s client.Client) (*storagev1.StorageClass, error) {
 		return nil, fmt.Errorf("failed to get StorageClasses: %v", err)
 	}
 	for _, sc := range scList.Items {
-		if val, ok := sc.Annotations[defaultStorageClassKey]; ok && val == "true" {
+		if val, ok := sc.Annotations[DefaultStorageClassKey]; ok && val == "true" {
 			return &sc, nil
 		}
 	}

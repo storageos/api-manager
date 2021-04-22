@@ -23,12 +23,6 @@ import (
 	"github.com/storageos/api-manager/internal/pkg/provisioner"
 )
 
-const (
-	// defaultStorageClassKey is the annotation used to denote whether a
-	// StorageClass is the cluster default.
-	defaultStorageClassKey = "storageclass.kubernetes.io/is-default-class"
-)
-
 // SetupSchedulerTest will set up a testing environment.  It must be called
 // from each test.
 func SetupSchedulerTest(ctx context.Context, schedulerName string, scs []*storagev1.StorageClass, pvcs []*corev1.PersistentVolumeClaim) {
@@ -104,19 +98,19 @@ func SetupSchedulerTest(ctx context.Context, schedulerName string, scs []*storag
 	})
 }
 
-func genSC(provisioner string) storagev1.StorageClass {
+func genSC(prov string) storagev1.StorageClass {
 	return storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "sc-" + randStringRunes(5),
 		},
-		Provisioner: provisioner,
+		Provisioner: prov,
 	}
 }
 
-func genDefaultSC(provisioner string) storagev1.StorageClass {
-	sc := genSC(provisioner)
+func genDefaultSC(prov string) storagev1.StorageClass {
+	sc := genSC(prov)
 	sc.SetAnnotations(map[string]string{
-		defaultStorageClassKey: "true",
+		provisioner.DefaultStorageClassKey: "true",
 	})
 	return sc
 }

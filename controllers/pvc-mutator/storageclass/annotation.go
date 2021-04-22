@@ -36,24 +36,24 @@ func (s *AnnotationSetter) MutatePVC(ctx context.Context, pvc *corev1.Persistent
 	log := s.log.WithValues("pvc", client.ObjectKeyFromObject(pvc).String())
 	log.V(4).Info("received pvc for mutation")
 
-	// Find StorageClass of PVC
+	// Find StorageClass of PVC.
 	storageClass, err := provisioner.StorageClassForPVC(s.Client, pvc)
 	if err != nil {
 		return errors.Wrap(err, "failed to check pvc provisioner")
 	}
 
-	// Skip mutation if the PVC is not provisioned by StorageOS
+	// Skip mutation if the PVC will not be provisioned by StorageOS.
 	if provisioned := provisioner.IsProvisionedStorageClass(storageClass, provisioner.DriverName); !provisioned {
-		log.V(4).Info("pvc does not provisioned by StorageOS, skipping")
+		log.V(4).Info("pvc will not be provisioned by StorageOS, skipping")
 		return nil
 	}
 
-	// Set annotation on the PVC based on StorageClass
+	// Set annotation on the PVC based on StorageClass.
 	if pvc.Annotations == nil {
 		pvc.Annotations = make(map[string]string)
 	}
 	pvc.Annotations[provisioner.StorageClassUUIDAnnotationKey] = string(storageClass.UID)
 
-	log.Info("set StorageClass UID as annotation")
+	log.Info("set StorageClass UID as annotation", "pvc", pvc.Name, "uid", string(storageClass.UID))
 	return nil
 }
