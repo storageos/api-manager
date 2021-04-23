@@ -301,6 +301,39 @@ func TestIsProvisionedPVC(t *testing.T) {
 	}
 }
 
+func TestIsProvisionedStorageClass(t *testing.T) {
+	provisioner := DriverName
+
+	testcases := []struct {
+		name            string
+		storageClass    storagev1.StorageClass
+		wantProvisioned bool
+	}{
+		{
+			name:         "not-provisioned",
+			storageClass: storagev1.StorageClass{},
+		},
+		{
+			name: "provisioned",
+			storageClass: storagev1.StorageClass{
+				Provisioner: provisioner,
+			},
+			wantProvisioned: true,
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			isProvisioned := IsProvisionedStorageClass(&tc.storageClass, provisioner)
+
+			if isProvisioned != tc.wantProvisioned {
+				t.Errorf("provisoned flag got:\n%t\n, want:\n%t", isProvisioned, tc.wantProvisioned)
+			}
+		})
+	}
+}
+
 // createPVC creates and returns a PVC object.
 func createPVC(name, namespace, storageClassName string, betaAnnotation bool) corev1.PersistentVolumeClaim {
 	pvc := corev1.PersistentVolumeClaim{

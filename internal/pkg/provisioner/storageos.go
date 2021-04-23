@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -90,16 +91,21 @@ func IsProvisionedPVC(k8s client.Client, pvc corev1.PersistentVolumeClaim, names
 		return false, err
 	}
 
+	return IsProvisionedStorageClass(sc, provisioners...), nil
+}
+
+// IsProvisionedStorageClass returns true if the StorageClass has one of the given provisioners.
+func IsProvisionedStorageClass(sc *storagev1.StorageClass, provisioners ...string) bool {
 	// Check if the StorageClass provisioner matches with any of the provided
 	// provisioners.
 	for _, provisioner := range provisioners {
 		if sc.Provisioner == provisioner {
-			// This is a managed volume.
-			return true, nil
+			// Provisoned by one of the provisioners
+			return true
 		}
 	}
 
-	return false, nil
+	return false
 }
 
 // IsStorageOSVolume returns true if the volume's PVC was provisioned by

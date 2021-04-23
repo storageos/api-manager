@@ -12,6 +12,9 @@ task:
   ensures that PVCs that have requested encryption have a valid configuration,
   generating encryption keys if needed.
 
+- [StorageClass to annotation](/controllers/pvc-mutator/storageclass/README.md):
+  ensures that StorageOS related PVCs have their StorageClass' UID as an annotation.
+
 ## Tunables
 
 There are currently no tunable flags for the PVC Mutator.
