@@ -8,8 +8,9 @@ github.com/apache/thrift/lib/go/thrift
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/darkowlzz/operator-toolkit v0.0.0-20210417061919-7030a782a07c
+# github.com/darkowlzz/operator-toolkit v0.0.0-20210426100703-6262535ea515
 ## explicit
+github.com/darkowlzz/operator-toolkit/client/composite
 github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1
 github.com/darkowlzz/operator-toolkit/controller/external/builder
 github.com/darkowlzz/operator-toolkit/controller/external/cache

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	cclient "github.com/darkowlzz/operator-toolkit/client/composite"
 	"github.com/darkowlzz/operator-toolkit/webhook/cert"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -67,11 +68,17 @@ func SetupPVCStorageClassAnnotationTest(ctx context.Context, storageClasses ...s
 		})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
+		compositeClient, err := cclient.NewClientFromManager(mgr, cclient.Options{})
+		if err != nil {
+			Expect(err).NotTo(HaveOccurred(), "failed to create composite client")
+			return
+		}
+
 		decoder, err := admission.NewDecoder(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
-		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-			storageclass.NewAnnotationSetter(mgr.GetClient()),
+		pvcMutator := pvcmutator.NewController(compositeClient, decoder, []pvcmutator.Mutator{
+			storageclass.NewAnnotationSetter(compositeClient),
 		})
 
 		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})

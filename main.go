@@ -31,6 +31,7 @@ import (
 	"os"
 	"time"
 
+	cclient "github.com/darkowlzz/operator-toolkit/client/composite"
 	"github.com/darkowlzz/operator-toolkit/telemetry/export"
 	"github.com/darkowlzz/operator-toolkit/webhook/cert"
 	"go.uber.org/zap/zapcore"
@@ -231,6 +232,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	compositeClient := cclient.NewClient(mgr.GetClient(), uncachedClient, cclient.Options{})
+
 	// Get the namespace that we're running in.  This will always be set in
 	// normal deployments, but allow it to be set manually for testing.
 	if namespace == "" {
@@ -331,14 +334,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	podMutator := podmutator.NewController(mgr.GetClient(), decoder, []podmutator.Mutator{
-		scheduler.NewPodSchedulerSetter(mgr.GetClient(), schedulerName),
+	podMutator := podmutator.NewController(compositeClient, decoder, []podmutator.Mutator{
+		scheduler.NewPodSchedulerSetter(compositeClient, schedulerName),
 	})
 	mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
 
-	pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-		encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
-		storageclass.NewAnnotationSetter(mgr.GetClient()),
+	pvcMutator := pvcmutator.NewController(compositeClient, decoder, []pvcmutator.Mutator{
+		encryption.NewKeySetter(compositeClient, labels.Default()),
+		storageclass.NewAnnotationSetter(compositeClient),
 	})
 	mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 

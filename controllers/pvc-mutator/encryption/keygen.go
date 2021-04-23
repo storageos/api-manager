@@ -79,14 +79,14 @@ type EncryptionKeySetter struct {
 // NewKeySetter returns a new PVC encryption key mutating admission
 // controller that generates volume encryption keys and sets references to their
 // location as PVC annotations.
-func NewKeySetter(k8s client.Client, uncached client.Client, labels map[string]string) *EncryptionKeySetter {
+func NewKeySetter(k8s client.Client, labels map[string]string) *EncryptionKeySetter {
 	return &EncryptionKeySetter{
 		enabledLabel:                 storageos.ReservedLabelEncryption,
 		secretNameAnnotationKey:      SecretNameAnnotationKey,
 		secretNamespaceAnnotationKey: SecretNamespaceAnnotationKey,
 
 		Client: k8s,
-		keys:   keys.New(uncached),
+		keys:   keys.New(k8s),
 		labels: labels,
 		log:    ctrl.Log.WithName("keygen"),
 	}
