@@ -10,7 +10,6 @@ import (
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -39,7 +38,7 @@ func SetupPVCKeygenTest(ctx context.Context, addMutator bool, isStorageOS bool) 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				defaultStorageClassKey: "true",
+				provisioner.DefaultStorageClassKey: "true",
 			},
 		},
 		Provisioner: driver,
@@ -118,24 +117,14 @@ var _ = Describe("PVC Keygen controller", func() {
 	)
 
 	genPVC := func(labels map[string]string, annotations map[string]string) corev1.PersistentVolumeClaim {
-		volumeMode := corev1.PersistentVolumeFilesystem
-		return corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        "pvc-" + randStringRunes(5),
-				Namespace:   "default",
-				Labels:      labels,
-				Annotations: annotations,
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode("ReadWriteOnce")},
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: resource.MustParse("1Gi"),
-					},
-				},
-				VolumeMode: &volumeMode,
-			},
-		}
+		pvc := genPVC()
+
+		pvc.Labels = labels
+		pvc.Annotations = annotations
+		vm := corev1.PersistentVolumeFilesystem
+		pvc.Spec.VolumeMode = &vm
+
+		return pvc
 	}
 
 	ctx := context.Background()
