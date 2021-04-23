@@ -39,7 +39,7 @@ func TestMutatePVCErrorToFetchStorageClass(t *testing.T) {
 
 	err := annotationSetter.MutatePVC(context.Background(), pvc, namespace)
 	if err == nil {
-		t.Fatal("this must fail")
+		t.Fatal("expected error, got none")
 	}
 }
 

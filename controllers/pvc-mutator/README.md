@@ -13,7 +13,7 @@ task:
   generating encryption keys if needed.
 
 - [StorageClass to annotation](/controllers/pvc-mutator/storageclass/README.md):
-  ensures that StorageOS related PVCs have them StorageClass as an annotation.
+  ensures that StorageOS related PVCs have their StorageClass' UID as an annotation.
 
 ## Tunables
 
