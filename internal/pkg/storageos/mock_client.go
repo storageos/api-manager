@@ -434,7 +434,7 @@ func (c *MockClient) RandomVol() *SharedVolume {
 		ServiceName:      "pvc-" + uuid.New().String(),
 		PVCName:          randomString(8),
 		Namespace:        "default",
-		InternalEndpoint: fmt.Sprintf("%d.%d.%d.%d:%d", rand.Intn(253)+1, rand.Intn(253)+1, rand.Intn(253)+1, rand.Intn(253)+1, rand.Intn(65534)+1),
+		InternalEndpoint: fmt.Sprintf("%d.%d.%d.%d:%d", rand.Intn(100)+1, rand.Intn(253)+1, rand.Intn(253)+1, rand.Intn(253)+1, rand.Intn(65534)+1),
 	}
 }
 
