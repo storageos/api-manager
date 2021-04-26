@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	cclient "github.com/darkowlzz/operator-toolkit/client/composite"
 	"github.com/darkowlzz/operator-toolkit/webhook/cert"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -74,15 +75,15 @@ func SetupPVCKeygenTest(ctx context.Context, addMutator bool, isStorageOS bool) 
 		decoder, err := admission.NewDecoder(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
-		uncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+		compositeClient, err := cclient.NewClientFromManager(mgr, cclient.Options{})
 		if err != nil {
-			Expect(err).NotTo(HaveOccurred(), "failed to create raw client")
+			Expect(err).NotTo(HaveOccurred(), "failed to create composite client")
 			return
 		}
 
 		if addMutator {
-			pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, []pvcmutator.Mutator{
-				encryption.NewKeySetter(mgr.GetClient(), uncachedClient, labels.Default()),
+			pvcMutator := pvcmutator.NewController(compositeClient, decoder, []pvcmutator.Mutator{
+				encryption.NewKeySetter(compositeClient, labels.Default()),
 			})
 
 			mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})

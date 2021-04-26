@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	cclient "github.com/darkowlzz/operator-toolkit/client/composite"
 	"github.com/darkowlzz/operator-toolkit/webhook/cert"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,10 +54,16 @@ func SetupPVCMutatorTest(ctx context.Context, mutators []pvcmutator.Mutator) {
 		})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
+		compositeClient, err := cclient.NewClientFromManager(mgr, cclient.Options{})
+		if err != nil {
+			Expect(err).NotTo(HaveOccurred(), "failed to create composite client")
+			return
+		}
+
 		decoder, err := admission.NewDecoder(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
-		pvcMutator := pvcmutator.NewController(mgr.GetClient(), decoder, mutators)
+		pvcMutator := pvcmutator.NewController(compositeClient, decoder, mutators)
 		mgr.GetWebhookServer().Register(webhookMutatePVCsPath, &webhook.Admission{Handler: pvcMutator})
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	cclient "github.com/darkowlzz/operator-toolkit/client/composite"
 	"github.com/darkowlzz/operator-toolkit/webhook/cert"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -65,11 +66,17 @@ func SetupSchedulerTest(ctx context.Context, schedulerName string, scs []*storag
 		})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
+		compositeClient, err := cclient.NewClientFromManager(mgr, cclient.Options{})
+		if err != nil {
+			Expect(err).NotTo(HaveOccurred(), "failed to create composite client")
+			return
+		}
+
 		decoder, err := admission.NewDecoder(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred(), "failed to create decoder")
 
-		podMutator := podmutator.NewController(mgr.GetClient(), decoder, []podmutator.Mutator{
-			scheduler.NewPodSchedulerSetter(mgr.GetClient(), schedulerName),
+		podMutator := podmutator.NewController(compositeClient, decoder, []podmutator.Mutator{
+			scheduler.NewPodSchedulerSetter(compositeClient, schedulerName),
 		})
 		mgr.GetWebhookServer().Register(webhookMutatePodsPath, &webhook.Admission{Handler: podMutator})
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
