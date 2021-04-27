@@ -34,6 +34,7 @@ var (
 	stosStorageClassName           = "stos"
 	nonStosDefaultStorageClassName = "non-stos-default"
 	nonStosStorageClassName        = "non-stos"
+	nonStosProvisioner             = "foo-provisiioner"
 )
 
 // SetupPVCStorageClassAnnotationTest will set up a testing environment.  It must be called
@@ -124,7 +125,7 @@ var _ = Describe("The default StorageClass has not been configured", func() {
 	})
 
 	Context("When the given StorageClass is non StorageOS", func() {
-		storageClass := getStorageClass(nonStosStorageClassName, false)
+		storageClass := getStorageClass(nonStosStorageClassName, nonStosProvisioner, false)
 
 		SetupPVCStorageClassAnnotationTest(ctx, storageClass)
 
@@ -139,19 +140,20 @@ var _ = Describe("The default StorageClass has not been configured", func() {
 			}()
 
 			By("Expecting the PVC has to be unchanged")
-			Consistently(func() corev1.PersistentVolumeClaim {
+			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return corev1.PersistentVolumeClaim{}
+					return "kube get error"
 				}
-				return got
-			}, storageClassTimeout, storageClassInterval).Should(Equal(pvc))
+
+				return got.Annotations[provisioner.StorageClassUUIDAnnotationKey]
+			}, storageClassTimeout, storageClassInterval).Should(BeEmpty())
 		})
 	})
 
 	Context("When the given StorageClass is StorageOS", func() {
-		storageClass := getStorageClass(stosStorageClassName, false)
+		storageClass := getStorageClass(stosStorageClassName, provisioner.DriverName, false)
 
 		SetupPVCStorageClassAnnotationTest(ctx, storageClass)
 
@@ -189,7 +191,7 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 	ctx := context.Background()
 
 	Context("When there is no given StorageClass", func() {
-		defaultStorageClass := getStorageClass(nonStosDefaultStorageClassName, true)
+		defaultStorageClass := getStorageClass(nonStosDefaultStorageClassName, nonStosProvisioner, true)
 
 		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass)
 
@@ -203,20 +205,21 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 			}()
 
 			By("Expecting the PVC has to be unchanged")
-			Consistently(func() corev1.PersistentVolumeClaim {
+			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return corev1.PersistentVolumeClaim{}
+					return "kube get error"
 				}
-				return got
-			}, storageClassTimeout, storageClassInterval).Should(Equal(pvc))
+
+				return got.Annotations[provisioner.StorageClassUUIDAnnotationKey]
+			}, storageClassTimeout, storageClassInterval).Should(BeEmpty())
 		})
 	})
 
 	Context("When the given StorageClass is not StorageOS", func() {
-		defaultStorageClass := getStorageClass(nonStosDefaultStorageClassName, true)
-		storageClass := getStorageClass(nonStosStorageClassName, false)
+		defaultStorageClass := getStorageClass(nonStosDefaultStorageClassName, nonStosProvisioner, true)
+		storageClass := getStorageClass(nonStosStorageClassName, nonStosProvisioner, false)
 
 		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, storageClass)
 
@@ -231,20 +234,21 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 			}()
 
 			By("Expecting the PVC has to be unchanged")
-			Consistently(func() corev1.PersistentVolumeClaim {
+			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return corev1.PersistentVolumeClaim{}
+					return "kube get error"
 				}
-				return got
-			}, storageClassTimeout, storageClassInterval).Should(Equal(pvc))
+
+				return got.Annotations[provisioner.StorageClassUUIDAnnotationKey]
+			}, storageClassTimeout, storageClassInterval).Should(BeEmpty())
 		})
 	})
 
 	Context("When the given StorageClass is StorageOS", func() {
-		defaultStorageClass := getStorageClass(nonStosDefaultStorageClassName, true)
-		storageClass := getStorageClass(stosStorageClassName, false)
+		defaultStorageClass := getStorageClass(nonStosDefaultStorageClassName, nonStosProvisioner, true)
+		storageClass := getStorageClass(stosStorageClassName, provisioner.DriverName, false)
 
 		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, storageClass)
 
@@ -282,7 +286,7 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 	ctx := context.Background()
 
 	Context("When there is no given StorageClass", func() {
-		defaultStorageClass := getStorageClass(stosDefaultStorageClassName, true)
+		defaultStorageClass := getStorageClass(stosDefaultStorageClassName, provisioner.DriverName, true)
 
 		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass)
 
@@ -315,8 +319,8 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 	})
 
 	Context("When the given StorageClass is not StorageOS", func() {
-		defaultStorageClass := getStorageClass(stosDefaultStorageClassName, true)
-		storageClass := getStorageClass(nonStosStorageClassName, false)
+		defaultStorageClass := getStorageClass(stosDefaultStorageClassName, provisioner.DriverName, true)
+		storageClass := getStorageClass(nonStosStorageClassName, "foo-provisioner", false)
 
 		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, storageClass)
 
@@ -331,20 +335,21 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 			}()
 
 			By("Expecting the PVC has to be unchanged")
-			Consistently(func() corev1.PersistentVolumeClaim {
+			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return corev1.PersistentVolumeClaim{}
+					return "kube get error"
 				}
-				return got
-			}, storageClassTimeout, storageClassInterval).Should(Equal(pvc))
+
+				return got.Annotations[provisioner.StorageClassUUIDAnnotationKey]
+			}, storageClassTimeout, storageClassInterval).Should(BeEmpty())
 		})
 	})
 
 	Context("When the given StorageClass is StorageOS", func() {
-		defaultStorageClass := getStorageClass(stosDefaultStorageClassName, true)
-		storageClass := getStorageClass(stosStorageClassName, false)
+		defaultStorageClass := getStorageClass(stosDefaultStorageClassName, provisioner.DriverName, true)
+		storageClass := getStorageClass(stosStorageClassName, provisioner.DriverName, false)
 
 		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, storageClass)
 
@@ -378,12 +383,12 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 	})
 })
 
-func getStorageClass(name string, isDefault bool) storagev1.StorageClass {
+func getStorageClass(name, driverName string, isDefault bool) storagev1.StorageClass {
 	sc := storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Provisioner: provisioner.DriverName,
+		Provisioner: driverName,
 	}
 
 	if isDefault {
