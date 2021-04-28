@@ -139,12 +139,12 @@ var _ = Describe("The default StorageClass has not been configured", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC has to be unchanged")
+			By("Expecting the PVC hasn't annotated with StorageClass")
 			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return "kube get error"
+					return err.Error()
 				}
 
 				return got.Annotations[provisioner.StorageClassUUIDAnnotationKey]
@@ -172,7 +172,7 @@ var _ = Describe("The default StorageClass has not been configured", func() {
 			err := k8sClient.Get(ctx, client.ObjectKey{Name: storageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting the PVC to be patched")
+			By("Expecting the PVC has annotated with StorageClass")
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
@@ -204,12 +204,12 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC has to be unchanged")
+			By("Expecting the PVC hasn't annotated with StorageClass")
 			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return "kube get error"
+					return err.Error()
 				}
 
 				return got.Annotations[provisioner.StorageClassUUIDAnnotationKey]
@@ -233,12 +233,12 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC has to be unchanged")
+			By("Expecting the PVC hasn't annotated with StorageClass")
 			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return "kube get error"
+					return err.Error()
 				}
 
 				return got.Annotations[provisioner.StorageClassUUIDAnnotationKey]
@@ -267,7 +267,7 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 			err := k8sClient.Get(ctx, client.ObjectKey{Name: storageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting the PVC to be patched")
+			By("Expecting the PVC has annotated with StorageClass")
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
@@ -304,7 +304,7 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 			err := k8sClient.Get(ctx, client.ObjectKey{Name: defaultStorageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting the PVC to be patched")
+			By("Expecting the PVC has annotated with StorageClass")
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
@@ -320,7 +320,7 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 
 	Context("When the given StorageClass is not StorageOS", func() {
 		defaultStorageClass := getStorageClass(stosDefaultStorageClassName, provisioner.DriverName, true)
-		storageClass := getStorageClass(nonStosStorageClassName, "foo-provisioner", false)
+		storageClass := getStorageClass(nonStosStorageClassName, nonStosProvisioner, false)
 
 		SetupPVCStorageClassAnnotationTest(ctx, defaultStorageClass, storageClass)
 
@@ -334,12 +334,12 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC has to be unchanged")
+			By("Expecting the PVC hasn't annotated with StorageClass")
 			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return "kube get error"
+					return err.Error()
 				}
 
 				return got.Annotations[provisioner.StorageClassUUIDAnnotationKey]
@@ -368,7 +368,7 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 			err := k8sClient.Get(ctx, client.ObjectKey{Name: storageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting the PVC to be patched")
+			By("Expecting the PVC has annotated with StorageClass")
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
