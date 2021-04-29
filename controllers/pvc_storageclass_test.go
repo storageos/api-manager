@@ -139,7 +139,7 @@ var _ = Describe("The default StorageClass has not been configured", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC hasn't annotated with StorageClass")
+			By("Expecting the PVC not to have the StorageClass annotation")
 			// The create operation mutates the PVC, so the testcase has
 			// reference only to the final version. Only annotations could be tested.
 			Consistently(func() string {
@@ -174,7 +174,7 @@ var _ = Describe("The default StorageClass has not been configured", func() {
 			err := k8sClient.Get(ctx, client.ObjectKey{Name: storageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting the PVC has annotated with StorageClass")
+			By("Expecting the PVC has the StorageClass annotation")
 			// The create operation mutates the PVC, so the testcase has
 			// reference only to the final version. Only annotations could be tested.
 			Eventually(func() string {
@@ -208,7 +208,7 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC hasn't annotated with StorageClass")
+			By("Expecting the PVC not to have the StorageClass annotation")
 			// The create operation mutates the PVC, so the testcase has
 			// reference only to the final version. Only annotations could be tested.
 			Consistently(func() string {
@@ -239,7 +239,7 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC hasn't annotated with StorageClass")
+			By("Expecting the PVC not to have the StorageClass annotation")
 			// The create operation mutates the PVC, so the testcase has
 			// reference only to the final version. Only annotations could be tested.
 			Consistently(func() string {
@@ -275,7 +275,7 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 			err := k8sClient.Get(ctx, client.ObjectKey{Name: storageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting the PVC has annotated with StorageClass")
+			By("Expecting the PVC has the StorageClass annotation")
 			// The create operation mutates the PVC, so the testcase has
 			// reference only to the final version. Only annotations could be tested.
 			Eventually(func() string {
@@ -314,7 +314,7 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 			err := k8sClient.Get(ctx, client.ObjectKey{Name: defaultStorageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting the PVC has annotated with StorageClass")
+			By("Expecting the PVC has the StorageClass annotation")
 			// The create operation mutates the PVC, so the testcase has
 			// reference only to the final version. Only annotations could be tested.
 			Eventually(func() string {
@@ -346,7 +346,7 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC hasn't annotated with StorageClass")
+			By("Expecting the PVC not to have the StorageClass annotation")
 			// The create operation mutates the PVC, so the testcase has
 			// reference only to the final version. Only annotations could be tested.
 			Consistently(func() string {
@@ -382,7 +382,7 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 			err := k8sClient.Get(ctx, client.ObjectKey{Name: storageClass.Name}, &persistedSC)
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
-			By("Expecting the PVC has annotated with StorageClass")
+			By("Expecting the PVC has the StorageClass annotation")
 			// The create operation mutates the PVC, so the testcase has
 			// reference only to the final version. Only annotations could be tested.
 			Eventually(func() string {
