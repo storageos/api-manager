@@ -145,15 +145,17 @@ var _ = Describe("PVC Keygen controller", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC to be unchanged")
-			Consistently(func() corev1.PersistentVolumeClaim {
+			By("Expecting the PVC not to have any annotations")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
+			Consistently(func() map[string]string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return corev1.PersistentVolumeClaim{}
+					return nil
 				}
-				return got
-			}, timeout, interval).Should(Equal(pvc))
+				return got.Annotations
+			}, timeout, interval).Should(BeEmpty())
 		})
 	})
 
@@ -168,15 +170,17 @@ var _ = Describe("PVC Keygen controller", func() {
 				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
 			}()
 
-			By("Expecting the PVC to be unchanged")
-			Consistently(func() corev1.PersistentVolumeClaim {
+			By("Expecting the PVC not to have any annotations")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
+			Consistently(func() map[string]string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
 				if err != nil {
-					return corev1.PersistentVolumeClaim{}
+					return nil
 				}
-				return got
-			}, timeout, interval).Should(Equal(pvc))
+				return got.Annotations
+			}, timeout, interval).Should(BeEmpty())
 		})
 	})
 
@@ -202,7 +206,7 @@ var _ = Describe("PVC Keygen controller", func() {
 			Eventually(func() string {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
 				if err != nil {
-					return ""
+					return err.Error()
 				}
 				secretName = mutatedPVC.Annotations[encryption.SecretNameAnnotationKey]
 				return secretName
@@ -212,7 +216,7 @@ var _ = Describe("PVC Keygen controller", func() {
 			Eventually(func() string {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
 				if err != nil {
-					return ""
+					return err.Error()
 				}
 				secretNamespace = mutatedPVC.Annotations[encryption.SecretNamespaceAnnotationKey]
 				return secretNamespace
@@ -278,7 +282,7 @@ var _ = Describe("PVC Keygen controller", func() {
 			Eventually(func() string {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
 				if err != nil {
-					return ""
+					return err.Error()
 				}
 				secretName = mutatedPVC.Annotations[encryption.SecretNameAnnotationKey]
 				return secretName
@@ -288,7 +292,7 @@ var _ = Describe("PVC Keygen controller", func() {
 			Eventually(func() string {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
 				if err != nil {
-					return ""
+					return err.Error()
 				}
 				secretNamespace = mutatedPVC.Annotations[encryption.SecretNamespaceAnnotationKey]
 				return secretNamespace
@@ -354,7 +358,7 @@ var _ = Describe("PVC Keygen controller", func() {
 			Eventually(func() string {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
 				if err != nil {
-					return ""
+					return err.Error()
 				}
 				secretName = mutatedPVC.Annotations[encryption.SecretNameAnnotationKey]
 				return secretName
@@ -364,7 +368,7 @@ var _ = Describe("PVC Keygen controller", func() {
 			Eventually(func() string {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
 				if err != nil {
-					return ""
+					return err.Error()
 				}
 				secretNamespace = mutatedPVC.Annotations[encryption.SecretNamespaceAnnotationKey]
 				return secretNamespace
