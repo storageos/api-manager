@@ -140,6 +140,8 @@ var _ = Describe("The default StorageClass has not been configured", func() {
 			}()
 
 			By("Expecting the PVC hasn't annotated with StorageClass")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
 			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
@@ -173,6 +175,8 @@ var _ = Describe("The default StorageClass has not been configured", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
 			By("Expecting the PVC has annotated with StorageClass")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
@@ -205,6 +209,8 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 			}()
 
 			By("Expecting the PVC hasn't annotated with StorageClass")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
 			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
@@ -234,6 +240,8 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 			}()
 
 			By("Expecting the PVC hasn't annotated with StorageClass")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
 			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
@@ -268,6 +276,8 @@ var _ = Describe("The default StorageClass is not StorageOS", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
 			By("Expecting the PVC has annotated with StorageClass")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
@@ -305,6 +315,8 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
 			By("Expecting the PVC has annotated with StorageClass")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
@@ -335,6 +347,8 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 			}()
 
 			By("Expecting the PVC hasn't annotated with StorageClass")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
 			Consistently(func() string {
 				got := corev1.PersistentVolumeClaim{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
@@ -369,6 +383,8 @@ var _ = Describe("The default StorageClass is StorageOS", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to fetch StorageClass")
 
 			By("Expecting the PVC has annotated with StorageClass")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
 			Eventually(func() string {
 				var mutatedPVC corev1.PersistentVolumeClaim
 
