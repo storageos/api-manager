@@ -56,7 +56,7 @@ triggered.
 
 A side-effect of the cache expiry is that if there were Pods on the failed node
 that had unhealthy volumes and thus ignored during the initial fencing
-operation, they may now be processed.  If the volumes have recovered since the
+operation, they may now be processed if the node is still unhealthy.  If the volumes have recovered since the
 initial fencing attempt, then fencing will proceed when the node is processed
 again due to the cache expiry.  This behaviour may change or be removed in the
 future, depending on feedback.
