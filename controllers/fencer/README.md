@@ -45,15 +45,21 @@ label set to enable fast failover.
 ## Trigger
 
 The controller reconcile will trigger on any StorageOS node in unhealthy state.
-StorageOS nodes are polled every 5s, configurable with the
+StorageOS nodes are polled every `5s`, configurable with the
 `-node-poll-interval` flag.  This determines how quickly the fencing controller
 can react to node failures.
 
-Pods assigned to unhealthy nodes will be evaluated immediately on state change,
-and then every 1m, configurable with the `-node-expiry-interval` flag.  This
-retry allows Pods that had unhealthy volumes which have now recovered to
-eventually failover, or Pods that were rescheduled on an unhealthy node to be
-re-evaluated for fencing.
+All nodes are also re-evaluated for fencing every `1h`, configurable with the
+`-node-expiry-interval` flag.  When nodes expire from the cache their status is
+re-evaluated. If the node is unhealthy, the controller reconcile will be
+triggered.
+
+A side-effect of the cache expiry is that if there were Pods on the failed node
+that had unhealthy volumes and thus ignored during the initial fencing
+operation, they may now be processed.  If the volumes have recovered since the
+initial fencing attempt, then fencing will proceed when the node is processed
+again due to the cache expiry.  This behaviour may change or be removed in the
+future, depending on feedback.
 
 ## Reconcile
 
@@ -71,3 +77,13 @@ the following actions:
     healthy. If not, skip the Pod.
   - Delete the Pod.
   - Delete the VolumeAttachments for the StorageOS PVCs.
+
+- The fencing operation for a node has a timeout of `25s`, configurable with the
+  `-node-fencer-timeout` flag.  When the timeout is exceeded, the controller
+  will log an error.
+- If any errors were encountered during the fencing operation, and the timeout
+  hasn't been reached, the operation will be retried after a `5s` delay.  The
+  delay is configurable with the `-node-fencer-retry-interval` flag.
+- Once the fencing operation has completed, the node will not re-evaluated again
+  until its status changes to healthy and unhealthy again, or it has expired
+  from the cache.
