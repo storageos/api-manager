@@ -20,7 +20,7 @@ them.
 
 See [StorageOS Feature Labels] for more information.
 
-# StorageClass Defaults
+## StorageClass Defaults
 
 Cluster administrators may set defaults for volumes by setting feature labels as
 parameters in the StorageClass.  The PVC Label Sync Controller will load the
@@ -29,10 +29,10 @@ are taken into account and not removed.
 
 The controller needs to ensure that the defaults set in the StorageClass have
 not changed since the volume was provisioned.  Otherwise a change to a feature
-label in the StorageClass would get immediately applied to all volumes, which
-would not be the expected behaviour.
+label in the StorageClass would get applied to all volumes it provisioned, which
+may not be the expected behaviour.
 
-Since StorageClasses are immutable, to change a parameter requires deleting and
+Since StorageClasses are immutable, changing a parameter requires deleting and
 recreating the StorageClass.  To detect this, when the PVC is created, the UID
 of the StorageClass is set in the `storageos.com/storageclass` annotation on the
 PVC by the [PVC StorageClass Annotation
@@ -40,9 +40,20 @@ Mutator](controllers/pvc-mutator/storageclass/README.md).  The PVC Label Sync
 Controller verifies that the current StorageClass UID matches.  If not, labels
 are not synchronised for the PVC.
 
-To re-enable PVC label sync when there is a StorageClass UID mismatch, manually confirm
-that any StorageClass parameter changes are intended to be applied, then remove
-the PVC StorageClass annotation.
+To re-enable PVC label sync when there is a StorageClass UID mismatch, manually
+confirm that any StorageClass parameter changes are intended to be applied, then
+remove the PVC StorageClass annotation.
+
+If the PVC does not have the `storageos.com/storageclass` annotation and was
+provisioned by StorageOS, the PVC Label Sync Controller will add it, using the
+UID of the current StorageClass matching the name.  This allows PVCs created
+prior to `v2.4.0` (when the [PVC StorageClass Annotation
+Mutator](controllers/pvc-mutator/storageclass/README.md) was added), to
+participate in PVC Label Sync.
+
+**It is possible that pre-`v2.4.0` PVCs were created with a different StorageClass
+than the current, and that the parameters from the new StorageClass will be
+applied when a label sync for the PVC is triggered.**
 
 ## Trigger
 
