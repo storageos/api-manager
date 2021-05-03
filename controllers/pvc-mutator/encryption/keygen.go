@@ -101,21 +101,29 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 	log := s.log.WithValues("pvc", client.ObjectKeyFromObject(pvc).String())
 	log.V(4).Info("received pvc for mutation")
 
-	// Skip mutation if the PVC is not provisioned by StorageOS
-	provisioned, err := provisioner.IsProvisionedPVC(s.Client, *pvc, namespace, provisioner.DriverName)
+	// Retrieve StorageClass of the PVC.
+	storageClass, err := provisioner.StorageClassForPVC(s.Client, pvc)
 	if err != nil {
-		return errors.Wrap(err, "failed to check pvc provisioner")
+		return errors.Wrap(err, "failed to retrieve storageclass of pvc")
 	}
+
+	// Skip mutation if the PVC is not provisioned by StorageOS
+	provisioned := provisioner.IsProvisionedStorageClass(storageClass, provisioner.DriverName)
 	if !provisioned {
 		log.V(4).Info("pvc does not provisioned by StorageOS, skipping")
 		return nil
 	}
 
-	// Skip mutation if the PVC does not have encryption enabled.  Don't bother checking
-	// the StorageClass to make sure it's StorageOS.  The encryption label
-	// should only be added to StorageOS PVCs.
-	if !isEnabled(s.enabledLabel, pvc.GetLabels()) {
-		log.V(4).Info(fmt.Sprintf("pvc does not have %s=true annotation, skipping", s.enabledLabel))
+	// Skip mutation if the PVC does not have encryption enabled.
+	// The encryption label should be added to StorageOS PVCs
+	// or inherited from StorageOS StorageClass.
+	// Invalid value of encryption must block PVC creation.
+	enabled, err := s.isEnabled(pvc.GetLabels(), storageClass.Parameters)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to parse boolean value of %s pvc", s.enabledLabel))
+	}
+	if !enabled {
+		log.V(4).Info("pvc does not have encryption enabled, skipping")
 		return nil
 	}
 
@@ -212,16 +220,14 @@ func GenerateVolumeSecretName() string {
 	return fmt.Sprintf("%s-%s", VolumeSecretNamePrefix, uuid.New().String())
 }
 
-// isEnabled returns true if the key is set in the kv map and its value is true.
-func isEnabled(key string, kv map[string]string) bool {
-	val, exists := kv[key]
-	if !exists {
-		return false
+// isEnabled iterates on given maps and looks for encryption key. First occurence wins.
+func (s *EncryptionKeySetter) isEnabled(hayStacks ...map[string]string) (bool, error) {
+	for _, hayStack := range hayStacks {
+		val, exists := hayStack[s.enabledLabel]
+		if exists {
+			return strconv.ParseBool(val)
+		}
 	}
 
-	boolVal, err := strconv.ParseBool(val)
-	if err != nil {
-		return false
-	}
-	return boolVal
+	return false, nil
 }

@@ -40,8 +40,19 @@ func TestMutatePVC(t *testing.T) {
 		Provisioner: storageosProvisioner,
 	}
 
+	// StorageOS encrypted StorageClass.
+	stosSCEncrypted := &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "stos-enc",
+		},
+		Parameters: map[string]string{
+			storageos.ReservedLabelEncryption: "true",
+		},
+		Provisioner: storageosProvisioner,
+	}
+
 	// Non-StorageOS StorageClass.
-	notstosSC := &storagev1.StorageClass{
+	notStosSC := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "non-stos",
 		},
@@ -53,25 +64,26 @@ func TestMutatePVC(t *testing.T) {
 	testcases := []struct {
 		name                              string
 		namespace                         string
-		notStos                           bool
 		betaAnnotation                    bool
 		labels                            map[string]string
 		annotations                       map[string]string
+		storageClass                      *storagev1.StorageClass
 		wantSecretNameAnnotationGenerated bool
 		wantSecretNameAnnotation          string
 		wantSecretNamespaceAnnotation     string
 		wantErr                           bool
 	}{
 		{
-			name:      "foreign pvc",
-			namespace: testNamespace,
-			notStos:   true,
+			name:         "foreign pvc",
+			namespace:    testNamespace,
+			storageClass: notStosSC,
 		},
 		{
 			name:                          "pvc without encryption",
 			namespace:                     testNamespace,
 			wantSecretNameAnnotation:      "",
 			wantSecretNamespaceAnnotation: "",
+			storageClass:                  stosSC,
 		},
 		{
 			name:      "pvc with encryption",
@@ -79,6 +91,22 @@ func TestMutatePVC(t *testing.T) {
 			labels: map[string]string{
 				storageos.ReservedLabelEncryption: "true",
 			},
+			storageClass:                      stosSC,
+			wantSecretNameAnnotationGenerated: true,
+			wantSecretNamespaceAnnotation:     testNamespace,
+		},
+		{
+			name:      "pvc without encryption",
+			namespace: testNamespace,
+			labels: map[string]string{
+				storageos.ReservedLabelEncryption: "false",
+			},
+			storageClass: stosSC,
+		},
+		{
+			name:                              "pvc with storage class encryption",
+			namespace:                         testNamespace,
+			storageClass:                      stosSCEncrypted,
 			wantSecretNameAnnotationGenerated: true,
 			wantSecretNamespaceAnnotation:     testNamespace,
 		},
@@ -91,6 +119,7 @@ func TestMutatePVC(t *testing.T) {
 			annotations: map[string]string{
 				SecretNameAnnotationKey: "my-secret-name",
 			},
+			storageClass:                  stosSC,
 			wantSecretNameAnnotation:      "my-secret-name",
 			wantSecretNamespaceAnnotation: testNamespace,
 		},
@@ -103,6 +132,7 @@ func TestMutatePVC(t *testing.T) {
 			annotations: map[string]string{
 				SecretNamespaceAnnotationKey: testNamespace,
 			},
+			storageClass:                      stosSC,
 			wantSecretNameAnnotationGenerated: true,
 			wantSecretNamespaceAnnotation:     testNamespace,
 		},
@@ -115,7 +145,8 @@ func TestMutatePVC(t *testing.T) {
 			annotations: map[string]string{
 				SecretNamespaceAnnotationKey: "another-users-ns",
 			},
-			wantErr: true,
+			storageClass: stosSC,
+			wantErr:      true,
 		},
 		{
 			name:      "pvc with user-specifed secret name and namespace",
@@ -127,13 +158,14 @@ func TestMutatePVC(t *testing.T) {
 				SecretNameAnnotationKey:      "my-secret-name",
 				SecretNamespaceAnnotationKey: testNamespace,
 			},
+			storageClass:                  stosSC,
 			wantSecretNameAnnotation:      "my-secret-name",
 			wantSecretNamespaceAnnotation: testNamespace,
 		},
 		{
 			name:                          "non-stos pvc without encryption",
 			namespace:                     testNamespace,
-			notStos:                       true,
+			storageClass:                  notStosSC,
 			wantSecretNameAnnotation:      "",
 			wantSecretNamespaceAnnotation: "",
 		},
@@ -144,6 +176,7 @@ func TestMutatePVC(t *testing.T) {
 				storageos.ReservedLabelEncryption: "true",
 			},
 			betaAnnotation:                    true,
+			storageClass:                      stosSC,
 			wantSecretNameAnnotationGenerated: true,
 			wantSecretNamespaceAnnotation:     testNamespace,
 		},
@@ -153,7 +186,7 @@ func TestMutatePVC(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			// Create all the above resources and get a k8s client.
-			k8s := fake.NewClientBuilder().WithScheme(scheme).WithObjects(stosSC, notstosSC).Build()
+			k8s := fake.NewClientBuilder().WithScheme(scheme).WithObjects(stosSC, stosSCEncrypted, notStosSC).Build()
 
 			// Create a EncryptionKeySetter instance with the fake client.
 			encryptionKeySetter := EncryptionKeySetter{
@@ -166,12 +199,7 @@ func TestMutatePVC(t *testing.T) {
 				log:    ctrl.Log,
 			}
 
-			scName := stosSC.Name
-			if tc.notStos {
-				scName = notstosSC.Name
-			}
-
-			pvc := createPVC("pvc1", tc.namespace, scName, tc.betaAnnotation, tc.labels, tc.annotations)
+			pvc := createPVC("pvc1", tc.namespace, tc.storageClass.Name, tc.betaAnnotation, tc.labels, tc.annotations)
 
 			err := encryptionKeySetter.MutatePVC(context.Background(), pvc, tc.namespace)
 			if err != nil {
@@ -291,11 +319,28 @@ func Test_isEnabled(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		key  string
-		kv   map[string]string
-		want bool
+		name    string
+		key     string
+		kv      map[string]string
+		want    bool
+		wantErr bool
 	}{
+		{
+			name: "empty value",
+			key:  "foo",
+			kv: map[string]string{
+				"foo": "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid value",
+			key:  "foo",
+			kv: map[string]string{
+				"foo": "not true",
+			},
+			wantErr: true,
+		},
 		{
 			name: "enabled",
 			key:  "foo",
@@ -309,14 +354,6 @@ func Test_isEnabled(t *testing.T) {
 			key:  "foo",
 			kv: map[string]string{
 				"foo": "false",
-			},
-			want: false,
-		},
-		{
-			name: "empty value",
-			key:  "foo",
-			kv: map[string]string{
-				"foo": "",
 			},
 			want: false,
 		},
@@ -336,7 +373,16 @@ func Test_isEnabled(t *testing.T) {
 	for _, tt := range tests {
 		var tt = tt
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isEnabled(tt.key, tt.kv); got != tt.want {
+			eks := EncryptionKeySetter{enabledLabel: tt.key}
+
+			got, err := eks.isEnabled(tt.kv)
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("got unexpected error: %v", err)
+				}
+				return
+			}
+			if got != tt.want {
 				t.Errorf("isEnabled() = %v, want %v", got, tt.want)
 			}
 		})
