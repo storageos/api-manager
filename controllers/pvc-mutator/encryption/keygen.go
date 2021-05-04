@@ -220,7 +220,7 @@ func GenerateVolumeSecretName() string {
 	return fmt.Sprintf("%s-%s", VolumeSecretNamePrefix, uuid.New().String())
 }
 
-// isEnabled iterates on the given maps and looks for encryption key. First occurrence wins
+// isEnabled iterates on the given maps and looks for encryption key. First occurrence wins.
 func (s *EncryptionKeySetter) isEnabled(hayStacks ...map[string]string) (bool, error) {
 	for _, hayStack := range hayStacks {
 		val, exists := hayStack[s.enabledLabel]
