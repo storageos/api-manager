@@ -27,13 +27,8 @@ import (
 
 // SetupPVCKeygenTest will set up a testing environment.  It must be called
 // from each test.
-func SetupPVCKeygenTest(ctx context.Context, addMutator bool, isStorageOS bool) {
+func SetupPVCKeygenTest(ctx context.Context, addMutator bool, isStorageOS bool, isStorageClassEncrypted bool) {
 	var cancel func()
-
-	driver := "foreign"
-	if isStorageOS {
-		driver = provisioner.DriverName
-	}
 
 	sc := storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
@@ -42,7 +37,15 @@ func SetupPVCKeygenTest(ctx context.Context, addMutator bool, isStorageOS bool) 
 				provisioner.DefaultStorageClassKey: "true",
 			},
 		},
-		Provisioner: driver,
+		Provisioner: "foreign",
+	}
+	if isStorageOS {
+		sc.Provisioner = provisioner.DriverName
+	}
+	if isStorageClassEncrypted {
+		sc.Parameters = map[string]string{
+			storageos.ReservedLabelEncryption: "true",
+		}
 	}
 
 	BeforeEach(func() {
@@ -135,7 +138,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	}
 
 	Context("When the PVC Mutator has no mutators", func() {
-		SetupPVCKeygenTest(ctx, false, true)
+		SetupPVCKeygenTest(ctx, false, true, false)
 		It("The pvc should be created", func() {
 			pvc := genPVC(map[string]string{}, nil)
 
@@ -160,7 +163,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has encryption enabled but is not StorageOS", func() {
-		SetupPVCKeygenTest(ctx, true, false)
+		SetupPVCKeygenTest(ctx, true, false, false)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, nil)
 
@@ -184,8 +187,36 @@ var _ = Describe("PVC Keygen controller", func() {
 		})
 	})
 
+	Context("When the PVC has encryption disabled", func() {
+		SetupPVCKeygenTest(ctx, true, false, false)
+		It("The pvc should be created", func() {
+			labelsDisabled := map[string]string{
+				storageos.ReservedLabelEncryption: "false",
+			}
+			pvc := genPVC(labelsDisabled, nil)
+
+			By("Creating the PVC")
+			Expect(k8sClient.Create(ctx, &pvc)).Should(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
+			}()
+
+			By("Expecting the PVC not to have any annotations")
+			// The create operation mutates the PVC, so the testcase has
+			// reference only to the final version. Only annotations could be tested.
+			Consistently(func() map[string]string {
+				got := corev1.PersistentVolumeClaim{}
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &got)
+				if err != nil {
+					return nil
+				}
+				return got.Annotations
+			}, timeout, interval).Should(BeEmpty())
+		})
+	})
+
 	Context("When the PVC has encryption enabled", func() {
-		SetupPVCKeygenTest(ctx, true, true)
+		SetupPVCKeygenTest(ctx, true, true, false)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, nil)
 
@@ -258,8 +289,82 @@ var _ = Describe("PVC Keygen controller", func() {
 		})
 	})
 
+	Context("When the StorageClass of PVC has encryption enabled", func() {
+		SetupPVCKeygenTest(ctx, true, true, true)
+		It("The pvc should be created", func() {
+			pvc := genPVC(nil, nil)
+
+			By("Creating the PVC")
+			Expect(k8sClient.Create(ctx, &pvc)).Should(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(ctx, &pvc)).Should(Succeed())
+			}()
+
+			// Scoped here so we can access in multiple tests.
+			var (
+				mutatedPVC      corev1.PersistentVolumeClaim
+				secretName      string
+				secretNamespace string
+			)
+
+			By("Expecting secret name annotation to be set")
+			Eventually(func() string {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
+				if err != nil {
+					return err.Error()
+				}
+				secretName = mutatedPVC.Annotations[encryption.SecretNameAnnotationKey]
+				return secretName
+			}, timeout, interval).ShouldNot(BeEmpty())
+
+			By("Expecting secret namespace annotation to be set")
+			Eventually(func() string {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &mutatedPVC)
+				if err != nil {
+					return err.Error()
+				}
+				secretNamespace = mutatedPVC.Annotations[encryption.SecretNamespaceAnnotationKey]
+				return secretNamespace
+			}, timeout, interval).Should(Equal(pvc.GetNamespace()))
+
+			secretRef := client.ObjectKey{
+				Name:      secretName,
+				Namespace: secretNamespace,
+			}
+
+			By("Expecting secret to exist with 64-bit key set")
+			Eventually(func() int {
+				got := corev1.Secret{}
+				err := k8sClient.Get(ctx, secretRef, &got)
+				if err != nil {
+					return 0
+				}
+				if got.Data == nil {
+					return 0
+				}
+				return len(got.Data["key"])
+			}, timeout, interval).Should(Equal(64))
+
+			By("Expecting secret to have correct labels set")
+			Eventually(func() map[string]string {
+				got := corev1.Secret{}
+				err := k8sClient.Get(ctx, secretRef, &got)
+				if err != nil {
+					return nil
+				}
+				return got.GetLabels()
+			}, timeout, interval).Should(Equal(map[string]string{
+				labels.AppComponent:                 labels.DefaultAppComponent,
+				labels.AppManagedBy:                 labels.DefaultAppManagedBy,
+				labels.AppName:                      labels.DefaultAppName,
+				labels.AppPartOf:                    labels.DefaultAppPartOf,
+				encryption.VolumeSecretPVCNameLabel: pvc.Name,
+			}))
+		})
+	})
+
 	Context("When the PVC has key name annotation set", func() {
-		SetupPVCKeygenTest(ctx, true, true)
+		SetupPVCKeygenTest(ctx, true, true, false)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNameAnnotationKey: "my-key",
@@ -335,7 +440,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has key namespace annotation set", func() {
-		SetupPVCKeygenTest(ctx, true, true)
+		SetupPVCKeygenTest(ctx, true, true, false)
 		It("The pvc should be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNamespaceAnnotationKey: "default",
@@ -411,7 +516,7 @@ var _ = Describe("PVC Keygen controller", func() {
 	})
 
 	Context("When the PVC has key namespace annotation set to a namespace different than the PVC", func() {
-		SetupPVCKeygenTest(ctx, true, true)
+		SetupPVCKeygenTest(ctx, true, true, false)
 		It("The pvc should not be created", func() {
 			pvc := genPVC(labelsEnabled, map[string]string{
 				encryption.SecretNamespaceAnnotationKey: "another-users-namespace",
