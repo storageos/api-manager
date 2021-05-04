@@ -120,7 +120,7 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 	// Invalid value of encryption must block PVC creation.
 	enabled, err := s.isEnabled(pvc.GetLabels(), storageClass.Parameters)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to parse %q option for PVC", s.enabledLabel))
+		return errors.Wrap(err, fmt.Sprintf("failed to parse boolean value for %q pvc label or storageclass parameter", s.enabledLabel))
 	}
 	if !enabled {
 		log.V(4).Info("pvc does not have encryption enabled, skipping")
