@@ -120,7 +120,7 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 	// Invalid value of encryption must block PVC creation.
 	enabled, err := s.isEnabled(pvc.GetLabels(), storageClass.Parameters)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to parse boolean value of %s pvc", s.enabledLabel))
+		return errors.Wrap(err, fmt.Sprintf("failed to parse boolean value of %q pvc", s.enabledLabel))
 	}
 	if !enabled {
 		log.V(4).Info("pvc does not have encryption enabled, skipping")
@@ -220,7 +220,7 @@ func GenerateVolumeSecretName() string {
 	return fmt.Sprintf("%s-%s", VolumeSecretNamePrefix, uuid.New().String())
 }
 
-// isEnabled iterates on given maps and looks for encryption key. First occurence wins.
+// isEnabled iterates on the given maps and looks for encryption key. First occurrence wins
 func (s *EncryptionKeySetter) isEnabled(hayStacks ...map[string]string) (bool, error) {
 	for _, hayStack := range hayStacks {
 		val, exists := hayStack[s.enabledLabel]
