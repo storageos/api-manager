@@ -110,7 +110,7 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 	// Skip mutation if the PVC is not provisioned by StorageOS
 	provisioned := provisioner.IsProvisionedStorageClass(storageClass, provisioner.DriverName)
 	if !provisioned {
-		log.V(4).Info("pvc does not provisioned by StorageOS, skipping")
+		log.V(4).Info("pvc will not be provisioned by StorageOS, skipping")
 		return nil
 	}
 
@@ -120,7 +120,7 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 	// Invalid value of encryption must block PVC creation.
 	enabled, err := s.isEnabled(pvc.GetLabels(), storageClass.Parameters)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to parse boolean value of %q pvc", s.enabledLabel))
+		return errors.Wrap(err, fmt.Sprintf("failed to parse %q option for PVC", s.enabledLabel))
 	}
 	if !enabled {
 		log.V(4).Info("pvc does not have encryption enabled, skipping")
