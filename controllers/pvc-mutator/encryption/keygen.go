@@ -107,7 +107,7 @@ func (s *EncryptionKeySetter) MutatePVC(ctx context.Context, pvc *corev1.Persist
 		return errors.Wrap(err, "failed to retrieve storageclass of pvc")
 	}
 
-	// Skip mutation if the PVC is not provisioned by StorageOS
+	// Skip mutation if the PVC is not provisioned by StorageOS.
 	provisioned := provisioner.IsProvisionedStorageClass(storageClass, provisioner.DriverName)
 	if !provisioned {
 		log.V(4).Info("pvc will not be provisioned by StorageOS, skipping")
