@@ -167,11 +167,9 @@ func (r *Reconciler) Start(ctx context.Context) error {
 			// is no longer required and we can ignore the request.
 			pvc := &corev1.PersistentVolumeClaim{}
 			if err := r.Client.Get(ctx, types.NamespacedName{Name: vol.PVCName, Namespace: vol.Namespace}, pvc); err != nil {
-				if !apierrors.IsNotFound(err) {
-					observeErr(err, "failed to fetch pvc for shared volume")
-					span.End()
-					continue
-				}
+				observeErr(err, "failed to fetch pvc for shared volume")
+				span.End()
+				continue
 			}
 			ownerRef := metav1.OwnerReference{
 				APIVersion: "v1",

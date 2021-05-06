@@ -31,6 +31,7 @@ func TestSharedVolumeReconcile(t *testing.T) {
 
 	fooName := "foo"
 	fooNamespace := "bar"
+	fooUID := types.UID("foo-uid")
 
 	fooPVC := &corev1.PersistentVolumeClaim{
 		TypeMeta: metav1.TypeMeta{
@@ -40,6 +41,7 @@ func TestSharedVolumeReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fooName,
 			Namespace: fooNamespace,
+			UID:       fooUID,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -88,8 +90,8 @@ func TestSharedVolumeReconcile(t *testing.T) {
 							{
 								APIVersion: "v1",
 								Kind:       "PersistentVolumeClaim",
-								Name:       "foo",
-								UID:        "1234",
+								Name:       fooName,
+								UID:        fooUID,
 							},
 						},
 					},
@@ -126,6 +128,30 @@ func TestSharedVolumeReconcile(t *testing.T) {
 				},
 			},
 			wantEvents: 1,
+		},
+		{
+			name: "New volume - PVC not found",
+			volumes: []*storageos.SharedVolume{
+				{
+					ID:          "1234",
+					ServiceName: "baz-service",
+					PVCName:     "foo",
+					Namespace:   "bar",
+				},
+			},
+			pvcs:         []client.Object{},
+			wantServices: []corev1.Service{},
+			wantCached:   []*storageos.SharedVolume{},
+			wantVolumes: storageos.SharedVolumeList{
+				{
+					ID:          "1234",
+					ServiceName: "baz-service",
+					PVCName:     "foo",
+					Namespace:   "bar",
+				},
+			},
+			wantErr:    true,
+			wantEvents: 0,
 		},
 		{
 			name: "Cached volume matches - service won't be created",
@@ -187,8 +213,8 @@ func TestSharedVolumeReconcile(t *testing.T) {
 							{
 								APIVersion: "v1",
 								Kind:       "PersistentVolumeClaim",
-								Name:       "foo",
-								UID:        "1234",
+								Name:       fooName,
+								UID:        fooUID,
 							},
 						},
 					},
@@ -252,8 +278,8 @@ func TestSharedVolumeReconcile(t *testing.T) {
 							{
 								APIVersion: "v1",
 								Kind:       "PersistentVolumeClaim",
-								Name:       "foo",
-								UID:        "1234",
+								Name:       fooName,
+								UID:        fooUID,
 							},
 						},
 					},
@@ -361,6 +387,9 @@ func TestSharedVolumeReconcile(t *testing.T) {
 				}
 				if err := r.Client.Update(ctx, svc, &client.UpdateOptions{}); err != nil {
 					t.Errorf("SharedVolume.Update(svc) error: %v", err)
+				}
+				if !reflect.DeepEqual(svc.GetOwnerReferences(), wantSvc.GetOwnerReferences()) {
+					t.Errorf("SharedVolume.Reconcile() svc owner got:\n%v\n, want:\n%v", svc.GetOwnerReferences(), wantSvc.GetOwnerReferences())
 				}
 			}
 
