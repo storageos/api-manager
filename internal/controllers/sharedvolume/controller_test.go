@@ -64,7 +64,6 @@ func TestSharedVolumeReconcile(t *testing.T) {
 		wantVolumes  storageos.SharedVolumeList
 		wantCached   []*storageos.SharedVolume
 		wantEvents   int
-		wantErr      bool
 		cacheExpiry  time.Duration
 	}{
 		{
@@ -150,7 +149,6 @@ func TestSharedVolumeReconcile(t *testing.T) {
 					Namespace:   "bar",
 				},
 			},
-			wantErr:    true,
 			wantEvents: 0,
 		},
 		{
@@ -364,10 +362,8 @@ func TestSharedVolumeReconcile(t *testing.T) {
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 			go func() {
-				if err := r.Start(ctx); (err != nil) != tt.wantErr {
-					if err != context.DeadlineExceeded {
-						t.Logf("SharedVolume.Reconcile() error = %v, wantErr %v", err, tt.wantErr)
-					}
+				if err := r.Start(ctx); err != nil && err != context.DeadlineExceeded {
+					t.Errorf("SharedVolume.Reconcile() error = %v", err)
 				}
 				wg.Done()
 			}()
