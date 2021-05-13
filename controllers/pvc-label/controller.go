@@ -81,7 +81,7 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 	// don't want to risk applying new default params automatically.  Instead,
 	// the user should manually remove the `storageos.com/storageclass=<uid>`
 	// annotation from the PVC to re-enable label sync for the volume.
-	ok, err := provisioner.ValidateOrSetStorageClassUID(ctx, c.Client, sc.UID, obj)
+	ok, err := provisioner.ValidateOrSetStorageClassUID(ctx, c.Client, sc, obj)
 	if err != nil {
 		return observeErr(fmt.Errorf("failed to set storageclass annotation on the pvc: %w", err))
 	}
