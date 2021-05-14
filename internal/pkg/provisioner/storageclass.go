@@ -99,10 +99,11 @@ func StorageClassReservedParams(sc *storagev1.StorageClass) map[string]string {
 }
 
 // ValidateOrSetStorageClassUID returns true if the StorageClass annotation on
-// the PVC object matches the uid passed in or the StorageClass is younger than PVC.
+// the PVC object matches the UID of the passed in StorageClass
+// or the StorageClass has created before the given PVC.
 //
-// If the annotation does not exist and the StorageClass is younger than PVC,
-// it sets the uid passed in as the new StorageClass annotation.
+// If the annotation does not exist and the StorageClass has created before the PVC,
+// it sets the UID of the passed in StorageClass as the new StorageClass annotation.
 func ValidateOrSetStorageClassUID(ctx context.Context, k8s client.Client, sc client.Object, pvc client.Object) (bool, error) {
 	provisionedUID := pvc.GetAnnotations()[StorageClassUUIDAnnotationKey]
 	if provisionedUID != "" {
@@ -110,7 +111,7 @@ func ValidateOrSetStorageClassUID(ctx context.Context, k8s client.Client, sc cli
 		return string(sc.GetUID()) == provisionedUID, nil
 	}
 
-	// If StorageClass is younger than the PVC itself, the synchronization isn't safe.
+	// If StorageClass has created after the PVC itself, the synchronization isn't safe.
 	if sc.GetCreationTimestamp().Unix() > pvc.GetCreationTimestamp().Unix() {
 		return false, nil
 	}

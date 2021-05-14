@@ -87,7 +87,7 @@ func (c Controller) Ensure(ctx context.Context, obj client.Object) error {
 	}
 	if !ok {
 		// Don't requeue if the StorageClass doesn't match, it's not transient.
-		c.log.Error(err, "current storageclass does not match storageclass annotation on the pvc, skipping label sync")
+		c.log.Error(err, "current storageclass does not match, skipping label sync")
 		return nil
 	}
 
