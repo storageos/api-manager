@@ -99,29 +99,34 @@ func StorageClassReservedParams(sc *storagev1.StorageClass) map[string]string {
 }
 
 // ValidateOrSetStorageClassUID returns true if the StorageClass annotation on
-// the PVC object matches the uid passed in.
+// the PVC object matches the UID of the passed in StorageClass
+// or the StorageClass has created before the given PVC.
 //
-// If the annotation does not exist, it sets the uid passed in as the new
-// StorageClass annotation.
-func ValidateOrSetStorageClassUID(ctx context.Context, k8s client.Client, uid types.UID, obj client.Object) (bool, error) {
-	provisionedUID := obj.GetAnnotations()[StorageClassUUIDAnnotationKey]
+// If the annotation does not exist and the StorageClass has created before the PVC,
+// it sets the UID of the passed in StorageClass as the new StorageClass annotation.
+func ValidateOrSetStorageClassUID(ctx context.Context, k8s client.Client, sc client.Object, pvc client.Object) (bool, error) {
+	provisionedUID := pvc.GetAnnotations()[StorageClassUUIDAnnotationKey]
 	if provisionedUID != "" {
-		return string(uid) == provisionedUID, nil
+		// If UID of StorageClass and PVC are different, the synchronization isn't safe.
+		return string(sc.GetUID()) == provisionedUID, nil
+	}
+
+	// If StorageClass has created after the PVC itself, the synchronization isn't safe.
+	if sc.GetCreationTimestamp().Unix() > pvc.GetCreationTimestamp().Unix() {
+		return false, nil
+	}
+
+	// Convert client object to PersistentVolumeClaim.
+	var v1Pvc corev1.PersistentVolumeClaim
+	if err := k8s.Get(ctx, client.ObjectKeyFromObject(pvc), &v1Pvc); err != nil {
+		return false, err
 	}
 
 	// Annotation not set, set it.
-	if err := SetStorageClassUIDAnnotation(ctx, k8s, uid, obj); err != nil {
+	v1Pvc.Annotations[StorageClassUUIDAnnotationKey] = string(sc.GetUID())
+	if err := k8s.Update(ctx, &v1Pvc, &client.UpdateOptions{}); err != nil {
 		return false, err
 	}
-	return true, nil
-}
 
-// SetStorageClassUIDAnnotation adds the StorageClass annotation to a PVC object.
-func SetStorageClassUIDAnnotation(ctx context.Context, k8s client.Client, uid types.UID, obj client.Object) error {
-	var pvc corev1.PersistentVolumeClaim
-	if err := k8s.Get(ctx, client.ObjectKeyFromObject(obj), &pvc); err != nil {
-		return err
-	}
-	pvc.Annotations[StorageClassUUIDAnnotationKey] = string(uid)
-	return k8s.Update(ctx, &pvc, &client.UpdateOptions{})
+	return true, nil
 }
